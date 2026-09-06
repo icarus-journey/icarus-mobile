@@ -34,10 +34,28 @@ const INITIAL_VALUES = {
   campanha: null,
 };
 
-export function MissionFormScreen({ navigation }) {
-  const { addMission, campaigns } = useMissions();
+function valuesFromMission(mission) {
+  return {
+    titulo: mission.titulo,
+    descricao: mission.descricao ?? '',
+    dataLimite: mission.dataLimite ?? '',
+    dificuldade: mission.dificuldade,
+    recorrente: mission.recorrencia ? 'Sim' : 'Não',
+    tipoRecorrencia: mission.recorrencia ?? 'DIARIA',
+    atribuirCampanha: mission.campanha ? 'Sim' : 'Não',
+    campanha: mission.campanha ?? null,
+  };
+}
+
+export function MissionFormScreen({ navigation, route }) {
+  const { addMission, updateMission, getMissionById, campaigns } = useMissions();
   const insets = useSafeAreaInsets();
-  const [values, setValues] = useState(INITIAL_VALUES);
+  const editingMissionId = route.params?.missionId ?? null;
+  const editingMission = editingMissionId ? getMissionById(editingMissionId) : null;
+
+  const [values, setValues] = useState(() =>
+    editingMission ? valuesFromMission(editingMission) : INITIAL_VALUES,
+  );
   const [errors, setErrors] = useState({});
   const [campaignModalVisible, setCampaignModalVisible] = useState(false);
 
@@ -50,7 +68,11 @@ export function MissionFormScreen({ navigation }) {
     setErrors(validationErrors);
 
     if (isFormValid(validationErrors)) {
-      addMission(values);
+      if (editingMission) {
+        updateMission(editingMission.id, values);
+      } else {
+        addMission(values);
+      }
       navigation.goBack();
     }
   }
@@ -58,7 +80,10 @@ export function MissionFormScreen({ navigation }) {
   return (
     <View style={[styles.screen, { paddingTop: insets.top + 12 }]}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <ScreenHeader title="Nova missão" onBack={() => navigation.goBack()} />
+        <ScreenHeader
+          title={editingMission ? 'Editar missão' : 'Nova missão'}
+          onBack={() => navigation.goBack()}
+        />
 
         <InputField
           label="Título"
@@ -154,7 +179,10 @@ export function MissionFormScreen({ navigation }) {
           </>
         ) : null}
 
-        <PrimaryButton label="Salvar missão" onPress={handleSave} />
+        <PrimaryButton
+          label={editingMission ? 'Salvar alterações' : 'Salvar missão'}
+          onPress={handleSave}
+        />
       </ScrollView>
 
       <CampaignPickerModal

@@ -132,9 +132,8 @@ export function MissionDetailScreen({ route, navigation }) {
         />
         <SecondaryButton
           label="Editar missão"
-          onPress={() => {}}
+          onPress={() => navigation.navigate('MissionForm', { missionId: mission.id })}
           icon={<IconEdit width={24} height={24} />}
-          accessibilityHint="Ainda não disponível nesta versão"
         />
       </ScrollView>
 

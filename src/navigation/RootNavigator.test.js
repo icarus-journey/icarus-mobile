@@ -53,6 +53,25 @@ describe('fluxo de missões', () => {
     expect(screen.getByText('Seus próximos passos.')).toBeTruthy();
   });
 
+  it('edita uma missão existente a partir do detalhe e reflete a mudança ao voltar', () => {
+    renderApp();
+
+    fireEvent.press(screen.getAllByLabelText(/Fazer exercício de dados/)[0]);
+    fireEvent.press(screen.getByLabelText('Editar missão'));
+
+    expect(screen.getByText('Editar missão')).toBeTruthy();
+    expect(screen.getByDisplayValue('Fazer exercício de dados')).toBeTruthy();
+
+    fireEvent.changeText(screen.getByLabelText('Título'), 'Fazer exercício de dados avançado');
+    fireEvent.press(screen.getByLabelText('Salvar alterações'));
+
+    expect(screen.getByText('Fazer exercício de dados avançado')).toBeTruthy();
+
+    fireEvent.press(screen.getByLabelText('Voltar'));
+    expect(screen.getByText('Seus próximos passos.')).toBeTruthy();
+    expect(screen.getByText('Fazer exercício de dados avançado')).toBeTruthy();
+  });
+
   it('não salva e mostra erros quando campos obrigatórios estão vazios', () => {
     renderApp();
 
