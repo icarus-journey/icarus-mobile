@@ -2,6 +2,8 @@ import { NavigationContainer } from '@react-navigation/native';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 
 import { RootNavigator } from '../../navigation/RootNavigator';
+import { CampaignsProvider } from '../../state/CampaignsContext';
+import { EpicsProvider } from '../../state/EpicsContext';
 import { MissionsProvider } from '../../state/MissionsContext';
 import { OnboardingProvider } from '../../state/OnboardingContext';
 
@@ -9,9 +11,13 @@ function renderApp() {
   return render(
     <OnboardingProvider>
       <MissionsProvider>
-        <NavigationContainer>
-          <RootNavigator />
-        </NavigationContainer>
+        <EpicsProvider>
+          <CampaignsProvider>
+            <NavigationContainer>
+              <RootNavigator />
+            </NavigationContainer>
+          </CampaignsProvider>
+        </EpicsProvider>
       </MissionsProvider>
     </OnboardingProvider>,
   );
@@ -71,6 +77,7 @@ describe('OnboardingScreen', () => {
 
     fireEvent.press(finalButton);
 
-    expect(screen.getByText('Seus próximos passos.')).toBeTruthy();
+    expect(screen.getByText('Épicos')).toBeTruthy();
+    expect(screen.getByText('Objetivos que movem sua jornada.')).toBeTruthy();
   });
 });

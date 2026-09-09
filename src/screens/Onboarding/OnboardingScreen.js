@@ -44,7 +44,7 @@ export function OnboardingScreen({ navigation }) {
 
   function handleContinue() {
     if (isLastStep) {
-      navigation.replace('MissionList');
+      navigation.replace('MissionList', { initialSegment: 'EPICO' });
     } else {
       setStepIndex((current) => current + 1);
     }

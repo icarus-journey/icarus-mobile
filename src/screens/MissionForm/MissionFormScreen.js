@@ -2,10 +2,10 @@ import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { CampaignPickerModal } from '../../components/CampaignPickerModal';
 import { ChipSelect } from '../../components/ChipSelect';
 import { DifficultySelector } from '../../components/DifficultySelector';
 import { InputField } from '../../components/InputField';
+import { PickerModal } from '../../components/PickerModal';
 import { PrimaryButton } from '../../components/Button';
 import { RadioBinary } from '../../components/RadioBinary';
 import { ReadonlyField } from '../../components/ReadonlyField';
@@ -185,9 +185,10 @@ export function MissionFormScreen({ navigation, route }) {
         />
       </ScrollView>
 
-      <CampaignPickerModal
+      <PickerModal
         visible={campaignModalVisible}
-        campaigns={campaigns}
+        title="Escolher campanha"
+        items={campaigns}
         onSelect={(campaign) => {
           setField('campanha', campaign);
           setCampaignModalVisible(false);
