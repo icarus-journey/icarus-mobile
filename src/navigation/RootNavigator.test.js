@@ -2,15 +2,18 @@ import { NavigationContainer } from '@react-navigation/native';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 
 import { MissionsProvider } from '../state/MissionsContext';
+import { OnboardingProvider } from '../state/OnboardingContext';
 import { RootNavigator } from './RootNavigator';
 
 function renderApp() {
   return render(
-    <MissionsProvider>
-      <NavigationContainer>
-        <RootNavigator />
-      </NavigationContainer>
-    </MissionsProvider>,
+    <OnboardingProvider>
+      <MissionsProvider>
+        <NavigationContainer>
+          <RootNavigator initialRouteName="MissionList" />
+        </NavigationContainer>
+      </MissionsProvider>
+    </OnboardingProvider>,
   );
 }
 

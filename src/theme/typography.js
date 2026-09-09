@@ -13,6 +13,7 @@ export const fontSize = {
   body: 14,
   label: 15,
   title: 18,
+  questionTitle: 20,
   detailTitle: 16,
   summaryTitle: 22,
   screenTitle: 24,
