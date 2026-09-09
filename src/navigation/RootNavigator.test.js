@@ -1,6 +1,7 @@
 import { NavigationContainer } from '@react-navigation/native';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 
+import { EpicsProvider } from '../state/EpicsContext';
 import { MissionsProvider } from '../state/MissionsContext';
 import { OnboardingProvider } from '../state/OnboardingContext';
 import { RootNavigator } from './RootNavigator';
@@ -9,9 +10,11 @@ function renderApp() {
   return render(
     <OnboardingProvider>
       <MissionsProvider>
-        <NavigationContainer>
-          <RootNavigator initialRouteName="MissionList" />
-        </NavigationContainer>
+        <EpicsProvider>
+          <NavigationContainer>
+            <RootNavigator initialRouteName="MissionList" />
+          </NavigationContainer>
+        </EpicsProvider>
       </MissionsProvider>
     </OnboardingProvider>,
   );
@@ -83,5 +86,44 @@ describe('fluxo de missões', () => {
 
     expect(screen.getByText('Nova missão')).toBeTruthy();
     expect(screen.getByText('Informe um título para a missão.')).toBeTruthy();
+  });
+});
+
+describe('fluxo de épicos', () => {
+  it('abre o detalhe do épico em destaque, edita e reflete a mudança ao voltar', () => {
+    renderApp();
+
+    fireEvent.press(screen.getByLabelText('Épico'));
+    fireEvent.press(screen.getByLabelText(/Ser promovido/));
+
+    expect(screen.getByText('Detalhe do épico')).toBeTruthy();
+    expect(screen.getByText('2 de 3 campanhas concluídas')).toBeTruthy();
+
+    fireEvent.press(screen.getByLabelText('Editar épico'));
+    expect(screen.getByText('Editar épico')).toBeTruthy();
+    expect(screen.getByDisplayValue('Ser promovido')).toBeTruthy();
+
+    fireEvent.changeText(screen.getByLabelText('Título'), 'Ser promovido a sênior');
+    fireEvent.press(screen.getByLabelText('Salvar alterações'));
+
+    expect(screen.getByText('Ser promovido a sênior')).toBeTruthy();
+
+    fireEvent.press(screen.getByLabelText('Voltar'));
+    expect(screen.getByText('Épicos')).toBeTruthy();
+  });
+
+  it('cria um épico válido e ele aparece na lista', () => {
+    renderApp();
+
+    fireEvent.press(screen.getByLabelText('Épico'));
+    fireEvent.press(screen.getByLabelText('Adicionar épico'));
+
+    fireEvent.changeText(screen.getByLabelText('Título'), 'Aprender inglês fluente');
+    fireEvent.changeText(screen.getByLabelText('Data limite'), '31122027');
+    fireEvent.press(screen.getByLabelText('Fácil'));
+    fireEvent.press(screen.getByLabelText('Salvar épico'));
+
+    expect(screen.getByText('Épicos')).toBeTruthy();
+    expect(screen.getByText('Aprender inglês fluente')).toBeTruthy();
   });
 });

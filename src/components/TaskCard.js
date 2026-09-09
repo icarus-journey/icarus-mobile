@@ -3,10 +3,17 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors } from '../theme/colors';
 import { fontFamily, fontSize } from '../theme/typography';
 
-export function TaskCard({ mission, onPress }) {
-  const accessibilityLabel = `${mission.titulo}, ${mission.prazoLabel}, ${
-    mission.status === 'ATRASADA' ? 'atrasada' : 'pendente'
-  }, mais ${mission.pontos} pontos`;
+export function TaskCard({ mission, onPress, statusLabel }) {
+  const resolvedStatusLabel =
+    statusLabel ?? (mission.status === 'ATRASADA' ? 'atrasada' : 'pendente');
+  const accessibilityLabel = [
+    mission.titulo,
+    mission.prazoLabel,
+    resolvedStatusLabel,
+    mission.pontos ? `mais ${mission.pontos} pontos` : null,
+  ]
+    .filter(Boolean)
+    .join(', ');
 
   return (
     <Pressable
@@ -22,7 +29,7 @@ export function TaskCard({ mission, onPress }) {
         </Text>
         <Text style={styles.subtitle}>{mission.prazoLabel}</Text>
       </View>
-      <Text style={styles.points}>+{mission.pontos} XP</Text>
+      {mission.pontos ? <Text style={styles.points}>+{mission.pontos} XP</Text> : null}
     </Pressable>
   );
 }

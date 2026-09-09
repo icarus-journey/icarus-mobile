@@ -12,6 +12,7 @@ import {
 } from '@expo-google-fonts/inter';
 
 import { RootNavigator } from './src/navigation/RootNavigator';
+import { EpicsProvider } from './src/state/EpicsContext';
 import { MissionsProvider } from './src/state/MissionsContext';
 import { OnboardingProvider } from './src/state/OnboardingContext';
 
@@ -39,9 +40,11 @@ export default function App() {
     <SafeAreaProvider onLayout={onLayoutRootView}>
       <OnboardingProvider>
         <MissionsProvider>
-          <NavigationContainer>
-            <RootNavigator />
-          </NavigationContainer>
+          <EpicsProvider>
+            <NavigationContainer>
+              <RootNavigator />
+            </NavigationContainer>
+          </EpicsProvider>
         </MissionsProvider>
       </OnboardingProvider>
       <StatusBar style="dark" />
