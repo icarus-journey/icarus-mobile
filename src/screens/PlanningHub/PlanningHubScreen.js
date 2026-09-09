@@ -3,10 +3,12 @@ import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BottomNav } from '../../components/BottomNav';
+import { CampaignHeroCard } from '../../components/CampaignHeroCard';
 import { EmptyState } from '../../components/EmptyState';
 import { EpicHeroCard } from '../../components/EpicHeroCard';
 import { SegmentedControl } from '../../components/SegmentedControl';
 import { TaskCard } from '../../components/TaskCard';
+import { useCampaigns } from '../../state/CampaignsContext';
 import { useEpics } from '../../state/EpicsContext';
 import { useMissions } from '../../state/MissionsContext';
 import { colors } from '../../theme/colors';
@@ -16,11 +18,25 @@ const MISSION_STATUS_ORDER = { ATRASADA: 0, PENDENTE: 1 };
 
 const HEADERS = {
   MISSAO: { title: 'Missões', subtitle: 'Seus próximos passos.' },
+  CAMPANHA: { title: 'Campanhas', subtitle: 'Progresso das suas campanhas.' },
   EPICO: { title: 'Épicos', subtitle: 'Objetivos que movem sua jornada.' },
+};
+
+const ADD_LABELS = {
+  MISSAO: 'Adicionar missão',
+  CAMPANHA: 'Adicionar campanha',
+  EPICO: 'Adicionar épico',
+};
+
+const ADD_ROUTES = {
+  MISSAO: 'MissionForm',
+  CAMPANHA: 'CampaignForm',
+  EPICO: 'EpicForm',
 };
 
 export function PlanningHubScreen({ navigation, route }) {
   const { missions } = useMissions();
+  const { campaigns } = useCampaigns();
   const { epics } = useEpics();
   const insets = useSafeAreaInsets();
   const [segment, setSegment] = useState(route.params?.initialSegment ?? 'MISSAO');
@@ -34,14 +50,13 @@ export function PlanningHubScreen({ navigation, route }) {
   const destaqueEpic = epics.find((epic) => epic.destaque) ?? null;
   const otherEpics = epics.filter((epic) => epic !== destaqueEpic);
 
+  const destaqueCampaign = campaigns.find((campaign) => campaign.destaque) ?? null;
+  const otherCampaigns = campaigns.filter((campaign) => campaign !== destaqueCampaign);
+
   const header = HEADERS[segment];
 
   function handleAdd() {
-    if (segment === 'MISSAO') {
-      navigation.navigate('MissionForm');
-    } else {
-      navigation.navigate('EpicForm');
-    }
+    navigation.navigate(ADD_ROUTES[segment]);
   }
 
   return (
@@ -55,7 +70,7 @@ export function PlanningHubScreen({ navigation, route }) {
           <Pressable
             onPress={handleAdd}
             accessibilityRole="button"
-            accessibilityLabel={segment === 'MISSAO' ? 'Adicionar missão' : 'Adicionar épico'}
+            accessibilityLabel={ADD_LABELS[segment]}
             style={styles.addButton}
           >
             <View style={styles.plusHorizontal} />
@@ -85,7 +100,44 @@ export function PlanningHubScreen({ navigation, route }) {
               />
             }
           />
-        ) : (
+        ) : null}
+
+        {segment === 'CAMPANHA' ? (
+          <FlatList
+            data={otherCampaigns}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.list}
+            ListHeaderComponent={
+              destaqueCampaign ? (
+                <CampaignHeroCard
+                  campaign={destaqueCampaign}
+                  onPress={() =>
+                    navigation.navigate('CampaignDetail', { campaignId: destaqueCampaign.id })
+                  }
+                />
+              ) : null
+            }
+            renderItem={({ item }) => (
+              <TaskCard
+                mission={item}
+                statusLabel="em andamento"
+                onPress={() => navigation.navigate('CampaignDetail', { campaignId: item.id })}
+              />
+            )}
+            ListEmptyComponent={
+              destaqueCampaign ? null : (
+                <EmptyState
+                  title="Nenhuma campanha por aqui"
+                  subtitle="Crie sua primeira campanha para organizar suas missões."
+                  buttonLabel="Criar campanha"
+                  onCreate={() => navigation.navigate('CampaignForm')}
+                />
+              )
+            }
+          />
+        ) : null}
+
+        {segment === 'EPICO' ? (
           <FlatList
             data={otherEpics}
             keyExtractor={(item) => item.id}
@@ -116,7 +168,7 @@ export function PlanningHubScreen({ navigation, route }) {
               )
             }
           />
-        )}
+        ) : null}
       </View>
 
       <BottomNav onPressMissoes={() => navigation.popToTop()} />

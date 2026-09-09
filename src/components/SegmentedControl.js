@@ -14,20 +14,6 @@ export function SegmentedControl({ value, onChange }) {
     <View style={styles.container} accessibilityRole="tablist">
       {SEGMENTS.map((segment) => {
         const isActive = segment.value === value;
-        const isAvailable = segment.value !== 'CAMPANHA';
-
-        if (!isAvailable) {
-          return (
-            <View
-              key={segment.value}
-              style={styles.segment}
-              accessible
-              accessibilityLabel={`${segment.label}, ainda não disponível nesta versão`}
-            >
-              <Text style={styles.label}>{segment.label}</Text>
-            </View>
-          );
-        }
 
         return (
           <Pressable

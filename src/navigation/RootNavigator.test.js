@@ -1,6 +1,7 @@
 import { NavigationContainer } from '@react-navigation/native';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 
+import { CampaignsProvider } from '../state/CampaignsContext';
 import { EpicsProvider } from '../state/EpicsContext';
 import { MissionsProvider } from '../state/MissionsContext';
 import { OnboardingProvider } from '../state/OnboardingContext';
@@ -11,9 +12,11 @@ function renderApp() {
     <OnboardingProvider>
       <MissionsProvider>
         <EpicsProvider>
-          <NavigationContainer>
-            <RootNavigator initialRouteName="MissionList" />
-          </NavigationContainer>
+          <CampaignsProvider>
+            <NavigationContainer>
+              <RootNavigator initialRouteName="MissionList" />
+            </NavigationContainer>
+          </CampaignsProvider>
         </EpicsProvider>
       </MissionsProvider>
     </OnboardingProvider>,
@@ -125,5 +128,50 @@ describe('fluxo de épicos', () => {
 
     expect(screen.getByText('Épicos')).toBeTruthy();
     expect(screen.getByText('Aprender inglês fluente')).toBeTruthy();
+  });
+});
+
+describe('fluxo de campanhas', () => {
+  it('abre o detalhe da campanha em destaque, edita e reflete a mudança ao voltar', () => {
+    renderApp();
+
+    fireEvent.press(screen.getByLabelText('Campanha'));
+    fireEvent.press(screen.getByLabelText(/Capacitação em Python/));
+
+    expect(screen.getByText('Detalhe da campanha')).toBeTruthy();
+    expect(screen.getByText('4 de 5 missões concluídas')).toBeTruthy();
+    expect(screen.getByText('Ser promovida')).toBeTruthy();
+
+    fireEvent.press(screen.getByLabelText('Editar campanha'));
+    expect(screen.getByText('Editar campanha')).toBeTruthy();
+    expect(screen.getByDisplayValue('Capacitação em Python')).toBeTruthy();
+
+    fireEvent.changeText(screen.getByLabelText('Título'), 'Capacitação em Python avançado');
+    fireEvent.press(screen.getByLabelText('Salvar alterações'));
+
+    expect(screen.getByText('Capacitação em Python avançado')).toBeTruthy();
+
+    fireEvent.press(screen.getByLabelText('Voltar'));
+    expect(screen.getByText('Campanhas')).toBeTruthy();
+  });
+
+  it('cria uma campanha válida, vinculada a um épico, e ela aparece na lista', () => {
+    renderApp();
+
+    fireEvent.press(screen.getByLabelText('Campanha'));
+    fireEvent.press(screen.getByLabelText('Adicionar campanha'));
+
+    fireEvent.changeText(screen.getByLabelText('Título'), 'Correr uma meia maratona');
+    fireEvent.changeText(screen.getByLabelText('Data limite'), '15032027');
+    fireEvent.press(screen.getByLabelText('Difícil'));
+
+    fireEvent.press(screen.getByLabelText('Sim'));
+    fireEvent.press(screen.getByLabelText('Épico'));
+    fireEvent.press(screen.getByLabelText('Ser promovido'));
+
+    fireEvent.press(screen.getByLabelText('Salvar campanha'));
+
+    expect(screen.getByText('Campanhas')).toBeTruthy();
+    expect(screen.getByText('Correr uma meia maratona')).toBeTruthy();
   });
 });

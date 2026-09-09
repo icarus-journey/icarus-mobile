@@ -29,6 +29,7 @@ export const colors = {
 
   typeAccentA: '#e85d75',
   typeAccentB: '#7048d6',
+  typeAccentC: '#e89a36',
 
   white: '#ffffff',
 

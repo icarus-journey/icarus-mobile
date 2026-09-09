@@ -1,5 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
 
+import { CampaignsProvider } from '../../state/CampaignsContext';
+import { MOCK_CAMPAIGNS } from '../../state/campaignMockData';
 import { EpicsProvider } from '../../state/EpicsContext';
 import { MOCK_EPICS } from '../../state/epicMockData';
 import { MissionsProvider } from '../../state/MissionsContext';
@@ -11,12 +13,15 @@ const navigation = { navigate: jest.fn(), popToTop: jest.fn() };
 function renderScreen({
   initialMissions = MOCK_MISSIONS,
   initialEpics = MOCK_EPICS,
+  initialCampaigns = MOCK_CAMPAIGNS,
   params = {},
 } = {}) {
   return render(
     <MissionsProvider initialMissions={initialMissions}>
       <EpicsProvider initialEpics={initialEpics}>
-        <PlanningHubScreen navigation={navigation} route={{ params }} />
+        <CampaignsProvider initialCampaigns={initialCampaigns}>
+          <PlanningHubScreen navigation={navigation} route={{ params }} />
+        </CampaignsProvider>
       </EpicsProvider>
     </MissionsProvider>,
   );
@@ -92,5 +97,49 @@ describe('PlanningHubScreen — aba Épico', () => {
     fireEvent.press(screen.getByLabelText(/Ser promovido/));
 
     expect(navigation.navigate).toHaveBeenCalledWith('EpicDetail', { epicId: 'epico-1' });
+  });
+});
+
+describe('PlanningHubScreen — aba Campanha', () => {
+  it('mostra a campanha em destaque e as demais campanhas da lista', () => {
+    renderScreen({ params: { initialSegment: 'CAMPANHA' } });
+
+    expect(screen.getByText('Campanhas')).toBeTruthy();
+    expect(screen.getByText('Capacitação em Python')).toBeTruthy();
+    expect(screen.getByText('4 de 5 missões • 320/500 XP')).toBeTruthy();
+    expect(screen.getByText('Recompensa final: 300 pontos')).toBeTruthy();
+    expect(screen.getByText('Leitura de 12 livros')).toBeTruthy();
+  });
+
+  it('alterna para a aba Campanha ao tocar no controle segmentado', () => {
+    renderScreen();
+
+    fireEvent.press(screen.getByLabelText('Campanha'));
+
+    expect(screen.getByText('Campanhas')).toBeTruthy();
+  });
+
+  it('mostra o estado vazio quando não há campanhas', () => {
+    renderScreen({ initialCampaigns: [], params: { initialSegment: 'CAMPANHA' } });
+
+    expect(screen.getByText('Nenhuma campanha por aqui')).toBeTruthy();
+  });
+
+  it('navega para o formulário ao tocar em adicionar campanha', () => {
+    renderScreen({ params: { initialSegment: 'CAMPANHA' } });
+
+    fireEvent.press(screen.getByLabelText('Adicionar campanha'));
+
+    expect(navigation.navigate).toHaveBeenCalledWith('CampaignForm');
+  });
+
+  it('navega para o detalhe ao tocar em uma campanha', () => {
+    renderScreen({ params: { initialSegment: 'CAMPANHA' } });
+
+    fireEvent.press(screen.getByLabelText(/Capacitação em Python/));
+
+    expect(navigation.navigate).toHaveBeenCalledWith('CampaignDetail', {
+      campaignId: 'campanha-1',
+    });
   });
 });

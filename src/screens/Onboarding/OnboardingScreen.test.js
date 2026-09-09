@@ -2,6 +2,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 
 import { RootNavigator } from '../../navigation/RootNavigator';
+import { CampaignsProvider } from '../../state/CampaignsContext';
 import { EpicsProvider } from '../../state/EpicsContext';
 import { MissionsProvider } from '../../state/MissionsContext';
 import { OnboardingProvider } from '../../state/OnboardingContext';
@@ -11,9 +12,11 @@ function renderApp() {
     <OnboardingProvider>
       <MissionsProvider>
         <EpicsProvider>
-          <NavigationContainer>
-            <RootNavigator />
-          </NavigationContainer>
+          <CampaignsProvider>
+            <NavigationContainer>
+              <RootNavigator />
+            </NavigationContainer>
+          </CampaignsProvider>
         </EpicsProvider>
       </MissionsProvider>
     </OnboardingProvider>,
