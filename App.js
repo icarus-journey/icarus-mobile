@@ -13,6 +13,7 @@ import {
 
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { MissionsProvider } from './src/state/MissionsContext';
+import { OnboardingProvider } from './src/state/OnboardingContext';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -36,11 +37,13 @@ export default function App() {
 
   return (
     <SafeAreaProvider onLayout={onLayoutRootView}>
-      <MissionsProvider>
-        <NavigationContainer>
-          <RootNavigator />
-        </NavigationContainer>
-      </MissionsProvider>
+      <OnboardingProvider>
+        <MissionsProvider>
+          <NavigationContainer>
+            <RootNavigator />
+          </NavigationContainer>
+        </MissionsProvider>
+      </OnboardingProvider>
       <StatusBar style="dark" />
     </SafeAreaProvider>
   );
