@@ -29,6 +29,17 @@ export const colors = {
 
   typeAccentA: '#e85d75',
   typeAccentB: '#7048d6',
+  typeAccentC: '#e89a36',
 
   white: '#ffffff',
+
+  // Onboarding (protótipo 02–04): tons de roxo específicos dessas telas,
+  // levemente diferentes do restante do app — mantidos exatos por fidelidade.
+  onboardingBrand: '#5527b8',
+  onboardingProgressTrack: '#c2abe5',
+  onboardingProgressFill: '#5729bd',
+  onboardingOptionBorder: '#eee8fa',
+  onboardingOptionSelectedBg: '#eee8fa',
+  onboardingOptionSelectedBorder: '#ded6e8',
+  onboardingOptionSelectedText: '#341677',
 };

@@ -12,7 +12,10 @@ import {
 } from '@expo-google-fonts/inter';
 
 import { RootNavigator } from './src/navigation/RootNavigator';
+import { CampaignsProvider } from './src/state/CampaignsContext';
+import { EpicsProvider } from './src/state/EpicsContext';
 import { MissionsProvider } from './src/state/MissionsContext';
+import { OnboardingProvider } from './src/state/OnboardingContext';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -36,11 +39,17 @@ export default function App() {
 
   return (
     <SafeAreaProvider onLayout={onLayoutRootView}>
-      <MissionsProvider>
-        <NavigationContainer>
-          <RootNavigator />
-        </NavigationContainer>
-      </MissionsProvider>
+      <OnboardingProvider>
+        <MissionsProvider>
+          <EpicsProvider>
+            <CampaignsProvider>
+              <NavigationContainer>
+                <RootNavigator />
+              </NavigationContainer>
+            </CampaignsProvider>
+          </EpicsProvider>
+        </MissionsProvider>
+      </OnboardingProvider>
       <StatusBar style="dark" />
     </SafeAreaProvider>
   );

@@ -3,14 +3,14 @@ import { FlatList, Modal, Pressable, StyleSheet, Text, View } from 'react-native
 import { colors } from '../theme/colors';
 import { fontFamily, fontSize } from '../theme/typography';
 
-export function CampaignPickerModal({ visible, campaigns, onSelect, onClose }) {
+export function PickerModal({ visible, title, items, onSelect, onClose }) {
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <Pressable style={styles.backdrop} onPress={onClose} accessibilityLabel="Fechar" />
       <View style={styles.sheet}>
-        <Text style={styles.title}>Escolher campanha</Text>
+        <Text style={styles.title}>{title}</Text>
         <FlatList
-          data={campaigns}
+          data={items}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
             <Pressable

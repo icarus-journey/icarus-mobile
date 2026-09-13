@@ -1,26 +1,33 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors } from '../theme/colors';
 import { fontFamily, fontSize } from '../theme/typography';
 
-const INERT_OPTIONS = ['Campanha', 'Épico'];
+const SEGMENTS = [
+  { value: 'MISSAO', label: 'Missão' },
+  { value: 'CAMPANHA', label: 'Campanha' },
+  { value: 'EPICO', label: 'Épico' },
+];
 
-export function SegmentedControl() {
+export function SegmentedControl({ value, onChange }) {
   return (
     <View style={styles.container} accessibilityRole="tablist">
-      <View style={styles.activeSegment}>
-        <Text style={styles.activeLabel}>Missão</Text>
-      </View>
-      {INERT_OPTIONS.map((label) => (
-        <View
-          key={label}
-          style={styles.segment}
-          accessible
-          accessibilityLabel={`${label}, ainda não disponível nesta versão`}
-        >
-          <Text style={styles.label}>{label}</Text>
-        </View>
-      ))}
+      {SEGMENTS.map((segment) => {
+        const isActive = segment.value === value;
+
+        return (
+          <Pressable
+            key={segment.value}
+            onPress={() => onChange(segment.value)}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: isActive }}
+            accessibilityLabel={segment.label}
+            style={isActive ? styles.activeSegment : styles.segment}
+          >
+            <Text style={isActive ? styles.activeLabel : styles.label}>{segment.label}</Text>
+          </Pressable>
+        );
+      })}
     </View>
   );
 }
