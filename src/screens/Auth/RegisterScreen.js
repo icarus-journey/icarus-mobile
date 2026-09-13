@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -6,11 +6,13 @@ import { PrimaryButton } from '../../components/Button';
 import { InputField } from '../../components/InputField';
 import { colors } from '../../theme/colors';
 import { fontFamily, fontSize } from '../../theme/typography';
+import { maskDateInput } from '../../utils/dateInput';
 import { getPasswordChecks, isAuthFormValid, validateRegister } from './authValidation';
 
 const INITIAL_VALUES = {
   name: '',
   email: '',
+  birthDate: '',
   password: '',
   confirmPassword: '',
   acceptedTerms: false,
@@ -35,20 +37,24 @@ export function RegisterScreen({ navigation }) {
     setErrors(validationErrors);
 
     if (isAuthFormValid(validationErrors)) {
-      navigation.replace('MissionList');
+      navigation.replace('Onboarding');
     }
   }
 
   return (
     <View style={styles.screen}>
       <ScrollView
-        contentContainerStyle={[styles.content, { paddingTop: insets.top + 38 }]}
+        contentContainerStyle={[
+          styles.content,
+          { paddingTop: insets.top + 38, paddingBottom: insets.bottom + 32 },
+        ]}
         keyboardShouldPersistTaps="handled"
       >
         <Text style={styles.title}>Crie seu espaço de evolução</Text>
 
         <InputField
-          label="Como quer ser chamada?"
+          label="Como podemos chamar você?"
+          required
           value={values.name}
           onChangeText={(text) => setField('name', text)}
           placeholder="Digite um nome"
@@ -58,6 +64,7 @@ export function RegisterScreen({ navigation }) {
 
         <InputField
           label="E-mail"
+          required
           value={values.email}
           onChangeText={(text) => setField('email', text)}
           placeholder="Digite um email"
@@ -68,10 +75,23 @@ export function RegisterScreen({ navigation }) {
         />
 
         <InputField
+          label="Data de nascimento"
+          required
+          value={values.birthDate}
+          onChangeText={(text) => setField('birthDate', maskDateInput(text))}
+          placeholder="dd/mm/aaaa"
+          keyboardType="number-pad"
+          maxLength={10}
+          error={errors.birthDate}
+        />
+
+        <InputField
           label="Senha"
+          required
           value={values.password}
           onChangeText={(text) => setField('password', text)}
           placeholder="••••••••"
+          maxLength={128}
           secureTextEntry
           textContentType="newPassword"
           autoCapitalize="none"
@@ -80,9 +100,11 @@ export function RegisterScreen({ navigation }) {
 
         <InputField
           label="Confirmar senha"
+          required
           value={values.confirmPassword}
           onChangeText={(text) => setField('confirmPassword', text)}
           placeholder="••••••••"
+          maxLength={128}
           secureTextEntry
           textContentType="newPassword"
           autoCapitalize="none"
@@ -90,10 +112,7 @@ export function RegisterScreen({ navigation }) {
         />
         <View style={styles.checkList} accessibilityLiveRegion="polite">
           <PasswordRule label="8 ou mais caracteres" checked={passwordChecks.minLength} />
-          <PasswordRule
-            label="1 letra maiúscula e 1 número"
-            checked={passwordChecks.hasUppercase && passwordChecks.hasNumber}
-          />
+          <PasswordRule label="No máximo 128 caracteres" checked={passwordChecks.maxLength} />
           <PasswordRule label="As senhas precisam coincidir" checked={passwordsMatch} />
         </View>
 
@@ -120,9 +139,9 @@ export function RegisterScreen({ navigation }) {
         <PrimaryButton label="Criar conta" onPress={handleRegister} />
 
         <View style={styles.footerRow}>
-          <Text style={styles.footerText}>Já tenho conta •</Text>
+          <Text style={styles.footerText}>Já tem uma conta?</Text>
           <Pressable
-            onPress={() => navigation.navigate('Login')}
+            onPress={() => navigation.goBack()}
             accessibilityRole="button"
             accessibilityLabel="Entrar"
           >

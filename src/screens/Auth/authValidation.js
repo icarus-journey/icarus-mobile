@@ -1,14 +1,18 @@
+import { isValidDateString } from '../../utils/dateInput';
+
+const SENHA_MINIMA = 8;
+const SENHA_MAXIMA = 128;
+
 export function getPasswordChecks(password) {
   return {
-    minLength: password.length >= 8,
-    hasUppercase: /[A-Z]/.test(password),
-    hasNumber: /\d/.test(password),
+    minLength: password.length >= SENHA_MINIMA,
+    maxLength: password.length <= SENHA_MAXIMA,
   };
 }
 
 export function isPasswordValid(password) {
   const checks = getPasswordChecks(password);
-  return checks.minLength && checks.hasUppercase && checks.hasNumber;
+  return checks.minLength && checks.maxLength;
 }
 
 export function validateLogin(values) {
@@ -29,15 +33,21 @@ export function validateRegister(values) {
   const errors = {};
 
   if (!values.name.trim()) {
-    errors.name = 'Informe como quer ser chamada.';
+    errors.name = 'Informe seu nome.';
   }
 
   if (!values.email.trim()) {
     errors.email = 'Informe seu e-mail.';
   }
 
+  if (!values.birthDate) {
+    errors.birthDate = 'Informe sua data de nascimento.';
+  } else if (!isValidDateString(values.birthDate)) {
+    errors.birthDate = 'Informe uma data válida no formato dd/mm/aaaa.';
+  }
+
   if (!isPasswordValid(values.password)) {
-    errors.password = 'A senha precisa cumprir os critérios.';
+    errors.password = 'A senha deve ter de 8 a 128 caracteres.';
   }
 
   if (values.confirmPassword !== values.password) {

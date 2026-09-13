@@ -2,11 +2,12 @@ import { fireEvent, render, screen } from '@testing-library/react-native';
 
 import { RegisterScreen } from './RegisterScreen';
 
-const navigation = { navigate: jest.fn(), replace: jest.fn() };
+const navigation = { goBack: jest.fn(), navigate: jest.fn(), replace: jest.fn() };
 
 describe('RegisterScreen', () => {
   beforeEach(() => {
     navigation.navigate.mockClear();
+    navigation.goBack.mockClear();
     navigation.replace.mockClear();
   });
 
@@ -20,21 +21,22 @@ describe('RegisterScreen', () => {
     fireEvent.changeText(screen.getByLabelText('Confirmar senha'), 'Senha123!');
 
     expect(screen.getByLabelText('8 ou mais caracteres: ok')).toBeTruthy();
-    expect(screen.getByLabelText('1 letra maiúscula e 1 número: ok')).toBeTruthy();
+    expect(screen.getByLabelText('No máximo 128 caracteres: ok')).toBeTruthy();
     expect(screen.getByText('As senhas coincidem')).toBeTruthy();
   });
 
-  it('navega para missões ao criar conta válida', () => {
+  it('navega para o onboarding ao criar conta válida', () => {
     render(<RegisterScreen navigation={navigation} />);
 
-    fireEvent.changeText(screen.getByLabelText('Como quer ser chamada?'), 'Paloma');
+    fireEvent.changeText(screen.getByLabelText('Como podemos chamar você?'), 'Paloma');
     fireEvent.changeText(screen.getByLabelText('E-mail'), 'paloma@email.com');
+    fireEvent.changeText(screen.getByLabelText('Data de nascimento'), '01012000');
     fireEvent.changeText(screen.getByLabelText('Senha'), 'Senha123!');
     fireEvent.changeText(screen.getByLabelText('Confirmar senha'), 'Senha123!');
     fireEvent.press(screen.getByLabelText('Li e aceito os Termos e a Política de Privacidade'));
     fireEvent.press(screen.getByLabelText('Criar conta'));
 
-    expect(navigation.replace).toHaveBeenCalledWith('MissionList');
+    expect(navigation.replace).toHaveBeenCalledWith('Onboarding');
   });
 
   it('navega de volta para login', () => {
@@ -42,6 +44,6 @@ describe('RegisterScreen', () => {
 
     fireEvent.press(screen.getByLabelText('Entrar'));
 
-    expect(navigation.navigate).toHaveBeenCalledWith('Login');
+    expect(navigation.goBack).toHaveBeenCalled();
   });
 });

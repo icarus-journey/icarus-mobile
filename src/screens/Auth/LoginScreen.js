@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PrimaryButton, SecondaryButton } from '../../components/Button';
@@ -27,8 +27,14 @@ export function LoginScreen({ navigation }) {
   }
 
   return (
-    <View style={[styles.screen, { paddingTop: insets.top + 48 }]}>
-      <View style={styles.content}>
+    <View style={styles.screen}>
+      <ScrollView
+        contentContainerStyle={[
+          styles.content,
+          { paddingTop: insets.top + 48, paddingBottom: insets.bottom + 32 },
+        ]}
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={styles.logoArea} accessible accessibilityLabel="Icarus">
           <Text style={styles.logoMark}>✦</Text>
           <Text style={styles.logoText}>icarus</Text>
@@ -37,6 +43,7 @@ export function LoginScreen({ navigation }) {
         <View style={styles.form}>
           <InputField
             label="E-mail"
+            required
             value={values.email}
             onChangeText={(text) => setField('email', text)}
             placeholder="Digite um email"
@@ -48,9 +55,11 @@ export function LoginScreen({ navigation }) {
 
           <InputField
             label="Senha"
+            required
             value={values.password}
             onChangeText={(text) => setField('password', text)}
             placeholder="••••••••"
+            maxLength={128}
             secureTextEntry
             textContentType="password"
             autoCapitalize="none"
@@ -58,7 +67,7 @@ export function LoginScreen({ navigation }) {
           />
 
           <Pressable
-            onPress={() => {}}
+            disabled
             accessibilityRole="button"
             accessibilityLabel="Esqueci minha senha"
             accessibilityHint="Ainda não disponível nesta versão"
@@ -72,7 +81,8 @@ export function LoginScreen({ navigation }) {
           <SecondaryButton
             label="Continuar com Google"
             onPress={() => {}}
-            accessibilityHint="Integração futura"
+            disabled
+            accessibilityHint="Ainda não disponível nesta versão"
           />
         </View>
 
@@ -86,7 +96,7 @@ export function LoginScreen({ navigation }) {
             <Text style={styles.footerLink}>Criar conta</Text>
           </Pressable>
         </View>
-      </View>
+      </ScrollView>
     </View>
   );
 }
@@ -97,7 +107,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   content: {
-    flex: 1,
+    flexGrow: 1,
     justifyContent: 'flex-start',
     paddingHorizontal: 32,
   },

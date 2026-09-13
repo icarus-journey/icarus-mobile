@@ -7,14 +7,14 @@ import { MissionsProvider } from '../state/MissionsContext';
 import { OnboardingProvider } from '../state/OnboardingContext';
 import { RootNavigator } from './RootNavigator';
 
-function renderApp() {
+function renderApp(initialRouteName = 'Login') {
   return render(
     <OnboardingProvider>
       <MissionsProvider>
         <EpicsProvider>
           <CampaignsProvider>
             <NavigationContainer>
-              <RootNavigator initialRouteName="MissionList" />
+              <RootNavigator initialRouteName={initialRouteName} />
             </NavigationContainer>
           </CampaignsProvider>
         </EpicsProvider>
@@ -41,8 +41,7 @@ describe('fluxo de autenticação e missões', () => {
   });
 
   it('abre o formulário a partir da lista e volta para a lista ao tocar em uma missão', () => {
-    renderApp();
-    enterApp();
+    renderApp('MissionList');
 
     fireEvent.press(screen.getByLabelText('Adicionar missão'));
     expect(screen.getByText('Nova missão')).toBeTruthy();
@@ -52,8 +51,7 @@ describe('fluxo de autenticação e missões', () => {
   });
 
   it('cria uma missão válida e volta para a lista com o novo item', () => {
-    renderApp();
-    enterApp();
+    renderApp('MissionList');
 
     fireEvent.press(screen.getByLabelText('Adicionar missão'));
 
@@ -67,8 +65,7 @@ describe('fluxo de autenticação e missões', () => {
   });
 
   it('abre o detalhe ao tocar em uma missão e volta para a lista', () => {
-    renderApp();
-    enterApp();
+    renderApp('MissionList');
 
     fireEvent.press(screen.getAllByLabelText(/Fazer exercício de dados/)[0]);
 
@@ -80,8 +77,7 @@ describe('fluxo de autenticação e missões', () => {
   });
 
   it('edita uma missão existente a partir do detalhe e reflete a mudança ao voltar', () => {
-    renderApp();
-    enterApp();
+    renderApp('MissionList');
 
     fireEvent.press(screen.getAllByLabelText(/Fazer exercício de dados/)[0]);
     fireEvent.press(screen.getByLabelText('Editar missão'));
@@ -100,8 +96,7 @@ describe('fluxo de autenticação e missões', () => {
   });
 
   it('não salva e mostra erros quando campos obrigatórios estão vazios', () => {
-    renderApp();
-    enterApp();
+    renderApp('MissionList');
 
     fireEvent.press(screen.getByLabelText('Adicionar missão'));
     fireEvent.press(screen.getByLabelText('Salvar missão'));
@@ -113,7 +108,7 @@ describe('fluxo de autenticação e missões', () => {
 
 describe('fluxo de épicos', () => {
   it('abre o detalhe do épico em destaque, edita e reflete a mudança ao voltar', () => {
-    renderApp();
+    renderApp('MissionList');
 
     fireEvent.press(screen.getByLabelText('Épico'));
     fireEvent.press(screen.getByLabelText(/Ser promovido/));
@@ -135,7 +130,7 @@ describe('fluxo de épicos', () => {
   });
 
   it('cria um épico válido e ele aparece na lista', () => {
-    renderApp();
+    renderApp('MissionList');
 
     fireEvent.press(screen.getByLabelText('Épico'));
     fireEvent.press(screen.getByLabelText('Adicionar épico'));
@@ -152,7 +147,7 @@ describe('fluxo de épicos', () => {
 
 describe('fluxo de campanhas', () => {
   it('abre o detalhe da campanha em destaque, edita e reflete a mudança ao voltar', () => {
-    renderApp();
+    renderApp('MissionList');
 
     fireEvent.press(screen.getByLabelText('Campanha'));
     fireEvent.press(screen.getByLabelText(/Capacitação em Python/));
@@ -175,7 +170,7 @@ describe('fluxo de campanhas', () => {
   });
 
   it('cria uma campanha válida, vinculada a um épico, e ela aparece na lista', () => {
-    renderApp();
+    renderApp('MissionList');
 
     fireEvent.press(screen.getByLabelText('Campanha'));
     fireEvent.press(screen.getByLabelText('Adicionar campanha'));

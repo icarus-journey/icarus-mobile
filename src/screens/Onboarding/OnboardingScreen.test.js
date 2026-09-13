@@ -14,7 +14,7 @@ function renderApp() {
         <EpicsProvider>
           <CampaignsProvider>
             <NavigationContainer>
-              <RootNavigator />
+              <RootNavigator initialRouteName="Onboarding" />
             </NavigationContainer>
           </CampaignsProvider>
         </EpicsProvider>
