@@ -40,9 +40,9 @@ export default function App() {
   return (
     <SafeAreaProvider onLayout={onLayoutRootView}>
       <OnboardingProvider>
-        <MissionsProvider>
-          <EpicsProvider>
-            <CampaignsProvider>
+        <MissionsProvider initialMissions={[]}>
+          <EpicsProvider initialEpics={[]}>
+            <CampaignsProvider initialCampaigns={[]}>
               <NavigationContainer>
                 <RootNavigator />
               </NavigationContainer>

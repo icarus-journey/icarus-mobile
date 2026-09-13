@@ -60,7 +60,7 @@ describe('PlanningHubScreen — aba Épico', () => {
     expect(screen.getByText('Objetivos que movem sua jornada.')).toBeTruthy();
   });
 
-  it('mostra o épico em destaque e os demais épicos da lista', () => {
+  it('mostra todos os épicos como cards grandes', () => {
     renderScreen({ params: { initialSegment: 'EPICO' } });
 
     expect(screen.getByText('Ser promovido')).toBeTruthy();
@@ -101,7 +101,7 @@ describe('PlanningHubScreen — aba Épico', () => {
 });
 
 describe('PlanningHubScreen — aba Campanha', () => {
-  it('mostra a campanha em destaque e as demais campanhas da lista', () => {
+  it('mostra todas as campanhas como cards grandes', () => {
     renderScreen({ params: { initialSegment: 'CAMPANHA' } });
 
     expect(screen.getByText('Campanhas')).toBeTruthy();
