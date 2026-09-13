@@ -14,6 +14,9 @@ export function InputField({
   maxLength,
   multiline,
   keyboardType = 'default',
+  secureTextEntry,
+  textContentType,
+  autoCapitalize,
 }) {
   return (
     <View style={styles.container}>
@@ -29,6 +32,9 @@ export function InputField({
         maxLength={maxLength}
         multiline={multiline}
         keyboardType={keyboardType}
+        secureTextEntry={secureTextEntry}
+        textContentType={textContentType}
+        autoCapitalize={autoCapitalize}
         accessibilityLabel={label}
         accessibilityHint={helper}
         style={[
