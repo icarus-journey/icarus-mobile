@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PrimaryButton } from '../../components/Button';
 import { DifficultySelector } from '../../components/DifficultySelector';
 import { InputField } from '../../components/InputField';
+import { KeyboardAwareScrollView } from '../../components/KeyboardAwareScrollView';
 import { ReadonlyField } from '../../components/ReadonlyField';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import IconEdit from '../../assets/icons/icon-edit.svg';
@@ -62,9 +63,8 @@ export function EpicFormScreen({ navigation, route }) {
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top + 12 }]}>
-      <ScrollView
+      <KeyboardAwareScrollView
         contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 32 }]}
-        keyboardShouldPersistTaps="handled"
       >
         <ScreenHeader
           title={editingEpic ? 'Editar épico' : 'Novo épico'}
@@ -148,7 +148,7 @@ export function EpicFormScreen({ navigation, route }) {
           label={editingEpic ? 'Salvar alterações' : 'Salvar épico'}
           onPress={handleSave}
         />
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </View>
   );
 }

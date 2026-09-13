@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PrimaryButton, SecondaryButton } from '../../components/Button';
 import { InputField } from '../../components/InputField';
+import { KeyboardAwareScrollView } from '../../components/KeyboardAwareScrollView';
 import { colors } from '../../theme/colors';
 import { fontFamily, fontSize } from '../../theme/typography';
 import { isAuthFormValid, validateLogin } from './authValidation';
@@ -28,12 +29,11 @@ export function LoginScreen({ navigation }) {
 
   return (
     <View style={styles.screen}>
-      <ScrollView
+      <KeyboardAwareScrollView
         contentContainerStyle={[
           styles.content,
           { paddingTop: insets.top + 48, paddingBottom: insets.bottom + 32 },
         ]}
-        keyboardShouldPersistTaps="handled"
       >
         <View style={styles.logoArea} accessible accessibilityLabel="Icarus">
           <Text style={styles.logoMark}>✦</Text>
@@ -96,7 +96,7 @@ export function LoginScreen({ navigation }) {
             <Text style={styles.footerLink}>Criar conta</Text>
           </Pressable>
         </View>
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </View>
   );
 }

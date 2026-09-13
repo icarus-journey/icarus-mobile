@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ChipSelect } from '../../components/ChipSelect';
 import { DifficultySelector } from '../../components/DifficultySelector';
 import { InputField } from '../../components/InputField';
+import { KeyboardAwareScrollView } from '../../components/KeyboardAwareScrollView';
 import { PickerModal } from '../../components/PickerModal';
 import { PrimaryButton } from '../../components/Button';
 import { RadioBinary } from '../../components/RadioBinary';
@@ -79,9 +80,8 @@ export function MissionFormScreen({ navigation, route }) {
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top + 12 }]}>
-      <ScrollView
+      <KeyboardAwareScrollView
         contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 32 }]}
-        keyboardShouldPersistTaps="handled"
       >
         <ScreenHeader
           title={editingMission ? 'Editar missão' : 'Nova missão'}
@@ -186,7 +186,7 @@ export function MissionFormScreen({ navigation, route }) {
           label={editingMission ? 'Salvar alterações' : 'Salvar missão'}
           onPress={handleSave}
         />
-      </ScrollView>
+      </KeyboardAwareScrollView>
 
       <PickerModal
         visible={campaignModalVisible}

@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PrimaryButton } from '../../components/Button';
 import { InputField } from '../../components/InputField';
+import { KeyboardAwareScrollView } from '../../components/KeyboardAwareScrollView';
 import { colors } from '../../theme/colors';
 import { fontFamily, fontSize } from '../../theme/typography';
 import { maskDateInput } from '../../utils/dateInput';
@@ -43,12 +44,11 @@ export function RegisterScreen({ navigation }) {
 
   return (
     <View style={styles.screen}>
-      <ScrollView
+      <KeyboardAwareScrollView
         contentContainerStyle={[
           styles.content,
           { paddingTop: insets.top + 38, paddingBottom: insets.bottom + 32 },
         ]}
-        keyboardShouldPersistTaps="handled"
       >
         <Text style={styles.title}>Crie seu espaço de evolução</Text>
 
@@ -148,7 +148,7 @@ export function RegisterScreen({ navigation }) {
             <Text style={styles.footerLink}>Entrar</Text>
           </Pressable>
         </View>
-      </ScrollView>
+      </KeyboardAwareScrollView>
     </View>
   );
 }
