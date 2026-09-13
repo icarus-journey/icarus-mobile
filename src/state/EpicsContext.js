@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useMemo, useState } from 'react';
 
 import { colors } from '../theme';
+import { generateId } from '../utils/generateId';
 import { MOCK_EPICS } from './epicMockData';
 
 const EpicsContext = createContext(null);
@@ -8,12 +9,12 @@ const EpicsContext = createContext(null);
 export function EpicsProvider({ children, initialEpics = MOCK_EPICS }) {
   const [epics, setEpics] = useState(initialEpics);
 
-  const addEpic = useCallback((formValues) => {
+  const addEpic = useCallback((formValues, { destaque = false } = {}) => {
     const epic = {
-      id: `epico-${Date.now()}`,
+      id: generateId('epico'),
       titulo: formValues.titulo,
       descricao: formValues.descricao || null,
-      destaque: false,
+      destaque,
       dataLimite: formValues.dataLimite,
       prazoLabel: formValues.dataLimite,
       dificuldade: formValues.dificuldade,

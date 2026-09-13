@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useMemo, useState } from 'react';
 
 import { colors } from '../theme';
+import { generateId } from '../utils/generateId';
 import { MOCK_CAMPAIGNS } from './campaignMockData';
 
 const CampaignsContext = createContext(null);
@@ -8,12 +9,12 @@ const CampaignsContext = createContext(null);
 export function CampaignsProvider({ children, initialCampaigns = MOCK_CAMPAIGNS }) {
   const [campaigns, setCampaigns] = useState(initialCampaigns);
 
-  const addCampaign = useCallback((formValues) => {
+  const addCampaign = useCallback((formValues, { destaque = false } = {}) => {
     const campaign = {
-      id: `campanha-${Date.now()}`,
+      id: generateId('campanha'),
       titulo: formValues.titulo,
       descricao: formValues.descricao || null,
-      destaque: false,
+      destaque,
       dataLimite: formValues.dataLimite,
       prazoLabel: formValues.dataLimite,
       dificuldade: formValues.dificuldade,

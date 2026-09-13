@@ -10,9 +10,9 @@ import { OnboardingProvider } from '../../state/OnboardingContext';
 function renderApp() {
   return render(
     <OnboardingProvider>
-      <MissionsProvider>
-        <EpicsProvider>
-          <CampaignsProvider>
+      <MissionsProvider initialMissions={[]}>
+        <EpicsProvider initialEpics={[]}>
+          <CampaignsProvider initialCampaigns={[]}>
             <NavigationContainer>
               <RootNavigator />
             </NavigationContainer>
@@ -79,5 +79,16 @@ describe('OnboardingScreen', () => {
 
     expect(screen.getByText('Épicos')).toBeTruthy();
     expect(screen.getByText('Objetivos que movem sua jornada.')).toBeTruthy();
+
+    // o épico, a campanha e as missões geradas a partir das respostas de
+    // Finanças aparecem em destaque, substituindo o estado vazio inicial
+    expect(screen.getByText('Organizar minha vida financeira')).toBeTruthy();
+
+    fireEvent.press(screen.getByLabelText('Campanha'));
+    expect(screen.getByText('Primeiros passos na organização financeira')).toBeTruthy();
+
+    fireEvent.press(screen.getByLabelText('Missão'));
+    expect(screen.getByText('Estudar 15 minutos sobre investimentos')).toBeTruthy();
+    expect(screen.getByText('Revisar os gastos da semana')).toBeTruthy();
   });
 });
