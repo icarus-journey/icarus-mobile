@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useMemo, useState } from 'react';
 
 import { colors } from '../theme';
+import { generateId } from '../utils/generateId';
 import { MOCK_CAMPAIGNS } from './campaignMockData';
 
 const CampaignsContext = createContext(null);
@@ -10,10 +11,9 @@ export function CampaignsProvider({ children, initialCampaigns = MOCK_CAMPAIGNS 
 
   const addCampaign = useCallback((formValues) => {
     const campaign = {
-      id: `campanha-${Date.now()}`,
+      id: generateId('campanha'),
       titulo: formValues.titulo,
       descricao: formValues.descricao || null,
-      destaque: false,
       dataLimite: formValues.dataLimite,
       prazoLabel: formValues.dataLimite,
       dificuldade: formValues.dificuldade,

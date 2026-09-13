@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useMemo, useState } from 'react';
 
 import { colors } from '../theme';
+import { generateId } from '../utils/generateId';
 import { MOCK_CAMPANHAS, MOCK_MISSIONS, pontosLocaisParaDificuldade } from './mockData';
 
 const MissionsContext = createContext(null);
@@ -10,7 +11,7 @@ export function MissionsProvider({ children, initialMissions = MOCK_MISSIONS }) 
 
   const addMission = useCallback((formValues) => {
     const mission = {
-      id: `missao-${Date.now()}`,
+      id: generateId('missao'),
       titulo: formValues.titulo,
       descricao: formValues.descricao || null,
       status: 'PENDENTE',

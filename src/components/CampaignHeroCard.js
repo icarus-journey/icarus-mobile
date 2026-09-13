@@ -4,7 +4,9 @@ import { colors } from '../theme/colors';
 import { fontFamily, fontSize } from '../theme/typography';
 
 export function CampaignHeroCard({ campaign, onPress }) {
-  const subtitle = `${campaign.progresso.concluidas} de ${campaign.progresso.total} missões • ${campaign.pontosAtuais}/${campaign.pontos} XP`;
+  const subtitle = campaign.progresso
+    ? `${campaign.progresso.concluidas} de ${campaign.progresso.total} missões • ${campaign.pontosAtuais}/${campaign.pontos} XP`
+    : 'Sua campanha está começando agora.';
   const recompensaLabel = campaign.recompensaCurta
     ? `Recompensa final: ${campaign.recompensaCurta}`
     : null;

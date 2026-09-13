@@ -10,9 +10,9 @@ import { OnboardingProvider } from '../../state/OnboardingContext';
 function renderApp() {
   return render(
     <OnboardingProvider>
-      <MissionsProvider>
-        <EpicsProvider>
-          <CampaignsProvider>
+      <MissionsProvider initialMissions={[]}>
+        <EpicsProvider initialEpics={[]}>
+          <CampaignsProvider initialCampaigns={[]}>
             <NavigationContainer>
               <RootNavigator initialRouteName="Onboarding" />
             </NavigationContainer>
@@ -77,7 +77,22 @@ describe('OnboardingScreen', () => {
 
     fireEvent.press(finalButton);
 
-    expect(screen.getAllByText('Missões')).not.toHaveLength(0);
-    expect(screen.getByText('Seus próximos passos.')).toBeTruthy();
+    expect(screen.getByText('Épicos')).toBeTruthy();
+    expect(screen.getByText('Objetivos que movem sua jornada.')).toBeTruthy();
+
+    // o épico, as 2 campanhas e as 5 missões geradas a partir da área
+    // escolhida (Finanças) substituem o estado vazio inicial
+    expect(screen.getByText('Organizar minha vida financeira')).toBeTruthy();
+
+    fireEvent.press(screen.getByLabelText('Campanha'));
+    expect(screen.getByText('Primeiros passos na organização financeira')).toBeTruthy();
+    expect(screen.getByText('Construir patrimônio')).toBeTruthy();
+
+    fireEvent.press(screen.getByLabelText('Missão'));
+    expect(screen.getByText('Revisar os gastos da semana')).toBeTruthy();
+    expect(screen.getByText('Guardar um valor fixo do dia')).toBeTruthy();
+    expect(screen.getByText('Definir uma meta financeira do mês')).toBeTruthy();
+    expect(screen.getByText('Estudar 15 minutos sobre investimentos')).toBeTruthy();
+    expect(screen.getByText('Dedicar 30 minutos a um projeto extra')).toBeTruthy();
   });
 });

@@ -47,12 +47,6 @@ export function PlanningHubScreen({ navigation, route }) {
     [missions],
   );
 
-  const destaqueEpic = epics.find((epic) => epic.destaque) ?? null;
-  const otherEpics = epics.filter((epic) => epic !== destaqueEpic);
-
-  const destaqueCampaign = campaigns.find((campaign) => campaign.destaque) ?? null;
-  const otherCampaigns = campaigns.filter((campaign) => campaign !== destaqueCampaign);
-
   const header = HEADERS[segment];
 
   function handleAdd() {
@@ -104,68 +98,44 @@ export function PlanningHubScreen({ navigation, route }) {
 
         {segment === 'CAMPANHA' ? (
           <FlatList
-            data={otherCampaigns}
+            data={campaigns}
             keyExtractor={(item) => item.id}
             contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + 16 }]}
-            ListHeaderComponent={
-              destaqueCampaign ? (
-                <CampaignHeroCard
-                  campaign={destaqueCampaign}
-                  onPress={() =>
-                    navigation.navigate('CampaignDetail', { campaignId: destaqueCampaign.id })
-                  }
-                />
-              ) : null
-            }
             renderItem={({ item }) => (
-              <TaskCard
-                mission={item}
-                statusLabel="em andamento"
+              <CampaignHeroCard
+                campaign={item}
                 onPress={() => navigation.navigate('CampaignDetail', { campaignId: item.id })}
               />
             )}
             ListEmptyComponent={
-              destaqueCampaign ? null : (
-                <EmptyState
-                  title="Nenhuma campanha por aqui"
-                  subtitle="Crie sua primeira campanha para organizar suas missões."
-                  buttonLabel="Criar campanha"
-                  onCreate={() => navigation.navigate('CampaignForm')}
-                />
-              )
+              <EmptyState
+                title="Nenhuma campanha por aqui"
+                subtitle="Crie sua primeira campanha para organizar suas missões."
+                buttonLabel="Criar campanha"
+                onCreate={() => navigation.navigate('CampaignForm')}
+              />
             }
           />
         ) : null}
 
         {segment === 'EPICO' ? (
           <FlatList
-            data={otherEpics}
+            data={epics}
             keyExtractor={(item) => item.id}
             contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + 16 }]}
-            ListHeaderComponent={
-              destaqueEpic ? (
-                <EpicHeroCard
-                  epic={destaqueEpic}
-                  onPress={() => navigation.navigate('EpicDetail', { epicId: destaqueEpic.id })}
-                />
-              ) : null
-            }
             renderItem={({ item }) => (
-              <TaskCard
-                mission={item}
-                statusLabel="em andamento"
+              <EpicHeroCard
+                epic={item}
                 onPress={() => navigation.navigate('EpicDetail', { epicId: item.id })}
               />
             )}
             ListEmptyComponent={
-              destaqueEpic ? null : (
-                <EmptyState
-                  title="Nenhum épico por aqui"
-                  subtitle="Crie seu primeiro épico para dar rumo à sua jornada."
-                  buttonLabel="Criar épico"
-                  onCreate={() => navigation.navigate('EpicForm')}
-                />
-              )
+              <EmptyState
+                title="Nenhum épico por aqui"
+                subtitle="Crie seu primeiro épico para dar rumo à sua jornada."
+                buttonLabel="Criar épico"
+                onCreate={() => navigation.navigate('EpicForm')}
+              />
             }
           />
         ) : null}

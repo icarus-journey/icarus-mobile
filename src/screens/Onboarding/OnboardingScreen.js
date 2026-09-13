@@ -6,12 +6,19 @@ import { OnboardingProgress } from '../../components/OnboardingProgress';
 import { OptionCard } from '../../components/OptionCard';
 import { PrimaryButton } from '../../components/Button';
 import { QuestionPrompt } from '../../components/QuestionPrompt';
+import { useCampaigns } from '../../state/CampaignsContext';
+import { useEpics } from '../../state/EpicsContext';
+import { useMissions } from '../../state/MissionsContext';
 import { useOnboarding } from '../../state/OnboardingContext';
 import { colors } from '../../theme/colors';
 import { getStepQuestion, TOTAL_ONBOARDING_STEPS } from './onboardingQuestions';
+import { buildPlanningSeedFromAnswers } from './onboardingToPlanning';
 
 export function OnboardingScreen({ navigation }) {
   const { answers, setSingleAnswer, toggleMultiAnswer } = useOnboarding();
+  const { addEpic } = useEpics();
+  const { addCampaign } = useCampaigns();
+  const { addMission } = useMissions();
   const insets = useSafeAreaInsets();
   const [stepIndex, setStepIndex] = useState(0);
 
@@ -44,10 +51,28 @@ export function OnboardingScreen({ navigation }) {
 
   function handleContinue() {
     if (isLastStep) {
-      navigation.replace('MissionList', { initialSegment: 'MISSAO' });
+      seedInitialPlanning();
+      navigation.replace('MissionList', { initialSegment: 'EPICO' });
     } else {
       setStepIndex((current) => current + 1);
     }
+  }
+
+  function seedInitialPlanning() {
+    const seed = buildPlanningSeedFromAnswers(answers);
+    if (!seed) {
+      return;
+    }
+
+    const epic = addEpic(seed.epic);
+    const campaigns = seed.campaigns.map((campaign) =>
+      addCampaign({ ...campaign, atribuirEpico: 'Sim', epico: epic }),
+    );
+
+    seed.missions.forEach((mission) => {
+      const campanha = campaigns[mission.campanhaIndex];
+      addMission({ ...mission, atribuirCampanha: 'Sim', campanha });
+    });
   }
 
   return (

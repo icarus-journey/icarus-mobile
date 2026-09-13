@@ -30,3 +30,14 @@ export function isValidDateString(text) {
 
   return true;
 }
+
+export function formatDateDaysFromNow(days, referenceDate = new Date()) {
+  const target = new Date(referenceDate);
+  target.setDate(target.getDate() + days);
+
+  const day = String(target.getDate()).padStart(2, '0');
+  const month = String(target.getMonth() + 1).padStart(2, '0');
+  const year = target.getFullYear();
+
+  return `${day}/${month}/${year}`;
+}
