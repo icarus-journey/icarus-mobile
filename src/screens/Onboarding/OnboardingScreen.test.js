@@ -77,7 +77,7 @@ describe('OnboardingScreen', () => {
 
     fireEvent.press(finalButton);
 
-    expect(screen.getByText('Épicos')).toBeTruthy();
-    expect(screen.getByText('Objetivos que movem sua jornada.')).toBeTruthy();
+    expect(screen.getAllByText('Missões')).not.toHaveLength(0);
+    expect(screen.getByText('Seus próximos passos.')).toBeTruthy();
   });
 });

@@ -44,7 +44,7 @@ export function OnboardingScreen({ navigation }) {
 
   function handleContinue() {
     if (isLastStep) {
-      navigation.replace('MissionList', { initialSegment: 'EPICO' });
+      navigation.replace('MissionList', { initialSegment: 'MISSAO' });
     } else {
       setStepIndex((current) => current + 1);
     }
@@ -52,7 +52,7 @@ export function OnboardingScreen({ navigation }) {
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top + 12 }]}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 32 }]}>
         <OnboardingProgress step={stepIndex + 1} totalSteps={TOTAL_ONBOARDING_STEPS} />
 
         <QuestionPrompt text={question.title} />

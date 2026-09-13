@@ -79,7 +79,10 @@ export function MissionFormScreen({ navigation, route }) {
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top + 12 }]}>
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 32 }]}
+        keyboardShouldPersistTaps="handled"
+      >
         <ScreenHeader
           title={editingMission ? 'Editar missão' : 'Nova missão'}
           onBack={() => navigation.goBack()}

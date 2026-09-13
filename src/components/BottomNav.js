@@ -1,4 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import IconDiario from '../assets/icons/icon-diario.svg';
 import IconLoja from '../assets/icons/icon-loja.svg';
@@ -14,8 +15,15 @@ const INERT_ITEMS = [
 ];
 
 export function BottomNav({ onPressMissoes }) {
+  const insets = useSafeAreaInsets();
+
   return (
-    <View style={styles.container}>
+    <View
+      style={[
+        styles.container,
+        { height: 76 + insets.bottom, paddingBottom: 6 + insets.bottom },
+      ]}
+    >
       <Pressable
         onPress={onPressMissoes}
         accessibilityRole="button"

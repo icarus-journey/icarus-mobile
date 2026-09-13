@@ -45,7 +45,10 @@ export function MissionDetailScreen({ route, navigation }) {
     <View style={styles.screen}>
       <ScrollView
         style={styles.body}
-        contentContainerStyle={[styles.content, { paddingTop: insets.top + 12 }]}
+        contentContainerStyle={[
+          styles.content,
+          { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 32 },
+        ]}
       >
         <ScreenHeader title="Detalhe da missão" onBack={() => navigation.goBack()} />
 

@@ -72,7 +72,10 @@ export function CampaignFormScreen({ navigation, route }) {
 
   return (
     <View style={[styles.screen, { paddingTop: insets.top + 12 }]}>
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 32 }]}
+        keyboardShouldPersistTaps="handled"
+      >
         <ScreenHeader
           title={editingCampaign ? 'Editar campanha' : 'Nova campanha'}
           onBack={() => navigation.goBack()}

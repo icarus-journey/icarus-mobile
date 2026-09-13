@@ -84,7 +84,7 @@ export function PlanningHubScreen({ navigation, route }) {
           <FlatList
             data={orderedMissions}
             keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.list}
+            contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + 16 }]}
             renderItem={({ item }) => (
               <TaskCard
                 mission={item}
@@ -106,7 +106,7 @@ export function PlanningHubScreen({ navigation, route }) {
           <FlatList
             data={otherCampaigns}
             keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.list}
+            contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + 16 }]}
             ListHeaderComponent={
               destaqueCampaign ? (
                 <CampaignHeroCard
@@ -141,7 +141,7 @@ export function PlanningHubScreen({ navigation, route }) {
           <FlatList
             data={otherEpics}
             keyExtractor={(item) => item.id}
-            contentContainerStyle={styles.list}
+            contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + 16 }]}
             ListHeaderComponent={
               destaqueEpic ? (
                 <EpicHeroCard
