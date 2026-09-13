@@ -23,11 +23,26 @@ function renderApp() {
   );
 }
 
-describe('fluxo de missões', () => {
-  it('abre o formulário a partir da lista e volta para a lista ao tocar em uma missão', () => {
+function enterApp() {
+  fireEvent.changeText(screen.getByLabelText('E-mail'), 'paloma@email.com');
+  fireEvent.changeText(screen.getByLabelText('Senha'), 'Senha123!');
+  fireEvent.press(screen.getByLabelText('Entrar na minha jornada'));
+}
+
+describe('fluxo de autenticação e missões', () => {
+  it('abre o app no login e entra na lista de missões', () => {
     renderApp();
 
+    expect(screen.getByLabelText('Icarus')).toBeTruthy();
+
+    enterApp();
+
     expect(screen.getByText('Seus próximos passos.')).toBeTruthy();
+  });
+
+  it('abre o formulário a partir da lista e volta para a lista ao tocar em uma missão', () => {
+    renderApp();
+    enterApp();
 
     fireEvent.press(screen.getByLabelText('Adicionar missão'));
     expect(screen.getByText('Nova missão')).toBeTruthy();
@@ -38,6 +53,7 @@ describe('fluxo de missões', () => {
 
   it('cria uma missão válida e volta para a lista com o novo item', () => {
     renderApp();
+    enterApp();
 
     fireEvent.press(screen.getByLabelText('Adicionar missão'));
 
@@ -52,6 +68,7 @@ describe('fluxo de missões', () => {
 
   it('abre o detalhe ao tocar em uma missão e volta para a lista', () => {
     renderApp();
+    enterApp();
 
     fireEvent.press(screen.getAllByLabelText(/Fazer exercício de dados/)[0]);
 
@@ -64,6 +81,7 @@ describe('fluxo de missões', () => {
 
   it('edita uma missão existente a partir do detalhe e reflete a mudança ao voltar', () => {
     renderApp();
+    enterApp();
 
     fireEvent.press(screen.getAllByLabelText(/Fazer exercício de dados/)[0]);
     fireEvent.press(screen.getByLabelText('Editar missão'));
@@ -83,6 +101,7 @@ describe('fluxo de missões', () => {
 
   it('não salva e mostra erros quando campos obrigatórios estão vazios', () => {
     renderApp();
+    enterApp();
 
     fireEvent.press(screen.getByLabelText('Adicionar missão'));
     fireEvent.press(screen.getByLabelText('Salvar missão'));

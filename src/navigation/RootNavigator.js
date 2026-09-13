@@ -1,5 +1,7 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
+import { LoginScreen } from '../screens/Auth/LoginScreen';
+import { RegisterScreen } from '../screens/Auth/RegisterScreen';
 import { CampaignDetailScreen } from '../screens/CampaignDetail/CampaignDetailScreen';
 import { CampaignFormScreen } from '../screens/CampaignForm/CampaignFormScreen';
 import { EpicDetailScreen } from '../screens/EpicDetail/EpicDetailScreen';
@@ -13,6 +15,10 @@ const Stack = createNativeStackNavigator();
 
 export function RootNavigator({ initialRouteName = 'Onboarding' }) {
   return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="Login" component={LoginScreen} />
+      <Stack.Screen name="Register" component={RegisterScreen} />
+      <Stack.Screen name="MissionList" component={MissionListScreen} />
     <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName={initialRouteName}>
       <Stack.Screen name="Onboarding" component={OnboardingScreen} />
       <Stack.Screen name="MissionList" component={PlanningHubScreen} />
