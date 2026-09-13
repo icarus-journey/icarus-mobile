@@ -64,14 +64,14 @@ export function OnboardingScreen({ navigation }) {
       return;
     }
 
-    const epic = addEpic(seed.epic, { destaque: true });
-    const campaign = addCampaign(
-      { ...seed.campaign, atribuirEpico: 'Sim', epico: epic },
-      { destaque: true },
+    const epic = addEpic(seed.epic);
+    const campaigns = seed.campaigns.map((campaign) =>
+      addCampaign({ ...campaign, atribuirEpico: 'Sim', epico: epic }),
     );
 
     seed.missions.forEach((mission) => {
-      addMission({ ...mission, atribuirCampanha: 'Sim', campanha: campaign });
+      const campanha = campaigns[mission.campanhaIndex];
+      addMission({ ...mission, atribuirCampanha: 'Sim', campanha });
     });
   }
 

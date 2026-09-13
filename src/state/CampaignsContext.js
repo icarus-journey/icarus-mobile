@@ -9,12 +9,11 @@ const CampaignsContext = createContext(null);
 export function CampaignsProvider({ children, initialCampaigns = MOCK_CAMPAIGNS }) {
   const [campaigns, setCampaigns] = useState(initialCampaigns);
 
-  const addCampaign = useCallback((formValues, { destaque = false } = {}) => {
+  const addCampaign = useCallback((formValues) => {
     const campaign = {
       id: generateId('campanha'),
       titulo: formValues.titulo,
       descricao: formValues.descricao || null,
-      destaque,
       dataLimite: formValues.dataLimite,
       prazoLabel: formValues.dataLimite,
       dificuldade: formValues.dificuldade,

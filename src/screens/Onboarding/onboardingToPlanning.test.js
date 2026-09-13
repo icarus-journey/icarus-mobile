@@ -11,19 +11,41 @@ describe('buildPlanningSeedFromAnswers', () => {
     expect(buildPlanningSeedFromAnswers({})).toBeNull();
   });
 
-  it('gera épico e campanha coerentes com a área escolhida', () => {
+  it('gera 1 épico, 2 campanhas e 5 missões', () => {
+    const seed = buildPlanningSeedFromAnswers(BASE_ANSWERS);
+
+    expect(seed.epic).toBeDefined();
+    expect(seed.campaigns).toHaveLength(2);
+    expect(seed.missions).toHaveLength(5);
+  });
+
+  it('gera o mesmo total independente de quantos objetivos foram marcados na pergunta 13', () => {
+    const umObjetivo = buildPlanningSeedFromAnswers({
+      ...BASE_ANSWERS,
+      objetivosPorArea: ['PERDA_PESO'],
+    });
+    const semObjetivo = buildPlanningSeedFromAnswers({ ...BASE_ANSWERS, objetivosPorArea: [] });
+
+    expect(umObjetivo.missions).toHaveLength(5);
+    expect(semObjetivo.missions).toHaveLength(5);
+  });
+
+  it('gera conteúdo coerente com a área escolhida', () => {
     const seed = buildPlanningSeedFromAnswers(BASE_ANSWERS);
 
     expect(seed.epic.titulo).toBe('Cuidar da minha saúde');
-    expect(seed.campaign.titulo).toContain('vida mais saudável');
+    expect(seed.campaigns[0].titulo).toContain('vida mais saudável');
+    expect(seed.campaigns[1].titulo).toBe('Cuidar do sono e da energia');
   });
 
-  it('gera uma missão para cada objetivo escolhido na pergunta 13', () => {
+  it('distribui as missões entre as duas campanhas geradas', () => {
     const seed = buildPlanningSeedFromAnswers(BASE_ANSWERS);
+    const naPrimeira = seed.missions.filter((m) => m.campanhaIndex === 0);
+    const naSegunda = seed.missions.filter((m) => m.campanhaIndex === 1);
 
-    expect(seed.missions).toHaveLength(2);
-    expect(seed.missions[0].titulo).toBe('Registrar as refeições do dia');
-    expect(seed.missions[1].titulo).toBe('Desligar as telas 30 minutos antes de dormir');
+    expect(naPrimeira.length + naSegunda.length).toBe(5);
+    expect(naPrimeira.length).toBeGreaterThan(0);
+    expect(naSegunda.length).toBeGreaterThan(0);
   });
 
   it('gera conteúdo diferente para cada área', () => {
@@ -31,7 +53,6 @@ describe('buildPlanningSeedFromAnswers', () => {
     const financas = buildPlanningSeedFromAnswers({
       ...BASE_ANSWERS,
       areaPrioritaria: 'FINANCAS',
-      objetivosPorArea: ['INVESTIR'],
     });
 
     expect(saude.epic.titulo).not.toBe(financas.epic.titulo);
@@ -58,11 +79,5 @@ describe('buildPlanningSeedFromAnswers', () => {
     });
 
     expect(seed.missions[0].tipoRecorrencia).toBe('SEMANAL');
-  });
-
-  it('não quebra quando nenhum objetivo foi marcado na pergunta 13', () => {
-    const seed = buildPlanningSeedFromAnswers({ ...BASE_ANSWERS, objetivosPorArea: [] });
-
-    expect(seed.missions).toEqual([]);
   });
 });
