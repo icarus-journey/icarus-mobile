@@ -17,6 +17,7 @@ export function InputField({
   secureTextEntry,
   textContentType,
   autoCapitalize,
+  acaoNoCampo,
 }) {
   return (
     <View style={styles.container}>
@@ -24,25 +25,38 @@ export function InputField({
         {label}
         {required ? '*' : ''}
       </Text>
-      <TextInput
-        value={value}
-        onChangeText={onChangeText}
-        placeholder={placeholder}
-        placeholderTextColor={colors.textSecondary}
-        maxLength={maxLength}
-        multiline={multiline}
-        keyboardType={keyboardType}
-        secureTextEntry={secureTextEntry}
-        textContentType={textContentType}
-        autoCapitalize={autoCapitalize}
-        accessibilityLabel={label}
-        accessibilityHint={helper}
+      <View
         style={[
           styles.field,
           multiline && styles.fieldMultiline,
           Boolean(error) && styles.fieldError,
         ]}
-      />
+      >
+        <TextInput
+          value={value}
+          onChangeText={onChangeText}
+          placeholder={placeholder}
+          placeholderTextColor={colors.textSecondary}
+          maxLength={maxLength}
+          multiline={multiline}
+          keyboardType={keyboardType}
+          secureTextEntry={secureTextEntry}
+          textContentType={textContentType}
+          autoCapitalize={autoCapitalize}
+          accessibilityLabel={label}
+          accessibilityHint={helper}
+          style={[
+            styles.input,
+            multiline && styles.inputMultiline,
+            acaoNoCampo && styles.inputComAcao,
+          ]}
+        />
+        {acaoNoCampo ? (
+          <View style={[styles.acaoNoCampo, multiline && styles.acaoNoCampoMultiline]}>
+            {acaoNoCampo}
+          </View>
+        ) : null}
+      </View>
       {error ? (
         <Text style={styles.errorText} accessibilityLiveRegion="polite">
           {error}
@@ -69,19 +83,35 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.borderDefault,
     borderRadius: 12,
+    backgroundColor: colors.surface,
+  },
+  input: {
+    flex: 1,
     paddingHorizontal: 14,
     fontFamily: fontFamily.regular,
     fontSize: fontSize.label,
     color: colors.textPrimary,
-    backgroundColor: colors.surface,
   },
   fieldMultiline: {
     height: 96,
+  },
+  inputMultiline: {
     paddingTop: 12,
     textAlignVertical: 'top',
   },
+  inputComAcao: {
+    paddingRight: 52,
+  },
   fieldError: {
     borderColor: colors.dangerText,
+  },
+  acaoNoCampo: {
+    position: 'absolute',
+    right: 6,
+    top: 2,
+  },
+  acaoNoCampoMultiline: {
+    top: 6,
   },
   helperText: {
     fontFamily: fontFamily.regular,

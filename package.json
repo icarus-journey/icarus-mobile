@@ -1,6 +1,6 @@
 {
   "name": "icarus-mobile",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "main": "index.js",
   "dependencies": {
     "@expo-google-fonts/inter": "^0.4.2",
@@ -8,6 +8,7 @@
     "@react-navigation/native-stack": "^7.18.10",
     "expo": "~57.0.20",
     "expo-font": "~57.0.3",
+    "expo-speech-recognition": "^57.0.0",
     "expo-splash-screen": "~57.0.8",
     "expo-status-bar": "~57.0.1",
     "react": "19.2.3",
@@ -17,9 +18,9 @@
     "react-native-svg": "15.15.4"
   },
   "scripts": {
-    "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
+    "start": "expo start --dev-client",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
     "web": "expo start --web",
     "lint": "eslint .",
     "format": "prettier --write .",

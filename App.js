@@ -13,6 +13,7 @@ import {
 
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { CampaignsProvider } from './src/state/CampaignsContext';
+import { DiariosProvider } from './src/state/DiariosContext';
 import { EpicsProvider } from './src/state/EpicsContext';
 import { MissionsProvider } from './src/state/MissionsContext';
 import { OnboardingProvider } from './src/state/OnboardingContext';
@@ -43,9 +44,11 @@ export default function App() {
         <MissionsProvider initialMissions={[]}>
           <EpicsProvider initialEpics={[]}>
             <CampaignsProvider initialCampaigns={[]}>
-              <NavigationContainer>
-                <RootNavigator />
-              </NavigationContainer>
+              <DiariosProvider initialEntries={[]}>
+                <NavigationContainer>
+                  <RootNavigator />
+                </NavigationContainer>
+              </DiariosProvider>
             </CampaignsProvider>
           </EpicsProvider>
         </MissionsProvider>

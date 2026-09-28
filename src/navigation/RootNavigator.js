@@ -4,6 +4,7 @@ import { LoginScreen } from '../screens/Auth/LoginScreen';
 import { RegisterScreen } from '../screens/Auth/RegisterScreen';
 import { CampaignDetailScreen } from '../screens/CampaignDetail/CampaignDetailScreen';
 import { CampaignFormScreen } from '../screens/CampaignForm/CampaignFormScreen';
+import { DiarioScreen } from '../screens/Diario/DiarioScreen';
 import { EpicDetailScreen } from '../screens/EpicDetail/EpicDetailScreen';
 import { EpicFormScreen } from '../screens/EpicForm/EpicFormScreen';
 import { MissionDetailScreen } from '../screens/MissionDetail/MissionDetailScreen';
@@ -20,6 +21,7 @@ export function RootNavigator({ initialRouteName = 'Login' }) {
       <Stack.Screen name="Register" component={RegisterScreen} />
       <Stack.Screen name="Onboarding" component={OnboardingScreen} />
       <Stack.Screen name="MissionList" component={PlanningHubScreen} />
+      <Stack.Screen name="Diario" component={DiarioScreen} />
       <Stack.Screen name="MissionForm" component={MissionFormScreen} />
       <Stack.Screen name="MissionDetail" component={MissionDetailScreen} />
       <Stack.Screen name="EpicForm" component={EpicFormScreen} />

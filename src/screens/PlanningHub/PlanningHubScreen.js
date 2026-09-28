@@ -141,7 +141,10 @@ export function PlanningHubScreen({ navigation, route }) {
         ) : null}
       </View>
 
-      <BottomNav onPressMissoes={() => navigation.popToTop()} />
+      <BottomNav
+        onPressMissoes={() => navigation.popToTop()}
+        onPressDiario={() => navigation.navigate('Diario')}
+      />
     </View>
   );
 }

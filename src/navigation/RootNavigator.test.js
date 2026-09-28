@@ -2,6 +2,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 
 import { CampaignsProvider } from '../state/CampaignsContext';
+import { DiariosProvider } from '../state/DiariosContext';
 import { EpicsProvider } from '../state/EpicsContext';
 import { MissionsProvider } from '../state/MissionsContext';
 import { OnboardingProvider } from '../state/OnboardingContext';
@@ -13,9 +14,11 @@ function renderApp(initialRouteName = 'Login') {
       <MissionsProvider>
         <EpicsProvider>
           <CampaignsProvider>
-            <NavigationContainer>
-              <RootNavigator initialRouteName={initialRouteName} />
-            </NavigationContainer>
+            <DiariosProvider>
+              <NavigationContainer>
+                <RootNavigator initialRouteName={initialRouteName} />
+              </NavigationContainer>
+            </DiariosProvider>
           </CampaignsProvider>
         </EpicsProvider>
       </MissionsProvider>
@@ -103,6 +106,20 @@ describe('fluxo de autenticação e missões', () => {
 
     expect(screen.getByText('Nova missão')).toBeTruthy();
     expect(screen.getByText('Informe um título para a missão.')).toBeTruthy();
+  });
+});
+
+describe('fluxo do diário', () => {
+  it('abre o diário pela navegação inferior e registra uma reflexão', () => {
+    renderApp('MissionList');
+
+    fireEvent.press(screen.getByLabelText('Diário'));
+    expect(screen.getByText('Diário de crescimento')).toBeTruthy();
+
+    fireEvent.changeText(screen.getByLabelText('Reflexão de hoje'), 'Hoje consegui avançar.');
+    fireEvent.press(screen.getByLabelText('Registrar reflexão'));
+
+    expect(screen.getByText('Hoje consegui avançar.')).toBeTruthy();
   });
 });
 

@@ -8,45 +8,59 @@ import IconPerfil from '../assets/icons/icon-perfil.svg';
 import { colors } from '../theme/colors';
 import { fontFamily, fontSize } from '../theme/typography';
 
-const INERT_ITEMS = [
+const ITENS = [
+  { key: 'missoes', label: 'Missões', Icon: IconMissoes },
   { key: 'diario', label: 'Diário', Icon: IconDiario },
   { key: 'loja', label: 'Loja', Icon: IconLoja },
   { key: 'perfil', label: 'Perfil', Icon: IconPerfil },
 ];
 
-export function BottomNav({ onPressMissoes }) {
+export function BottomNav({ activeItem = 'missoes', onPressMissoes, onPressDiario }) {
   const insets = useSafeAreaInsets();
+  const acoes = { missoes: onPressMissoes, diario: onPressDiario };
 
   return (
     <View
-      style={[
-        styles.container,
-        { height: 76 + insets.bottom, paddingBottom: 6 + insets.bottom },
-      ]}
+      style={[styles.container, { height: 76 + insets.bottom, paddingBottom: 6 + insets.bottom }]}
     >
-      <Pressable
-        onPress={onPressMissoes}
-        accessibilityRole="button"
-        accessibilityLabel="Missões"
-        style={styles.item}
-      >
-        <View style={styles.activeCircle}>
-          <IconMissoes width={24} height={24} />
-        </View>
-        <Text style={styles.activeLabel}>Missões</Text>
-      </Pressable>
+      {ITENS.map(({ key, label, Icon }) => {
+        const isActive = key === activeItem;
+        const onPress = acoes[key];
+        const content = (
+          <>
+            <View style={isActive ? styles.activeCircle : styles.iconContainer}>
+              <Icon
+                width={isActive ? 24 : 22}
+                height={isActive ? 24 : 22}
+                color={isActive ? colors.white : colors.textMuted}
+              />
+            </View>
+            <Text style={isActive ? styles.activeLabel : styles.label}>{label}</Text>
+          </>
+        );
 
-      {INERT_ITEMS.map(({ key, label, Icon }) => (
-        <View
-          key={key}
-          style={styles.item}
-          accessible
-          accessibilityLabel={`${label}, ainda não disponível nesta versão`}
-        >
-          <Icon width={22} height={22} />
-          <Text style={styles.label}>{label}</Text>
-        </View>
-      ))}
+        return onPress ? (
+          <Pressable
+            key={key}
+            onPress={onPress}
+            accessibilityRole="button"
+            accessibilityLabel={label}
+            accessibilityState={{ selected: isActive }}
+            style={styles.item}
+          >
+            {content}
+          </Pressable>
+        ) : (
+          <View
+            key={key}
+            style={styles.item}
+            accessible
+            accessibilityLabel={`${label}, ainda não disponível nesta versão`}
+          >
+            {content}
+          </View>
+        );
+      })}
     </View>
   );
 }
@@ -57,7 +71,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     height: 76,
-    paddingHorizontal: 24,
+    paddingHorizontal: 16,
     paddingVertical: 6,
     borderTopWidth: 1,
     borderTopColor: '#e5e0ed',
@@ -67,7 +81,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 2,
-    width: 86,
+    width: 72,
   },
   activeCircle: {
     width: 48,
@@ -76,6 +90,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.brand,
+  },
+  iconContainer: {
+    width: 48,
+    height: 46,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   activeLabel: {
     fontFamily: fontFamily.medium,

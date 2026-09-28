@@ -31,15 +31,15 @@ validada no `icarus-context`:
 - alvo de compatibilidade: Android 16/API 36;
 - acessibilidade mínima: WCAG 2.2 nível A, operável com TalkBack.
 
-Execução e teste local do aplicativo ocorrem via **Expo** (fluxo gerenciado),
-validado no Expo Go durante o desenvolvimento.
+Execução e teste local do aplicativo ocorrem via **Expo**. O reconhecimento de
+voz do diário exige *development build*; no Expo Go, o restante do aplicativo e
+a entrada digitada do diário continuam disponíveis, sem carregar o módulo
+nativo ausente.
 
 > **Pendência conhecida:** `react-native-keychain` exige módulo nativo
-> vinculado, o que não funciona no Expo Go puro. A decisão entre usar
-> `expo-secure-store` (compatível com Expo Go) ou migrar para um
-> *development build* com `react-native-keychain` deve ser tomada quando o
-> fluxo de autenticação (RF-02) for implementado, sem bloquear as telas da
-> Sprint 1. Registrar a escolha final neste documento quando decidida.
+> vinculado. O *development build* agora utilizado remove a limitação do Expo
+> Go, mas a decisão entre `expo-secure-store` e `react-native-keychain` ainda
+> deve ser tomada quando o fluxo de autenticação (RF-02) for implementado.
 
 ## 3. Estrutura de pastas
 
@@ -154,6 +154,8 @@ Permitidas:
 
 - aplicativo → API do `icarus-platform`, por HTTP, através do proxy;
 - aplicativo → armazenamento seguro local do token;
+- aplicativo → reconhecimento de voz nativo no dispositivo, sem persistência
+  do áudio do diário;
 - aplicativo → bibliotecas de UI, navegação e teste registradas no
   `package.json`.
 
@@ -176,7 +178,7 @@ Proibidas:
 
 ## 12. Próxima revisão
 
-Revisar este documento quando o fluxo de autenticação (RF-02) for
-implementado, para registrar a decisão sobre armazenamento seguro do token no
-Expo Go, e quando o primeiro contrato OpenAPI estiver disponível, para
-substituir os `TODO` dos módulos de serviço.
+Revisar este documento quando o fluxo de autenticação (RF-02) for implementado,
+para registrar a decisão sobre armazenamento seguro do token, e quando o
+primeiro contrato OpenAPI estiver disponível, para substituir os `TODO` dos
+módulos de serviço.

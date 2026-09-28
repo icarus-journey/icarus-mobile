@@ -20,8 +20,8 @@ serviços.
 
 - JavaScript (ES2020+), sem TypeScript no MVP, conforme decisão registrada na
   arquitetura da solução;
-- aplicativo criado e executado com Expo; testado no Expo Go durante o
-  desenvolvimento;
+- aplicativo criado com Expo e executado em *development build* por causa do
+  reconhecimento de voz nativo;
 - formatação: Prettier;
 - análise estática: ESLint com a configuração `eslint-config-universe` (ou
   equivalente oficial do Expo) mais o plugin `eslint-plugin-jsx-a11y` para
