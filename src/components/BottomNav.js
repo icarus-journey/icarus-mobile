@@ -15,9 +15,14 @@ const ITENS = [
   { key: 'perfil', label: 'Perfil', Icon: IconPerfil },
 ];
 
-export function BottomNav({ activeItem = 'missoes', onPressMissoes, onPressDiario }) {
+export function BottomNav({
+  activeItem = 'missoes',
+  onPressMissoes,
+  onPressDiario,
+  onPressPerfil,
+}) {
   const insets = useSafeAreaInsets();
-  const acoes = { missoes: onPressMissoes, diario: onPressDiario };
+  const acoes = { missoes: onPressMissoes, diario: onPressDiario, perfil: onPressPerfil };
 
   return (
     <View

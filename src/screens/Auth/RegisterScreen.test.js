@@ -1,11 +1,29 @@
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
 import { RegisterScreen } from './RegisterScreen';
+import { useSessao } from '../../state/SessaoContext';
+
+jest.mock('../../state/SessaoContext', () => ({ useSessao: jest.fn() }));
+const cadastrar = jest.fn();
+const entrar = jest.fn();
+
+function preencherCadastro() {
+  fireEvent.changeText(screen.getByLabelText('Como podemos chamar você?'), 'Paloma');
+  fireEvent.changeText(screen.getByLabelText('E-mail'), 'paloma@email.com');
+  fireEvent.changeText(screen.getByLabelText('Data de nascimento'), '01012000');
+  fireEvent.changeText(screen.getByLabelText('Senha'), 'Senha123!');
+  fireEvent.changeText(screen.getByLabelText('Confirmar senha'), 'Senha123!');
+  fireEvent.press(screen.getByLabelText('Li e aceito os Termos e a Política de Privacidade'));
+  fireEvent.press(screen.getByLabelText('Criar conta'));
+}
 
 const navigation = { goBack: jest.fn(), navigate: jest.fn(), replace: jest.fn() };
 
 describe('RegisterScreen', () => {
   beforeEach(() => {
+    cadastrar.mockReset().mockResolvedValue({ usuarioId: 'usuario' });
+    entrar.mockReset().mockResolvedValue(undefined);
+    useSessao.mockReturnValue({ cadastrar, entrar });
     navigation.navigate.mockClear();
     navigation.goBack.mockClear();
     navigation.replace.mockClear();
@@ -25,7 +43,7 @@ describe('RegisterScreen', () => {
     expect(screen.getByText('As senhas coincidem')).toBeTruthy();
   });
 
-  it('navega para o onboarding ao criar conta válida', () => {
+  it('só autentica para iniciar o onboarding depois de criar a conta na API', async () => {
     render(<RegisterScreen navigation={navigation} />);
 
     fireEvent.changeText(screen.getByLabelText('Como podemos chamar você?'), 'Paloma');
@@ -36,7 +54,30 @@ describe('RegisterScreen', () => {
     fireEvent.press(screen.getByLabelText('Li e aceito os Termos e a Política de Privacidade'));
     fireEvent.press(screen.getByLabelText('Criar conta'));
 
-    expect(navigation.replace).toHaveBeenCalledWith('Onboarding');
+    await waitFor(() => expect(entrar).toHaveBeenCalledWith('paloma@email.com', 'Senha123!', true));
+    expect(cadastrar).toHaveBeenCalledTimes(1);
+    expect(navigation.replace).not.toHaveBeenCalled();
+  });
+
+  it('não tenta login quando o cadastro falha', async () => {
+    cadastrar.mockRejectedValue(new Error('Já existe uma conta associada a este e-mail.'));
+    render(<RegisterScreen navigation={navigation} />);
+    preencherCadastro();
+    expect(await screen.findByText('Já existe uma conta associada a este e-mail.')).toBeTruthy();
+    expect(entrar).not.toHaveBeenCalled();
+  });
+
+  it('leva ao login se a conta foi criada e a autenticação posterior falhou', async () => {
+    entrar.mockRejectedValue(new Error('Sem conexão'));
+    render(<RegisterScreen navigation={navigation} />);
+    preencherCadastro();
+    await waitFor(() =>
+      expect(navigation.replace).toHaveBeenCalledWith('Login', {
+        email: 'paloma@email.com',
+        cadastroConcluido: true,
+      }),
+    );
+    expect(cadastrar).toHaveBeenCalledTimes(1);
   });
 
   it('navega de volta para login', () => {

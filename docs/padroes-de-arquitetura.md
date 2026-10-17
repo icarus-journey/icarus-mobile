@@ -26,20 +26,14 @@ validada no `icarus-context`:
 - o aplicativo fala **somente** com a API, por HTTP, através do proxy Nginx;
 - é proibido o aplicativo acessar PostgreSQL, RabbitMQ, MinIO, DuckDB, o
   trabalhador Python, o ETL ou o provedor de IA diretamente;
-- o token JWT deve ficar em armazenamento seguro do dispositivo, hoje previsto
-  como `react-native-keychain`;
-- alvo de compatibilidade: Android 16/API 36;
-- acessibilidade mínima: WCAG 2.2 nível A, operável com TalkBack.
+- o token JWT deve ficar em armazenamento seguro do dispositivo, via
+  `expo-secure-store` nesta branch;
+- alvo de compatibilidade: Android 16/API 36 e iPhone com iOS 16.4 ou superior;
+- acessibilidade mínima: WCAG 2.2 nível A, operável com TalkBack e VoiceOver.
 
-Execução e teste local do aplicativo ocorrem via **Expo**. O reconhecimento de
-voz do diário exige *development build*; no Expo Go, o restante do aplicativo e
-a entrada digitada do diário continuam disponíveis, sem carregar o módulo
-nativo ausente.
-
-> **Pendência conhecida:** `react-native-keychain` exige módulo nativo
-> vinculado. O *development build* agora utilizado remove a limitação do Expo
-> Go, mas a decisão entre `expo-secure-store` e `react-native-keychain` ainda
-> deve ser tomada quando o fluxo de autenticação (RF-02) for implementado.
+Esta branch usa Expo SDK 54 e roda no Expo Go. O diário recebe texto digitado.
+Keychain por `react-native-keychain` e ditado local ficam na branch
+`feature/recursos-nativos`, que usa *development build*.
 
 ## 3. Estrutura de pastas
 
