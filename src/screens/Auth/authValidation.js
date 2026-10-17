@@ -20,6 +20,8 @@ export function validateLogin(values) {
 
   if (!values.email.trim()) {
     errors.email = 'Informe seu e-mail.';
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email.trim())) {
+    errors.email = 'Informe um e-mail válido.';
   }
 
   if (!values.password) {
@@ -38,6 +40,8 @@ export function validateRegister(values) {
 
   if (!values.email.trim()) {
     errors.email = 'Informe seu e-mail.';
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email.trim())) {
+    errors.email = 'Informe um e-mail válido.';
   }
 
   if (!values.birthDate) {

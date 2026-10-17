@@ -7,8 +7,15 @@ import { EpicsProvider } from '../state/EpicsContext';
 import { MissionsProvider } from '../state/MissionsContext';
 import { OnboardingProvider } from '../state/OnboardingContext';
 import { RootNavigator } from './RootNavigator';
+import { useSessao } from '../state/SessaoContext';
+
+jest.mock('../state/SessaoContext', () => ({ useSessao: jest.fn() }));
 
 function renderApp(initialRouteName = 'Login') {
+  useSessao.mockReturnValue({
+    sessao: initialRouteName === 'Login' ? null : { usuarioId: 'usuario' },
+    novaConta: false,
+  });
   return render(
     <OnboardingProvider>
       <MissionsProvider>
@@ -26,21 +33,13 @@ function renderApp(initialRouteName = 'Login') {
   );
 }
 
-function enterApp() {
-  fireEvent.changeText(screen.getByLabelText('E-mail'), 'paloma@email.com');
-  fireEvent.changeText(screen.getByLabelText('Senha'), 'Senha123!');
-  fireEvent.press(screen.getByLabelText('Entrar na minha jornada'));
-}
-
 describe('fluxo de autenticação e missões', () => {
-  it('abre o app no login e entra na lista de missões', () => {
+  it('exibe somente o login quando não existe sessão', () => {
     renderApp();
 
     expect(screen.getByLabelText('Icarus')).toBeTruthy();
 
-    enterApp();
-
-    expect(screen.getByText('Seus próximos passos.')).toBeTruthy();
+    expect(screen.queryByText('Seus próximos passos.')).toBeNull();
   });
 
   it('abre o formulário a partir da lista e volta para a lista ao tocar em uma missão', () => {

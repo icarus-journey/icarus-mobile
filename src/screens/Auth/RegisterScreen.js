@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -9,6 +9,8 @@ import { colors } from '../../theme/colors';
 import { fontFamily, fontSize } from '../../theme/typography';
 import { maskDateInput } from '../../utils/dateInput';
 import { getPasswordChecks, isAuthFormValid, validateRegister } from './authValidation';
+import { useSessao } from '../../state/SessaoContext';
+import { errosDoFormulario } from '../../services/api';
 
 const INITIAL_VALUES = {
   name: '',
@@ -20,9 +22,13 @@ const INITIAL_VALUES = {
 };
 
 export function RegisterScreen({ navigation }) {
+  const { cadastrar, entrar } = useSessao();
   const insets = useSafeAreaInsets();
   const [values, setValues] = useState(INITIAL_VALUES);
   const [errors, setErrors] = useState({});
+  const [enviando, setEnviando] = useState(false);
+  const [erroCadastro, setErroCadastro] = useState('');
+  const emAndamento = useRef(false);
   const passwordChecks = getPasswordChecks(values.password);
   const passwordsMatch =
     values.password.length > 0 &&
@@ -33,12 +39,30 @@ export function RegisterScreen({ navigation }) {
     setValues((current) => ({ ...current, [field]: value }));
   }
 
-  function handleRegister() {
+  async function handleRegister() {
+    if (emAndamento.current) return;
     const validationErrors = validateRegister(values);
     setErrors(validationErrors);
 
-    if (isAuthFormValid(validationErrors)) {
-      navigation.replace('Onboarding');
+    if (!isAuthFormValid(validationErrors)) return;
+    emAndamento.current = true;
+    setEnviando(true);
+    setErroCadastro('');
+    let contaCriada = false;
+    try {
+      await cadastrar(values);
+      contaCriada = true;
+      await entrar(values.email, values.password, true);
+    } catch (erro) {
+      if (contaCriada) {
+        navigation.replace('Login', { email: values.email, cadastroConcluido: true });
+      } else {
+        setErrors(errosDoFormulario(erro));
+        setErroCadastro(erro.message);
+      }
+    } finally {
+      emAndamento.current = false;
+      setEnviando(false);
     }
   }
 
@@ -136,11 +160,21 @@ export function RegisterScreen({ navigation }) {
           </Text>
         ) : null}
 
-        <PrimaryButton label="Criar conta" onPress={handleRegister} />
+        {erroCadastro ? (
+          <Text style={styles.errorText} accessibilityRole="alert">
+            {erroCadastro}
+          </Text>
+        ) : null}
+        <PrimaryButton
+          label={enviando ? 'Criando conta…' : 'Criar conta'}
+          onPress={handleRegister}
+          disabled={enviando}
+        />
 
         <View style={styles.footerRow}>
           <Text style={styles.footerText}>Já tem uma conta?</Text>
           <Pressable
+            disabled={enviando}
             onPress={() => navigation.goBack()}
             accessibilityRole="button"
             accessibilityLabel="Entrar"

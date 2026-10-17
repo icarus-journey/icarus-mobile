@@ -193,6 +193,7 @@ export function DiarioScreen({ navigation }) {
       <BottomNav
         activeItem="diario"
         onPressMissoes={() => navigation.navigate('MissionList')}
+        onPressPerfil={() => navigation.navigate('Conta')}
         onPressDiario={() => {}}
       />
     </View>
