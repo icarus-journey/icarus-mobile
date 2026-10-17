@@ -13,20 +13,22 @@ Mudanças comuns entram em `development` e depois são incorporadas à branch
 nativa, mantendo a mesma base de telas e fluxos.
 
 ```bash
-npm install
+npm ci
 cp .env.example .env
 npm start -- --tunnel
 ```
 
 Abra o QR no Expo Go. No iPhone físico, a CLI e o Expo Go precisam estar
-conectados à mesma conta Expo (`npx expo login`); a outra pessoa deve entrar
-nessa conta no Expo Go. O túnel permite acesso fora da rede local.
+conectados à mesma conta Expo (`npx expo login`). Quem iniciar o Metro no
+próprio computador pode usar sua conta pessoal nos dois lados. O túnel permite
+acesso fora da rede local.
 
 Configure `EXPO_PUBLIC_API_URL` no `.env`: `http://10.0.2.2:5138` para o
 emulador Android, ou `http://IP_DA_MAQUINA:5138` para um aparelho na mesma
 rede. Para teste fora da rede, configure o endereço HTTPS público da API. O
 túnel do Expo publica o Metro, mas não a API. Reinicie o Metro ao mudar a
-variável. Consulte o README do `icarus-platform` para iniciar a API.
+variável. Para testar cadastro e login, inicie PostgreSQL, configure os User
+Secrets e aplique as migrations conforme a seção 6 de `icarus-platform/PROJETO.md`.
 
 ## Autenticação
 
