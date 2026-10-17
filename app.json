@@ -7,11 +7,7 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
-      "supportsTablet": true,
-      "infoPlist": {
-        "NSSpeechRecognitionUsageDescription": "Permita que o Icarus reconheça sua fala para preencher o diário.",
-        "NSMicrophoneUsageDescription": "Permita que o Icarus acesse seu microfone para transcrever sua fala no diário."
-      }
+      "supportsTablet": true
     },
     "android": {
       "versionCode": 2,
@@ -20,9 +16,6 @@
         "backgroundColor": "#11091F",
         "foregroundImage": "./assets/android-icon-foreground.png"
       },
-      "permissions": [
-        "android.permission.RECORD_AUDIO"
-      ],
       "package": "com.fabiam.icarusmobile"
     },
     "web": {
@@ -39,16 +32,7 @@
           "resizeMode": "contain"
         }
       ],
-      [
-        "expo-speech-recognition",
-        {
-          "microphonePermission": "Permita que o Icarus acesse seu microfone para transcrever sua fala no diário.",
-          "speechRecognitionPermission": "Permita que o Icarus reconheça sua fala para preencher o diário.",
-          "androidSpeechServicePackages": [
-            "com.google.android.as"
-          ]
-        }
-      ]
+      "expo-secure-store"
     ]
   }
 }

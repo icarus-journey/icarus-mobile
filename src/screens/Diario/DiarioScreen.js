@@ -11,7 +11,6 @@ import { useDiarios } from '../../state/DiariosContext';
 import { colors } from '../../theme/colors';
 import { fontFamily, fontSize } from '../../theme/typography';
 import { formatarDataCurta, obterDataLocal } from '../../utils/formatarData';
-import { DitadoPorVoz } from './DitadoPorVoz';
 
 const CONTEUDO_POR_TIPO = {
   REFLEXAO: {
@@ -52,7 +51,7 @@ export function DiarioScreen({ navigation }) {
 
   function handleSave() {
     if (!texto.trim()) {
-      setErro('Escreva ou dite uma mensagem para continuar.');
+      setErro('Escreva uma mensagem para continuar.');
       return;
     }
 
@@ -117,15 +116,6 @@ export function DiarioScreen({ navigation }) {
           maxLength={10000}
           multiline
           error={erro}
-          acaoNoCampo={
-            <DitadoPorVoz
-              textoAtual={texto}
-              onTextoChange={(value) => {
-                setTexto(value.slice(0, 10000));
-                setErro('');
-              }}
-            />
-          }
         />
 
         <View style={styles.actions}>
