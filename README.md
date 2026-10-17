@@ -7,8 +7,9 @@ missões, utiliza recompensas e consulta seu progresso.
 
 O armazenamento de sessão (`react-native-keychain`) e o reconhecimento de voz
 exigem um _development build_. Recompile após instalar dependências nativas.
-O [Expo Go da App Store](https://docs.expo.dev/troubleshooting/expo-go-version-mismatch/)
-não executa este projeto com Expo SDK 57.
+O [Expo Go da App Store](https://expo.dev/changelog/expo-go-57-login)
+aceita o SDK 57, mas não inclui `react-native-keychain` nem o módulo de
+reconhecimento de voz usados nesta branch.
 
 ### Android
 
