@@ -31,7 +31,7 @@ validada no `icarus-context`:
 - alvo de compatibilidade: Android 16/API 36 e iPhone com iOS 16.4 ou superior;
 - acessibilidade mínima: WCAG 2.2 nível A, operável com TalkBack e VoiceOver.
 
-Esta branch usa Expo SDK 54 e roda no Expo Go. O diário recebe texto digitado.
+Esta branch usa Expo SDK 57 e roda no Expo Go. O diário recebe texto digitado.
 Keychain por `react-native-keychain` e ditado local ficam na branch
 `feature/recursos-nativos`, que usa *development build*.
 

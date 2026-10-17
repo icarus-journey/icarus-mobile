@@ -5,8 +5,9 @@ missões, utiliza recompensas e consulta seu progresso.
 
 ## Execução local
 
-Esta branch usa Expo SDK 54 e `expo-secure-store`, compatíveis com o Expo Go da
-App Store no iPhone. O diário aceita texto; o ditado por voz está na branch
+Esta branch usa Expo SDK 57 e `expo-secure-store`, compatíveis com o
+[Expo Go da App Store no iPhone](https://expo.dev/changelog/expo-go-57-login).
+O diário aceita texto; o ditado por voz está na branch
 `feature/recursos-nativos`, que exige uma build própria.
 Mudanças comuns entram em `development` e depois são incorporadas à branch
 nativa, mantendo a mesma base de telas e fluxos.
