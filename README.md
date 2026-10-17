@@ -6,8 +6,11 @@ missões, utiliza recompensas e consulta seu progresso.
 ## Execução local
 
 O armazenamento de sessão (`react-native-keychain`) e o reconhecimento de voz
-exigem um _development build_. Recompile após instalar dependências nativas;
-o Expo Go não oferece o armazenamento necessário para o login.
+exigem um _development build_. Recompile após instalar dependências nativas.
+O [Expo Go da App Store](https://docs.expo.dev/troubleshooting/expo-go-version-mismatch/)
+não executa este projeto com Expo SDK 57.
+
+### Android
 
 ```bash
 npm install
@@ -15,14 +18,43 @@ cp .env.example .env
 npm run android
 ```
 
-Depois da primeira compilação nativa, use `npm start` para iniciar o Metro com
-o cliente de desenvolvimento.
+Depois da primeira compilação, use `npm start` para iniciar o Metro com o
+cliente de desenvolvimento.
+
+### iPhone (iOS 16.4 ou superior)
+
+O projeto inclui `expo-dev-client` e o perfil `development` em `eas.json`. Em
+Linux, a compilação iOS ocorre na nuvem pelo EAS. São necessários uma conta
+Expo, credenciais do Apple Developer Program para assinar a build e o iPhone
+registrado no perfil de distribuição interna. Ative o Modo de Desenvolvedor no
+iPhone.
+
+```bash
+npm install
+cp .env.example .env
+npx eas-cli login
+npx eas-cli device:create
+npx eas-cli build --platform ios --profile development
+```
+
+Instale a build pelo link/QR de instalação do EAS. Só depois use `npm start` no
+computador e abra o QR do Metro no cliente de desenvolvimento instalado. O QR
+do Metro usa o esquema `icarus://` e não abre em um iPhone sem a build. Em um
+Mac com Xcode, `npm run ios -- --device` também compila e instala localmente.
+
+Na mesma rede, o iPhone pode acessar a API local. Para testes fora dela, execute
+o Metro com `npx expo start --dev-client --tunnel` e publique a API em um
+endereço HTTPS acessível ao aparelho. O túnel do Expo transporta apenas o Metro;
+configure `EXPO_PUBLIC_API_URL` com o endereço HTTPS da API e reinicie o Metro.
+
+### Endereço da API
 
 Configure `EXPO_PUBLIC_API_URL` no `.env`: `http://10.0.2.2:5138` para o
-emulador Android, ou `http://IP_DA_MAQUINA:5138` para um aparelho na mesma
-rede. A API precisa estar acessível nesse endereço; consulte o README do
-`icarus-platform`. Reinicie o Metro ao mudar a variável. HTTP é permitido
-somente no build de desenvolvimento local; ambientes publicados usam HTTPS.
+emulador Android, ou `http://IP_DA_MAQUINA:5138` para Android físico ou iPhone
+na mesma rede. A API precisa estar acessível nesse endereço; para teste em
+aparelho, use o perfil `rede-local` descrito no README do `icarus-platform`. Reinicie o
+Metro ao mudar a variável. Use HTTP apenas no desenvolvimento local; ambientes
+publicados usam HTTPS.
 
 ## Autenticação
 

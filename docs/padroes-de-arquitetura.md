@@ -28,18 +28,12 @@ validada no `icarus-context`:
   trabalhador Python, o ETL ou o provedor de IA diretamente;
 - o token JWT deve ficar em armazenamento seguro do dispositivo, hoje previsto
   como `react-native-keychain`;
-- alvo de compatibilidade: Android 16/API 36;
-- acessibilidade mínima: WCAG 2.2 nível A, operável com TalkBack.
+- alvo de compatibilidade: Android 16/API 36 e iPhone com iOS 16.4 ou superior;
+- acessibilidade mínima: WCAG 2.2 nível A, operável com TalkBack e VoiceOver.
 
-Execução e teste local do aplicativo ocorrem via **Expo**. O reconhecimento de
-voz do diário exige *development build*; no Expo Go, o restante do aplicativo e
-a entrada digitada do diário continuam disponíveis, sem carregar o módulo
-nativo ausente.
-
-> **Pendência conhecida:** `react-native-keychain` exige módulo nativo
-> vinculado. O *development build* agora utilizado remove a limitação do Expo
-> Go, mas a decisão entre `expo-secure-store` e `react-native-keychain` ainda
-> deve ser tomada quando o fluxo de autenticação (RF-02) for implementado.
+Execução e teste local do aplicativo ocorrem via **Expo** e *development build*
+em ambas as plataformas. O Expo Go não inclui os módulos nativos necessários
+para a sessão no Keychain/Keystore e para o reconhecimento de voz do diário.
 
 ## 3. Estrutura de pastas
 
@@ -172,7 +166,7 @@ Proibidas:
 
 | Origem | Uso neste documento |
 |---|---|
-| `icarus-context/docs/implementation-design/platform/01-arquitetura-da-solucao.md` | Restrições de dependência, armazenamento seguro do token, acessibilidade e alvo Android. |
+| `icarus-context/docs/implementation-design/platform/01-arquitetura-da-solucao.md` | Restrições de dependência, armazenamento seguro do token, acessibilidade e alvos Android e iPhone. |
 | `icarus-context/docs/product-specification/04-requisitos.md` (RNF-06, RNF-07) | Critérios de acessibilidade e compatibilidade. |
 | `icarus-mobile/README.md` | Descrição geral do aplicativo. |
 

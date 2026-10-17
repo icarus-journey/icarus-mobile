@@ -145,6 +145,6 @@ export function MissaoCard({ missao, onConcluir }) {
 
 | Origem | Uso neste documento |
 |---|---|
-| `icarus-context/docs/product-specification/04-requisitos.md` (RNF-06, RNF-07) | Critérios de acessibilidade e compatibilidade Android. |
+| `icarus-context/docs/product-specification/04-requisitos.md` (RNF-06, RNF-07) | Critérios de acessibilidade e compatibilidade Android e iPhone. |
 | `icarus-context/docs/implementation-design/platform/01-arquitetura-da-solucao.md` | Linguagem do aplicativo (JavaScript) e estratégia de testes do mobile. |
 | `icarus-mobile/.github/workflows/validacao-inicial.yml` | Fluxo de branches validado por CI. |
