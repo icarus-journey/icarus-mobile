@@ -73,9 +73,27 @@ export function EpicsProvider({ children, initialEpics = MOCK_EPICS }) {
     return epicHidratado;
   }, []);
 
+  // Chamado depois de hidratarDoOnboarding, quando a campanha gerada para este épico já existe
+  // (a API devolve o épico antes da campanha, então o vínculo não pode nascer junto).
+  const vincularCampanha = useCallback((epicId, campanha) => {
+    setEpics((current) =>
+      current.map((epic) =>
+        epic.id === epicId
+          ? {
+              ...epic,
+              campanhasAtribuidas: [
+                ...epic.campanhasAtribuidas,
+                { id: campanha.id, titulo: campanha.titulo, progresso: null },
+              ],
+            }
+          : epic,
+      ),
+    );
+  }, []);
+
   const value = useMemo(
-    () => ({ epics, addEpic, updateEpic, getEpicById, hidratarDoOnboarding }),
-    [epics, addEpic, updateEpic, getEpicById, hidratarDoOnboarding],
+    () => ({ epics, addEpic, updateEpic, getEpicById, hidratarDoOnboarding, vincularCampanha }),
+    [epics, addEpic, updateEpic, getEpicById, hidratarDoOnboarding, vincularCampanha],
   );
 
   return <EpicsContext.Provider value={value}>{children}</EpicsContext.Provider>;

@@ -27,7 +27,7 @@ export function OnboardingScreen({ navigation }) {
   const { answers, setSingleAnswer, toggleMultiAnswer } = useOnboarding();
   const { sessao, requisitarAutenticado } = useSessao();
   const usuarioId = sessao?.usuarioId;
-  const { hidratarDoOnboarding: hidratarEpico } = useEpics();
+  const { hidratarDoOnboarding: hidratarEpico, vincularCampanha } = useEpics();
   const { hidratarDoOnboarding: hidratarCampanha } = useCampaigns();
   const { hidratarDoOnboarding: hidratarMissao } = useMissions();
   const insets = useSafeAreaInsets();
@@ -81,6 +81,7 @@ export function OnboardingScreen({ navigation }) {
 
       const epic = hidratarEpico(resultado.epico);
       const campaign = hidratarCampanha(resultado.epico.campanha, epic);
+      vincularCampanha(epic.id, campaign);
       resultado.epico.campanha.missoes.forEach((missao) => hidratarMissao(missao, campaign));
 
       navigation.replace('MissionList', { initialSegment: 'EPICO' });

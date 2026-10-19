@@ -165,6 +165,7 @@ describe('OnboardingScreen', () => {
     // navegou pra PlanningHub com o épico/campanha/missão reais devolvidos pela IA
     await waitFor(() => expect(screen.getByText('Épicos')).toBeTruthy());
     expect(screen.getByText('Organizar minha vida financeira')).toBeTruthy();
+    expect(screen.getByText('Meta para 2027 • 1 campanhas')).toBeTruthy();
 
     fireEvent.press(screen.getByLabelText('Campanha'));
     expect(screen.getByText('Primeiros passos na organização financeira')).toBeTruthy();
