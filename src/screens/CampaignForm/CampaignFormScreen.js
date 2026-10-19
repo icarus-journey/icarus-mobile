@@ -7,7 +7,6 @@ import { DifficultySelector } from '../../components/DifficultySelector';
 import { InputField } from '../../components/InputField';
 import { KeyboardAwareScrollView } from '../../components/KeyboardAwareScrollView';
 import { PickerModal } from '../../components/PickerModal';
-import { RadioBinary } from '../../components/RadioBinary';
 import { ReadonlyField } from '../../components/ReadonlyField';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { SelectField } from '../../components/SelectField';
@@ -25,7 +24,6 @@ const INITIAL_VALUES = {
   descricao: '',
   dataLimite: '',
   dificuldade: null,
-  atribuirEpico: 'Não',
   epico: null,
 };
 
@@ -35,7 +33,6 @@ function valuesFromCampaign(campaign) {
     descricao: campaign.descricao ?? '',
     dataLimite: campaign.dataLimite ?? '',
     dificuldade: campaign.dificuldade,
-    atribuirEpico: campaign.epico ? 'Sim' : 'Não',
     epico: campaign.epico ?? null,
   };
 }
@@ -52,22 +49,32 @@ export function CampaignFormScreen({ navigation, route }) {
   );
   const [errors, setErrors] = useState({});
   const [epicModalVisible, setEpicModalVisible] = useState(false);
+  const [enviando, setEnviando] = useState(false);
+  const [erroEnvio, setErroEnvio] = useState('');
 
   function setField(field, value) {
     setValues((current) => ({ ...current, [field]: value }));
   }
 
-  function handleSave() {
+  async function handleSave() {
     const validationErrors = validateCampaignForm(values);
     setErrors(validationErrors);
 
-    if (isFormValid(validationErrors)) {
+    if (!isFormValid(validationErrors)) return;
+
+    setEnviando(true);
+    setErroEnvio('');
+    try {
       if (editingCampaign) {
-        updateCampaign(editingCampaign.id, values);
+        await updateCampaign(editingCampaign.id, values);
       } else {
-        addCampaign(values);
+        await addCampaign(values);
       }
       navigation.goBack();
+    } catch {
+      setErroEnvio('Não foi possível salvar a campanha. Tente novamente.');
+    } finally {
+      setEnviando(false);
     }
   }
 
@@ -153,28 +160,25 @@ export function CampaignFormScreen({ navigation, route }) {
           <Text style={styles.seeAllLinkLabel}>Ver todas ↓</Text>
         </View>
 
-        <View style={styles.fieldGroup}>
-          <Text style={styles.groupLabel}>Atribuir a um épico</Text>
-          <RadioBinary
-            value={values.atribuirEpico}
-            onChange={(value) => setField('atribuirEpico', value)}
-          />
-        </View>
+        <SelectField
+          label="Épico"
+          required
+          value={values.epico?.titulo}
+          placeholder="Selecionar épico"
+          onPress={() => setEpicModalVisible(true)}
+          error={errors.epico}
+        />
 
-        {values.atribuirEpico === 'Sim' ? (
-          <SelectField
-            label="Épico"
-            required
-            value={values.epico?.titulo}
-            placeholder="Selecionar épico"
-            onPress={() => setEpicModalVisible(true)}
-            error={errors.epico}
-          />
+        {erroEnvio ? (
+          <Text style={styles.errorText} accessibilityRole="alert">
+            {erroEnvio}
+          </Text>
         ) : null}
 
         <PrimaryButton
           label={editingCampaign ? 'Salvar alterações' : 'Salvar campanha'}
           onPress={handleSave}
+          disabled={enviando}
         />
       </KeyboardAwareScrollView>
 

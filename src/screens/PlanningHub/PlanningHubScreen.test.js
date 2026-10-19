@@ -8,6 +8,10 @@ import { MissionsProvider } from '../../state/MissionsContext';
 import { MOCK_MISSIONS } from '../../state/mockData';
 import { PlanningHubScreen } from './PlanningHubScreen';
 
+jest.mock('../../state/SessaoContext', () => ({
+  useSessao: () => ({ sessao: { usuarioId: 'usuario-teste' }, requisitarAutenticado: jest.fn() }),
+}));
+
 const navigation = { navigate: jest.fn(), popToTop: jest.fn() };
 
 function renderScreen({

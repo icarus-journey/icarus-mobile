@@ -1,5 +1,5 @@
 import { NavigationContainer } from '@react-navigation/native';
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen } from '@testing-library/react-native';
 
 import { CampaignsProvider } from '../state/CampaignsContext';
 import { DiariosProvider } from '../state/DiariosContext';
@@ -11,10 +11,32 @@ import { useSessao } from '../state/SessaoContext';
 
 jest.mock('../state/SessaoContext', () => ({ useSessao: jest.fn() }));
 
+const mockCriarEpico = jest.fn();
+const mockAtualizarEpico = jest.fn();
+jest.mock('../services/epicos', () => ({
+  criarEpico: (...args) => mockCriarEpico(...args),
+  atualizarEpico: (...args) => mockAtualizarEpico(...args),
+}));
+
+const mockCriarCampanha = jest.fn();
+const mockAtualizarCampanha = jest.fn();
+jest.mock('../services/campanhas', () => ({
+  criarCampanha: (...args) => mockCriarCampanha(...args),
+  atualizarCampanha: (...args) => mockAtualizarCampanha(...args),
+}));
+
+const mockCriarMissao = jest.fn();
+const mockAtualizarMissao = jest.fn();
+jest.mock('../services/missoes', () => ({
+  criarMissao: (...args) => mockCriarMissao(...args),
+  atualizarMissao: (...args) => mockAtualizarMissao(...args),
+}));
+
 function renderApp(initialRouteName = 'Login') {
   useSessao.mockReturnValue({
     sessao: initialRouteName === 'Login' ? null : { usuarioId: 'usuario' },
     novaConta: false,
+    requisitarAutenticado: jest.fn(),
   });
   return render(
     <OnboardingProvider>
@@ -32,6 +54,15 @@ function renderApp(initialRouteName = 'Login') {
     </OnboardingProvider>,
   );
 }
+
+beforeEach(() => {
+  mockCriarEpico.mockReset();
+  mockAtualizarEpico.mockReset();
+  mockCriarCampanha.mockReset();
+  mockAtualizarCampanha.mockReset();
+  mockCriarMissao.mockReset();
+  mockAtualizarMissao.mockReset();
+});
 
 describe('fluxo de autenticação e missões', () => {
   it('exibe somente o login quando não existe sessão', () => {
@@ -52,7 +83,19 @@ describe('fluxo de autenticação e missões', () => {
     expect(screen.getByText('Seus próximos passos.')).toBeTruthy();
   });
 
-  it('cria uma missão válida e volta para a lista com o novo item', () => {
+  it('cria uma missão válida e volta para a lista com o novo item', async () => {
+    mockCriarMissao.mockResolvedValue({
+      id: 101,
+      campanhaId: null,
+      titulo: 'Ler dez páginas',
+      descricao: null,
+      beneficio: null,
+      dificuldade: 'media',
+      pontuacao: 45,
+      dataLimite: '2026-12-25',
+      horario: '2026-12-25T09:00:00+00:00',
+      status: 'ativa',
+    });
     renderApp('MissionList');
 
     fireEvent.press(screen.getByLabelText('Adicionar missão'));
@@ -60,7 +103,9 @@ describe('fluxo de autenticação e missões', () => {
     fireEvent.changeText(screen.getByLabelText('Título'), 'Ler dez páginas');
     fireEvent.changeText(screen.getByLabelText('Data limite'), '25122026');
     fireEvent.press(screen.getByLabelText('Média'));
-    fireEvent.press(screen.getByLabelText('Salvar missão'));
+    await act(async () => {
+      fireEvent.press(screen.getByLabelText('Salvar missão'));
+    });
 
     expect(screen.getByText('Seus próximos passos.')).toBeTruthy();
     expect(screen.getByText('Ler dez páginas')).toBeTruthy();
@@ -78,7 +123,19 @@ describe('fluxo de autenticação e missões', () => {
     expect(screen.getByText('Seus próximos passos.')).toBeTruthy();
   });
 
-  it('edita uma missão existente a partir do detalhe e reflete a mudança ao voltar', () => {
+  it('edita uma missão existente a partir do detalhe e reflete a mudança ao voltar', async () => {
+    mockAtualizarMissao.mockResolvedValue({
+      id: 'missao-1',
+      campanhaId: 'campanha-1',
+      titulo: 'Fazer exercício de dados avançado',
+      descricao: null,
+      beneficio: null,
+      dificuldade: 'media',
+      pontuacao: 45,
+      dataLimite: null,
+      horario: '2026-01-01T18:00:00+00:00',
+      status: 'ativa',
+    });
     renderApp('MissionList');
 
     fireEvent.press(screen.getAllByLabelText(/Fazer exercício de dados/)[0]);
@@ -88,7 +145,9 @@ describe('fluxo de autenticação e missões', () => {
     expect(screen.getByDisplayValue('Fazer exercício de dados')).toBeTruthy();
 
     fireEvent.changeText(screen.getByLabelText('Título'), 'Fazer exercício de dados avançado');
-    fireEvent.press(screen.getByLabelText('Salvar alterações'));
+    await act(async () => {
+      fireEvent.press(screen.getByLabelText('Salvar alterações'));
+    });
 
     expect(screen.getByText('Fazer exercício de dados avançado')).toBeTruthy();
 
@@ -123,7 +182,18 @@ describe('fluxo do diário', () => {
 });
 
 describe('fluxo de épicos', () => {
-  it('abre o detalhe do épico em destaque, edita e reflete a mudança ao voltar', () => {
+  it('abre o detalhe do épico em destaque, edita e reflete a mudança ao voltar', async () => {
+    mockAtualizarEpico.mockResolvedValue({
+      id: 'epico-1',
+      titulo: 'Ser promovido a sênior',
+      descricao: 'Avance nas campanhas que sustentam seu grande objetivo.',
+      areaDaVida: 'trabalhoECarreira',
+      dificuldade: 'dificil',
+      pontuacao: 60,
+      prazoInicio: '2026-01-01',
+      prazoFim: '2027-12-31',
+      estado: 'emAndamento',
+    });
     renderApp('MissionList');
 
     fireEvent.press(screen.getByLabelText('Épico'));
@@ -137,7 +207,9 @@ describe('fluxo de épicos', () => {
     expect(screen.getByDisplayValue('Ser promovido')).toBeTruthy();
 
     fireEvent.changeText(screen.getByLabelText('Título'), 'Ser promovido a sênior');
-    fireEvent.press(screen.getByLabelText('Salvar alterações'));
+    await act(async () => {
+      fireEvent.press(screen.getByLabelText('Salvar alterações'));
+    });
 
     expect(screen.getByText('Ser promovido a sênior')).toBeTruthy();
 
@@ -145,16 +217,31 @@ describe('fluxo de épicos', () => {
     expect(screen.getByText('Épicos')).toBeTruthy();
   });
 
-  it('cria um épico válido e ele aparece na lista', () => {
+  it('cria um épico válido e ele aparece na lista', async () => {
+    mockCriarEpico.mockResolvedValue({
+      id: 'epico-99',
+      titulo: 'Aprender inglês fluente',
+      descricao: null,
+      areaDaVida: 'estudosEAprendizado',
+      dificuldade: 'facil',
+      pontuacao: 30,
+      prazoInicio: '2026-01-01',
+      prazoFim: '2027-12-31',
+      estado: 'emAndamento',
+    });
     renderApp('MissionList');
 
     fireEvent.press(screen.getByLabelText('Épico'));
     fireEvent.press(screen.getByLabelText('Adicionar épico'));
 
     fireEvent.changeText(screen.getByLabelText('Título'), 'Aprender inglês fluente');
+    fireEvent.press(screen.getByLabelText('Área da vida'));
+    fireEvent.press(screen.getByLabelText('Estudos e aprendizado'));
     fireEvent.changeText(screen.getByLabelText('Data limite'), '31122027');
     fireEvent.press(screen.getByLabelText('Fácil'));
-    fireEvent.press(screen.getByLabelText('Salvar épico'));
+    await act(async () => {
+      fireEvent.press(screen.getByLabelText('Salvar épico'));
+    });
 
     expect(screen.getByText('Épicos')).toBeTruthy();
     expect(screen.getByText('Aprender inglês fluente')).toBeTruthy();
@@ -162,7 +249,22 @@ describe('fluxo de épicos', () => {
 });
 
 describe('fluxo de campanhas', () => {
-  it('abre o detalhe da campanha em destaque, edita e reflete a mudança ao voltar', () => {
+  it('abre o detalhe da campanha em destaque, edita e reflete a mudança ao voltar', async () => {
+    mockAtualizarCampanha.mockResolvedValue({
+      id: 'campanha-1',
+      epicoId: 'epico-1',
+      titulo: 'Capacitação em Python avançado',
+      descricao: 'Conclua as missões para dominar fundamentos de Python.',
+      areaDaVida: 'trabalhoECarreira',
+      dificuldade: 'media',
+      pontuacao: 45,
+      prazoInicio: '2026-01-01',
+      prazoFim: '2026-09-30',
+      valorMensurado: null,
+      unidade: null,
+      valorAtual: null,
+      estado: 'emAndamento',
+    });
     renderApp('MissionList');
 
     fireEvent.press(screen.getByLabelText('Campanha'));
@@ -177,7 +279,9 @@ describe('fluxo de campanhas', () => {
     expect(screen.getByDisplayValue('Capacitação em Python')).toBeTruthy();
 
     fireEvent.changeText(screen.getByLabelText('Título'), 'Capacitação em Python avançado');
-    fireEvent.press(screen.getByLabelText('Salvar alterações'));
+    await act(async () => {
+      fireEvent.press(screen.getByLabelText('Salvar alterações'));
+    });
 
     expect(screen.getByText('Capacitação em Python avançado')).toBeTruthy();
 
@@ -185,7 +289,22 @@ describe('fluxo de campanhas', () => {
     expect(screen.getByText('Campanhas')).toBeTruthy();
   });
 
-  it('cria uma campanha válida, vinculada a um épico, e ela aparece na lista', () => {
+  it('cria uma campanha válida, vinculada a um épico, e ela aparece na lista', async () => {
+    mockCriarCampanha.mockResolvedValue({
+      id: 'campanha-99',
+      epicoId: 'epico-1',
+      titulo: 'Correr uma meia maratona',
+      descricao: null,
+      areaDaVida: 'trabalhoECarreira',
+      dificuldade: 'dificil',
+      pontuacao: 60,
+      prazoInicio: '2026-01-01',
+      prazoFim: '2027-03-15',
+      valorMensurado: null,
+      unidade: null,
+      valorAtual: null,
+      estado: 'planejada',
+    });
     renderApp('MissionList');
 
     fireEvent.press(screen.getByLabelText('Campanha'));
@@ -195,11 +314,12 @@ describe('fluxo de campanhas', () => {
     fireEvent.changeText(screen.getByLabelText('Data limite'), '15032027');
     fireEvent.press(screen.getByLabelText('Difícil'));
 
-    fireEvent.press(screen.getByLabelText('Sim'));
     fireEvent.press(screen.getByLabelText('Épico'));
     fireEvent.press(screen.getByLabelText('Ser promovido'));
 
-    fireEvent.press(screen.getByLabelText('Salvar campanha'));
+    await act(async () => {
+      fireEvent.press(screen.getByLabelText('Salvar campanha'));
+    });
 
     expect(screen.getByText('Campanhas')).toBeTruthy();
     expect(screen.getByText('Correr uma meia maratona')).toBeTruthy();

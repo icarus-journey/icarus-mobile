@@ -3,6 +3,10 @@ import { render, screen } from '@testing-library/react-native';
 import { MissionsProvider } from '../../state/MissionsContext';
 import { MissionDetailScreen } from './MissionDetailScreen';
 
+jest.mock('../../state/SessaoContext', () => ({
+  useSessao: () => ({ sessao: { usuarioId: 'usuario-teste' }, requisitarAutenticado: jest.fn() }),
+}));
+
 const navigation = { goBack: jest.fn(), popToTop: jest.fn() };
 
 function renderScreen(missionId, initialMissions) {

@@ -12,6 +12,7 @@ import { RadioBinary } from '../../components/RadioBinary';
 import { ReadonlyField } from '../../components/ReadonlyField';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { SelectField } from '../../components/SelectField';
+import { useCampaigns } from '../../state/CampaignsContext';
 import { useMissions } from '../../state/MissionsContext';
 import { colors } from '../../theme/colors';
 import { fontFamily, fontSize } from '../../theme/typography';
@@ -49,7 +50,8 @@ function valuesFromMission(mission) {
 }
 
 export function MissionFormScreen({ navigation, route }) {
-  const { addMission, updateMission, getMissionById, campaigns } = useMissions();
+  const { addMission, updateMission, getMissionById } = useMissions();
+  const { campaigns } = useCampaigns();
   const insets = useSafeAreaInsets();
   const editingMissionId = route.params?.missionId ?? null;
   const editingMission = editingMissionId ? getMissionById(editingMissionId) : null;
@@ -59,22 +61,32 @@ export function MissionFormScreen({ navigation, route }) {
   );
   const [errors, setErrors] = useState({});
   const [campaignModalVisible, setCampaignModalVisible] = useState(false);
+  const [enviando, setEnviando] = useState(false);
+  const [erroEnvio, setErroEnvio] = useState('');
 
   function setField(field, value) {
     setValues((current) => ({ ...current, [field]: value }));
   }
 
-  function handleSave() {
+  async function handleSave() {
     const validationErrors = validateMissionForm(values);
     setErrors(validationErrors);
 
-    if (isFormValid(validationErrors)) {
+    if (!isFormValid(validationErrors)) return;
+
+    setEnviando(true);
+    setErroEnvio('');
+    try {
       if (editingMission) {
-        updateMission(editingMission.id, values);
+        await updateMission(editingMission.id, values);
       } else {
-        addMission(values);
+        await addMission(values);
       }
       navigation.goBack();
+    } catch {
+      setErroEnvio('Não foi possível salvar a missão. Tente novamente.');
+    } finally {
+      setEnviando(false);
     }
   }
 
@@ -182,9 +194,16 @@ export function MissionFormScreen({ navigation, route }) {
           </>
         ) : null}
 
+        {erroEnvio ? (
+          <Text style={styles.errorText} accessibilityRole="alert">
+            {erroEnvio}
+          </Text>
+        ) : null}
+
         <PrimaryButton
           label={editingMission ? 'Salvar alterações' : 'Salvar missão'}
           onPress={handleSave}
+          disabled={enviando}
         />
       </KeyboardAwareScrollView>
 
