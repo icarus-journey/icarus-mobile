@@ -1,5 +1,4 @@
-import { emitirEventoReconhecimento, ExpoSpeechRecognitionModule } from 'expo-speech-recognition';
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { fireEvent, render, screen } from '@testing-library/react-native';
 
 import { DiariosProvider } from '../../state/DiariosContext';
 import { DiarioScreen } from './DiarioScreen';
@@ -15,50 +14,13 @@ function renderScreen(initialEntries = []) {
 }
 
 describe('DiarioScreen', () => {
-  it('renderiza o microfone no campo de texto e o estado vazio', () => {
+  it('renderiza o campo de texto e o estado vazio', () => {
     renderScreen();
 
     expect(screen.getByText('Diário de crescimento')).toBeTruthy();
     expect(screen.getByLabelText('Reflexão de hoje')).toBeTruthy();
-    expect(screen.getByLabelText('Ditar texto')).toBeTruthy();
-    expect(screen.queryByText('Ditado por voz')).toBeNull();
+    expect(screen.queryByLabelText('Ditar texto')).toBeNull();
     expect(screen.getByText('Seu diário começa aqui')).toBeTruthy();
-  });
-
-  it('solicita permissão e inicia o reconhecimento de voz em português', async () => {
-    renderScreen();
-
-    fireEvent.press(screen.getByLabelText('Ditar texto'));
-
-    await waitFor(() => {
-      expect(ExpoSpeechRecognitionModule.requestMicrophonePermissionsAsync).toHaveBeenCalled();
-      expect(ExpoSpeechRecognitionModule.start).toHaveBeenCalledWith({
-        lang: 'pt-BR',
-        interimResults: true,
-        continuous: false,
-        maxAlternatives: 1,
-        requiresOnDeviceRecognition: true,
-      });
-    });
-  });
-
-  it('acrescenta a transcrição reconhecida ao texto existente', async () => {
-    renderScreen();
-    fireEvent.changeText(screen.getByLabelText('Reflexão de hoje'), 'Comecei escrevendo.');
-    fireEvent.press(screen.getByLabelText('Ditar texto'));
-
-    await waitFor(() => expect(ExpoSpeechRecognitionModule.start).toHaveBeenCalled());
-
-    act(() => {
-      emitirEventoReconhecimento('result', {
-        results: [{ transcript: 'Hoje consegui concluir minhas prioridades.' }],
-        isFinal: true,
-      });
-    });
-
-    expect(
-      screen.getByDisplayValue('Comecei escrevendo. Hoje consegui concluir minhas prioridades.'),
-    ).toBeTruthy();
   });
 
   it('registra uma reflexão textual no histórico', () => {
@@ -74,12 +36,12 @@ describe('DiarioScreen', () => {
     expect(screen.getByText('Consegui respeitar meu ritmo.')).toBeTruthy();
   });
 
-  it('exige texto escrito ou ditado antes de registrar', () => {
+  it('exige texto antes de registrar', () => {
     renderScreen();
 
     fireEvent.press(screen.getByLabelText('Registrar reflexão'));
 
-    expect(screen.getByText('Escreva ou dite uma mensagem para continuar.')).toBeTruthy();
+    expect(screen.getByText('Escreva uma mensagem para continuar.')).toBeTruthy();
   });
 
   it('alterna para o registro de deslize sem linguagem punitiva', () => {

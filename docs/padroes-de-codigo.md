@@ -20,8 +20,8 @@ serviços.
 
 - JavaScript (ES2020+), sem TypeScript no MVP, conforme decisão registrada na
   arquitetura da solução;
-- aplicativo criado com Expo e executado em *development build* por causa do
-  reconhecimento de voz nativo;
+- aplicativo criado com Expo SDK 57 e executado no Expo Go; o reconhecimento
+  de voz nativo fica na branch `feature/recursos-nativos`;
 - formatação: Prettier;
 - análise estática: ESLint com a configuração `eslint-config-universe` (ou
   equivalente oficial do Expo) mais o plugin `eslint-plugin-jsx-a11y` para

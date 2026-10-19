@@ -2,6 +2,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
 import { RootNavigator } from '../../navigation/RootNavigator';
+
 import { CampaignsProvider } from '../../state/CampaignsContext';
 import { EpicsProvider } from '../../state/EpicsContext';
 import { MissionsProvider } from '../../state/MissionsContext';
@@ -9,14 +10,18 @@ import { OnboardingProvider } from '../../state/OnboardingContext';
 
 const mockIniciarOnboarding = jest.fn();
 const mockObterStatusOnboarding = jest.fn();
+const mockRequisitarAutenticado = jest.fn();
 
 jest.mock('../../services/onboarding', () => ({
   iniciarOnboarding: (...args) => mockIniciarOnboarding(...args),
   obterStatusOnboarding: (...args) => mockObterStatusOnboarding(...args),
 }));
 
-jest.mock('../../state/AuthContext', () => ({
-  useAuth: () => ({ usuarioId: 'usuario-1', accessToken: 'token-1' }),
+jest.mock('../../state/SessaoContext', () => ({
+  useSessao: () => ({
+    sessao: { usuarioId: 'usuario-1' },
+    requisitarAutenticado: mockRequisitarAutenticado,
+  }),
 }));
 
 const RESULTADO_CONCLUIDO = {
@@ -141,7 +146,7 @@ describe('OnboardingScreen', () => {
     expect(mockIniciarOnboarding).toHaveBeenCalledWith(
       expect.objectContaining({
         usuarioId: 'usuario-1',
-        token: 'token-1',
+        requisitarAutenticado: mockRequisitarAutenticado,
         respostas: expect.arrayContaining([
           { pergunta: 'Quais áreas você quer priorizar hoje?', respostas: ['Finanças'] },
           {
@@ -153,8 +158,8 @@ describe('OnboardingScreen', () => {
     );
     expect(mockObterStatusOnboarding).toHaveBeenCalledWith({
       usuarioId: 'usuario-1',
-      token: 'token-1',
       jobId: 'job-1',
+      requisitarAutenticado: mockRequisitarAutenticado,
     });
 
     // navegou pra PlanningHub com o épico/campanha/missão reais devolvidos pela IA

@@ -26,22 +26,14 @@ validada no `icarus-context`:
 - o aplicativo fala **somente** com a API, por HTTP, através do proxy Nginx;
 - é proibido o aplicativo acessar PostgreSQL, RabbitMQ, MinIO, DuckDB, o
   trabalhador Python, o ETL ou o provedor de IA diretamente;
-- o token JWT deve ficar em armazenamento seguro do dispositivo — decidido
-  `expo-secure-store` (ver nota abaixo);
-- alvo de compatibilidade: Android 16/API 36;
-- acessibilidade mínima: WCAG 2.2 nível A, operável com TalkBack.
+- o token JWT deve ficar em armazenamento seguro do dispositivo, via
+  `expo-secure-store` nesta branch;
+- alvo de compatibilidade: Android 16/API 36 e iPhone com iOS 16.4 ou superior;
+- acessibilidade mínima: WCAG 2.2 nível A, operável com TalkBack e VoiceOver.
 
-Execução e teste local do aplicativo ocorrem via **Expo**. O reconhecimento de
-voz do diário exige *development build*; no Expo Go, o restante do aplicativo e
-a entrada digitada do diário continuam disponíveis, sem carregar o módulo
-nativo ausente.
-
-> **Decisão (RF-02 implementado):** entre `expo-secure-store` e
-> `react-native-keychain`, ficou `expo-secure-store` — já é dependência do SDK
-> Expo em uso (sem módulo nativo extra pra vincular) e cobre a necessidade do
-> MVP (par access/refresh token). `react-native-keychain` fica como opção
-> futura só se surgir uma necessidade concreta que o `expo-secure-store` não
-> atenda. Implementação em `src/services/armazenamentoToken.js`.
+Esta branch usa Expo SDK 57 e roda no Expo Go. O diário recebe texto digitado.
+Keychain por `react-native-keychain` e ditado local ficam na branch
+`feature/recursos-nativos`, que usa *development build*.
 
 ## 3. Estrutura de pastas
 
@@ -93,7 +85,7 @@ Regras gerais:
   `useState`/`useReducer` dentro do próprio componente;
 - **estado compartilhado entre telas** (sessão do usuário, token, dados de
   onboarding em andamento): Context API do React, em `src/state/`, um contexto
-  por domínio (ex.: `AuthContext.js`);
+  por domínio (ex.: `SessaoContext.js`);
 - não introduzir biblioteca externa de gerência de estado (Redux, Zustand,
   Recoil etc.) sem necessidade concreta identificada; a Sprint 1 deve ser
   resolvida com `useState`/`useReducer` e Context API;
@@ -103,7 +95,7 @@ Regras gerais:
 ## 6. Acesso a serviços
 
 - todo acesso à API passa por `src/services/`;
-- um cliente HTTP único (`services/apiClient.js`) concentra a URL base, o
+- um cliente HTTP único (`services/api.js`) concentra a URL base, o
   cabeçalho de autenticação e o tratamento padrão de erro; nenhuma tela chama
   `fetch` diretamente;
 - um módulo por domínio de produto, espelhando os módulos já nomeados na
@@ -112,8 +104,8 @@ Regras gerais:
   `concluirMissao`) e não estruturas de request/response cruas;
 - **os contratos exatos de cada endpoint (rota, payload, códigos de erro)
   ainda não existem pra todo domínio** — serão definidos no OpenAPI do
-  `icarus-platform` conforme cada fluxo for implementado. Auth
-  (`services/autenticacao.js`) e onboarding por IA (`services/onboarding.js`)
+  `icarus-platform` conforme cada fluxo for implementado. Sessão
+  (`services/sessao.js`) e onboarding por IA (`services/onboarding.js`)
   já falam com endpoints reais; os demais módulos podem ficar com assinatura
   definida e implementação pendente (`TODO` explícito), sem inventar contrato;
 - nenhuma regra de domínio (cálculo de sequência, validação de recorrência,

@@ -7,7 +7,7 @@ import { OptionCard } from '../../components/OptionCard';
 import { PrimaryButton } from '../../components/Button';
 import { QuestionPrompt } from '../../components/QuestionPrompt';
 import { iniciarOnboarding, obterStatusOnboarding } from '../../services/onboarding';
-import { useAuth } from '../../state/AuthContext';
+import { useSessao } from '../../state/SessaoContext';
 import { useCampaigns } from '../../state/CampaignsContext';
 import { useEpics } from '../../state/EpicsContext';
 import { useMissions } from '../../state/MissionsContext';
@@ -25,7 +25,8 @@ function aguardar(ms) {
 
 export function OnboardingScreen({ navigation }) {
   const { answers, setSingleAnswer, toggleMultiAnswer } = useOnboarding();
-  const { usuarioId, accessToken } = useAuth();
+  const { sessao, requisitarAutenticado } = useSessao();
+  const usuarioId = sessao?.usuarioId;
   const { hidratarDoOnboarding: hidratarEpico } = useEpics();
   const { hidratarDoOnboarding: hidratarCampanha } = useCampaigns();
   const { hidratarDoOnboarding: hidratarMissao } = useMissions();
@@ -75,7 +76,7 @@ export function OnboardingScreen({ navigation }) {
 
     try {
       const respostas = buildRespostasFromAnswers(answers);
-      const { jobId } = await iniciarOnboarding({ usuarioId, token: accessToken, respostas });
+      const { jobId } = await iniciarOnboarding({ usuarioId, respostas, requisitarAutenticado });
       const resultado = await aguardarConclusao(jobId);
 
       const epic = hidratarEpico(resultado.epico);
@@ -92,7 +93,7 @@ export function OnboardingScreen({ navigation }) {
 
   async function aguardarConclusao(jobId) {
     for (let tentativa = 0; tentativa < TENTATIVAS_MAXIMAS; tentativa += 1) {
-      const status = await obterStatusOnboarding({ usuarioId, token: accessToken, jobId });
+      const status = await obterStatusOnboarding({ usuarioId, jobId, requisitarAutenticado });
 
       if (status.status === 'concluido') {
         return status;

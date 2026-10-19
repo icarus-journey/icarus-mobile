@@ -1,23 +1,16 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PrimaryButton } from '../../components/Button';
 import { InputField } from '../../components/InputField';
 import { KeyboardAwareScrollView } from '../../components/KeyboardAwareScrollView';
-import { useAuth } from '../../state/AuthContext';
 import { colors } from '../../theme/colors';
 import { fontFamily, fontSize } from '../../theme/typography';
 import { maskDateInput } from '../../utils/dateInput';
 import { getPasswordChecks, isAuthFormValid, validateRegister } from './authValidation';
-
-function mensagemDeErroCadastro(erro) {
-  if (erro.status === 409) return 'Já existe uma conta com este e-mail.';
-  if (erro.status === 400 && erro.errors) {
-    return Object.values(erro.errors)[0]?.[0] ?? 'Verifique os dados informados.';
-  }
-  return 'Não foi possível criar sua conta. Tente novamente.';
-}
+import { useSessao } from '../../state/SessaoContext';
+import { errosDoFormulario } from '../../services/api';
 
 const INITIAL_VALUES = {
   name: '',
@@ -29,11 +22,13 @@ const INITIAL_VALUES = {
 };
 
 export function RegisterScreen({ navigation }) {
+  const { cadastrar, entrar } = useSessao();
   const insets = useSafeAreaInsets();
-  const { registrar } = useAuth();
   const [values, setValues] = useState(INITIAL_VALUES);
   const [errors, setErrors] = useState({});
   const [enviando, setEnviando] = useState(false);
+  const [erroCadastro, setErroCadastro] = useState('');
+  const emAndamento = useRef(false);
   const passwordChecks = getPasswordChecks(values.password);
   const passwordsMatch =
     values.password.length > 0 &&
@@ -45,25 +40,28 @@ export function RegisterScreen({ navigation }) {
   }
 
   async function handleRegister() {
+    if (emAndamento.current) return;
     const validationErrors = validateRegister(values);
     setErrors(validationErrors);
 
-    if (!isAuthFormValid(validationErrors)) {
-      return;
-    }
-
+    if (!isAuthFormValid(validationErrors)) return;
+    emAndamento.current = true;
     setEnviando(true);
+    setErroCadastro('');
+    let contaCriada = false;
     try {
-      await registrar({
-        nome: values.name,
-        email: values.email,
-        senha: values.password,
-        dataNascimento: values.birthDate,
-      });
-      navigation.replace('Onboarding');
+      await cadastrar(values);
+      contaCriada = true;
+      await entrar(values.email, values.password, true);
     } catch (erro) {
-      setErrors({ geral: mensagemDeErroCadastro(erro) });
+      if (contaCriada) {
+        navigation.replace('Login', { email: values.email, cadastroConcluido: true });
+      } else {
+        setErrors(errosDoFormulario(erro));
+        setErroCadastro(erro.message);
+      }
     } finally {
+      emAndamento.current = false;
       setEnviando(false);
     }
   }
@@ -162,14 +160,13 @@ export function RegisterScreen({ navigation }) {
           </Text>
         ) : null}
 
-        {errors.geral ? (
-          <Text style={styles.errorText} accessibilityLiveRegion="polite">
-            {errors.geral}
+        {erroCadastro ? (
+          <Text style={styles.errorText} accessibilityRole="alert">
+            {erroCadastro}
           </Text>
         ) : null}
-
         <PrimaryButton
-          label={enviando ? 'Criando conta...' : 'Criar conta'}
+          label={enviando ? 'Criando conta…' : 'Criar conta'}
           onPress={handleRegister}
           disabled={enviando}
         />
@@ -177,6 +174,7 @@ export function RegisterScreen({ navigation }) {
         <View style={styles.footerRow}>
           <Text style={styles.footerText}>Já tem uma conta?</Text>
           <Pressable
+            disabled={enviando}
             onPress={() => navigation.goBack()}
             accessibilityRole="button"
             accessibilityLabel="Entrar"

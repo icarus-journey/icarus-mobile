@@ -11,14 +11,27 @@ import { MissionDetailScreen } from '../screens/MissionDetail/MissionDetailScree
 import { MissionFormScreen } from '../screens/MissionForm/MissionFormScreen';
 import { OnboardingScreen } from '../screens/Onboarding/OnboardingScreen';
 import { PlanningHubScreen } from '../screens/PlanningHub/PlanningHubScreen';
+import { ContaScreen } from '../screens/Conta/ContaScreen';
+import { useSessao } from '../state/SessaoContext';
 
 const Stack = createNativeStackNavigator();
 
-export function RootNavigator({ initialRouteName = 'Login' }) {
+export function RootNavigator({ initialRouteName }) {
+  const { sessao, novaConta } = useSessao();
+  if (!sessao) {
+    return (
+      <Stack.Navigator key="visitante" screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="Login" component={LoginScreen} />
+        <Stack.Screen name="Register" component={RegisterScreen} />
+      </Stack.Navigator>
+    );
+  }
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName={initialRouteName}>
-      <Stack.Screen name="Login" component={LoginScreen} />
-      <Stack.Screen name="Register" component={RegisterScreen} />
+    <Stack.Navigator
+      key={sessao.usuarioId}
+      screenOptions={{ headerShown: false }}
+      initialRouteName={initialRouteName ?? (novaConta ? 'Onboarding' : 'MissionList')}
+    >
       <Stack.Screen name="Onboarding" component={OnboardingScreen} />
       <Stack.Screen name="MissionList" component={PlanningHubScreen} />
       <Stack.Screen name="Diario" component={DiarioScreen} />
@@ -28,6 +41,7 @@ export function RootNavigator({ initialRouteName = 'Login' }) {
       <Stack.Screen name="EpicDetail" component={EpicDetailScreen} />
       <Stack.Screen name="CampaignForm" component={CampaignFormScreen} />
       <Stack.Screen name="CampaignDetail" component={CampaignDetailScreen} />
+      <Stack.Screen name="Conta" component={ContaScreen} />
     </Stack.Navigator>
   );
 }

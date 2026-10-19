@@ -12,12 +12,13 @@ import {
 } from '@expo-google-fonts/inter';
 
 import { RootNavigator } from './src/navigation/RootNavigator';
-import { AuthProvider } from './src/state/AuthContext';
 import { CampaignsProvider } from './src/state/CampaignsContext';
 import { DiariosProvider } from './src/state/DiariosContext';
 import { EpicsProvider } from './src/state/EpicsContext';
 import { MissionsProvider } from './src/state/MissionsContext';
 import { OnboardingProvider } from './src/state/OnboardingContext';
+import { SessaoProvider, useSessao } from './src/state/SessaoContext';
+import { SessaoGate } from './src/navigation/SessaoGate';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -41,22 +42,31 @@ export default function App() {
 
   return (
     <SafeAreaProvider onLayout={onLayoutRootView}>
-      <AuthProvider>
-        <OnboardingProvider>
-          <MissionsProvider initialMissions={[]}>
-            <EpicsProvider initialEpics={[]}>
-              <CampaignsProvider initialCampaigns={[]}>
-                <DiariosProvider initialEntries={[]}>
-                  <NavigationContainer>
-                    <RootNavigator />
-                  </NavigationContainer>
-                </DiariosProvider>
-              </CampaignsProvider>
-            </EpicsProvider>
-          </MissionsProvider>
-        </OnboardingProvider>
-      </AuthProvider>
+      <SessaoProvider>
+        <SessaoGate>
+          <ConteudoDaSessao />
+        </SessaoGate>
+      </SessaoProvider>
       <StatusBar style="dark" />
     </SafeAreaProvider>
+  );
+}
+
+export function ConteudoDaSessao() {
+  const { sessao } = useSessao();
+  return (
+    <OnboardingProvider key={sessao?.usuarioId ?? 'visitante'}>
+      <MissionsProvider initialMissions={[]}>
+        <EpicsProvider initialEpics={[]}>
+          <CampaignsProvider initialCampaigns={[]}>
+            <DiariosProvider initialEntries={[]}>
+              <NavigationContainer>
+                <RootNavigator />
+              </NavigationContainer>
+            </DiariosProvider>
+          </CampaignsProvider>
+        </EpicsProvider>
+      </MissionsProvider>
+    </OnboardingProvider>
   );
 }
