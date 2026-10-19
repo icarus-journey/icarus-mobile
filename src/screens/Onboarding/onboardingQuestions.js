@@ -188,3 +188,29 @@ export function getStepQuestion(stepIndex, answers) {
     options: OBJETIVOS_POR_AREA[area] ?? [],
   };
 }
+
+/**
+ * Converte as respostas internas (ids/values) em pares {pergunta, respostas} com o texto
+ * legível já exibido ao usuário — é esse texto que o backend repassa ao worker de IA, que é
+ * agnóstico ao catálogo de perguntas (nenhum enum é duplicado entre mobile e worker).
+ */
+export function buildRespostasFromAnswers(answers) {
+  const respostas = [];
+
+  for (let step = 0; step < TOTAL_ONBOARDING_STEPS; step += 1) {
+    const question = getStepQuestion(step, answers);
+    const selecionado = answers[question.id];
+    if (selecionado === undefined) continue;
+
+    const valores = Array.isArray(selecionado) ? selecionado : [selecionado];
+    const labels = valores
+      .map((valor) => question.options.find((option) => option.value === valor)?.label)
+      .filter(Boolean);
+
+    if (labels.length > 0) {
+      respostas.push({ pergunta: question.title, respostas: labels });
+    }
+  }
+
+  return respostas;
+}

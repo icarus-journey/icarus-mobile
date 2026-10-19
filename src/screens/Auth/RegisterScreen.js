@@ -5,10 +5,19 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PrimaryButton } from '../../components/Button';
 import { InputField } from '../../components/InputField';
 import { KeyboardAwareScrollView } from '../../components/KeyboardAwareScrollView';
+import { useAuth } from '../../state/AuthContext';
 import { colors } from '../../theme/colors';
 import { fontFamily, fontSize } from '../../theme/typography';
 import { maskDateInput } from '../../utils/dateInput';
 import { getPasswordChecks, isAuthFormValid, validateRegister } from './authValidation';
+
+function mensagemDeErroCadastro(erro) {
+  if (erro.status === 409) return 'Já existe uma conta com este e-mail.';
+  if (erro.status === 400 && erro.errors) {
+    return Object.values(erro.errors)[0]?.[0] ?? 'Verifique os dados informados.';
+  }
+  return 'Não foi possível criar sua conta. Tente novamente.';
+}
 
 const INITIAL_VALUES = {
   name: '',
@@ -21,8 +30,10 @@ const INITIAL_VALUES = {
 
 export function RegisterScreen({ navigation }) {
   const insets = useSafeAreaInsets();
+  const { registrar } = useAuth();
   const [values, setValues] = useState(INITIAL_VALUES);
   const [errors, setErrors] = useState({});
+  const [enviando, setEnviando] = useState(false);
   const passwordChecks = getPasswordChecks(values.password);
   const passwordsMatch =
     values.password.length > 0 &&
@@ -33,12 +44,27 @@ export function RegisterScreen({ navigation }) {
     setValues((current) => ({ ...current, [field]: value }));
   }
 
-  function handleRegister() {
+  async function handleRegister() {
     const validationErrors = validateRegister(values);
     setErrors(validationErrors);
 
-    if (isAuthFormValid(validationErrors)) {
+    if (!isAuthFormValid(validationErrors)) {
+      return;
+    }
+
+    setEnviando(true);
+    try {
+      await registrar({
+        nome: values.name,
+        email: values.email,
+        senha: values.password,
+        dataNascimento: values.birthDate,
+      });
       navigation.replace('Onboarding');
+    } catch (erro) {
+      setErrors({ geral: mensagemDeErroCadastro(erro) });
+    } finally {
+      setEnviando(false);
     }
   }
 
@@ -136,7 +162,17 @@ export function RegisterScreen({ navigation }) {
           </Text>
         ) : null}
 
-        <PrimaryButton label="Criar conta" onPress={handleRegister} />
+        {errors.geral ? (
+          <Text style={styles.errorText} accessibilityLiveRegion="polite">
+            {errors.geral}
+          </Text>
+        ) : null}
+
+        <PrimaryButton
+          label={enviando ? 'Criando conta...' : 'Criar conta'}
+          onPress={handleRegister}
+          disabled={enviando}
+        />
 
         <View style={styles.footerRow}>
           <Text style={styles.footerText}>Já tem uma conta?</Text>

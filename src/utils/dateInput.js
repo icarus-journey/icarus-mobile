@@ -31,6 +31,19 @@ export function isValidDateString(text) {
   return true;
 }
 
+/** Converte "dd/mm/aaaa" (formato de exibição) para "aaaa-mm-dd" (formato da API). */
+export function paraDataIso(dataBr) {
+  const [day, month, year] = dataBr.split('/');
+  return `${year}-${month}-${day}`;
+}
+
+/** Converte "aaaa-mm-dd" (formato da API) para "dd/mm/aaaa" (formato de exibição). */
+export function deDataIso(dataIso) {
+  if (!dataIso) return null;
+  const [year, month, day] = dataIso.split('-');
+  return `${day}/${month}/${year}`;
+}
+
 export function formatDateDaysFromNow(days, referenceDate = new Date()) {
   const target = new Date(referenceDate);
   target.setDate(target.getDate() + days);

@@ -3,6 +3,20 @@ jest.mock(
   () => require('react-native-safe-area-context/jest/mock').default,
 );
 
+jest.mock('expo-secure-store', () => {
+  const armazenamento = new Map();
+
+  return {
+    setItemAsync: jest.fn(async (chave, valor) => {
+      armazenamento.set(chave, valor);
+    }),
+    getItemAsync: jest.fn(async (chave) => armazenamento.get(chave) ?? null),
+    deleteItemAsync: jest.fn(async (chave) => {
+      armazenamento.delete(chave);
+    }),
+  };
+});
+
 jest.mock('expo-speech-recognition', () => {
   const ouvintes = {};
 

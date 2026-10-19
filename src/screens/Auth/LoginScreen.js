@@ -5,25 +5,44 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PrimaryButton, SecondaryButton } from '../../components/Button';
 import { InputField } from '../../components/InputField';
 import { KeyboardAwareScrollView } from '../../components/KeyboardAwareScrollView';
+import { useAuth } from '../../state/AuthContext';
 import { colors } from '../../theme/colors';
 import { fontFamily, fontSize } from '../../theme/typography';
 import { isAuthFormValid, validateLogin } from './authValidation';
 
+function mensagemDeErroLogin(erro) {
+  if (erro.status === 401) return 'E-mail ou senha inválidos.';
+  if (erro.status === 429) return 'Muitas tentativas. Tente novamente mais tarde.';
+  return 'Não foi possível entrar. Tente novamente.';
+}
+
 export function LoginScreen({ navigation }) {
   const insets = useSafeAreaInsets();
+  const { entrar } = useAuth();
   const [values, setValues] = useState({ email: '', password: '' });
   const [errors, setErrors] = useState({});
+  const [enviando, setEnviando] = useState(false);
 
   function setField(field, value) {
     setValues((current) => ({ ...current, [field]: value }));
   }
 
-  function handleLogin() {
+  async function handleLogin() {
     const validationErrors = validateLogin(values);
     setErrors(validationErrors);
 
-    if (isAuthFormValid(validationErrors)) {
+    if (!isAuthFormValid(validationErrors)) {
+      return;
+    }
+
+    setEnviando(true);
+    try {
+      await entrar(values.email, values.password);
       navigation.replace('MissionList');
+    } catch (erro) {
+      setErrors({ geral: mensagemDeErroLogin(erro) });
+    } finally {
+      setEnviando(false);
     }
   }
 
@@ -76,7 +95,17 @@ export function LoginScreen({ navigation }) {
             <Text style={styles.linkLabel}>Esqueci minha senha</Text>
           </Pressable>
 
-          <PrimaryButton label="Entrar na minha jornada" onPress={handleLogin} />
+          {errors.geral ? (
+            <Text style={styles.errorBanner} accessibilityLiveRegion="polite">
+              {errors.geral}
+            </Text>
+          ) : null}
+
+          <PrimaryButton
+            label={enviando ? 'Entrando...' : 'Entrar na minha jornada'}
+            onPress={handleLogin}
+            disabled={enviando}
+          />
 
           <SecondaryButton
             label="Continuar com Google"
@@ -140,6 +169,12 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.semiBold,
     fontSize: fontSize.base,
     color: colors.brandLink,
+  },
+  errorBanner: {
+    marginTop: -4,
+    fontFamily: fontFamily.regular,
+    fontSize: fontSize.base,
+    color: colors.dangerText,
   },
   footerRow: {
     flexDirection: 'row',

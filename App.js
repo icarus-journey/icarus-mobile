@@ -12,6 +12,7 @@ import {
 } from '@expo-google-fonts/inter';
 
 import { RootNavigator } from './src/navigation/RootNavigator';
+import { AuthProvider } from './src/state/AuthContext';
 import { CampaignsProvider } from './src/state/CampaignsContext';
 import { DiariosProvider } from './src/state/DiariosContext';
 import { EpicsProvider } from './src/state/EpicsContext';
@@ -40,19 +41,21 @@ export default function App() {
 
   return (
     <SafeAreaProvider onLayout={onLayoutRootView}>
-      <OnboardingProvider>
-        <MissionsProvider initialMissions={[]}>
-          <EpicsProvider initialEpics={[]}>
-            <CampaignsProvider initialCampaigns={[]}>
-              <DiariosProvider initialEntries={[]}>
-                <NavigationContainer>
-                  <RootNavigator />
-                </NavigationContainer>
-              </DiariosProvider>
-            </CampaignsProvider>
-          </EpicsProvider>
-        </MissionsProvider>
-      </OnboardingProvider>
+      <AuthProvider>
+        <OnboardingProvider>
+          <MissionsProvider initialMissions={[]}>
+            <EpicsProvider initialEpics={[]}>
+              <CampaignsProvider initialCampaigns={[]}>
+                <DiariosProvider initialEntries={[]}>
+                  <NavigationContainer>
+                    <RootNavigator />
+                  </NavigationContainer>
+                </DiariosProvider>
+              </CampaignsProvider>
+            </EpicsProvider>
+          </MissionsProvider>
+        </OnboardingProvider>
+      </AuthProvider>
       <StatusBar style="dark" />
     </SafeAreaProvider>
   );

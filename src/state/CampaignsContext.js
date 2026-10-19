@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useMemo, useState } from 'react';
 
 import { colors } from '../theme';
+import { deDataIso } from '../utils/dateInput';
 import { generateId } from '../utils/generateId';
 import { MOCK_CAMPAIGNS } from './campaignMockData';
 
@@ -54,9 +55,33 @@ export function CampaignsProvider({ children, initialCampaigns = MOCK_CAMPAIGNS 
     [campaigns],
   );
 
+  // Campanha gerada pela IA no onboarding — já vem com id e pontuação reais do backend.
+  const hidratarDoOnboarding = useCallback((campanha, epico) => {
+    const campanhaHidratada = {
+      id: campanha.id,
+      titulo: campanha.titulo,
+      descricao: campanha.descricao,
+      dataLimite: deDataIso(campanha.prazoFim),
+      prazoLabel: deDataIso(campanha.prazoFim),
+      areaDaVida: campanha.areaDaVida,
+      dificuldade: campanha.dificuldade.toUpperCase(),
+      pontos: campanha.pontuacao,
+      pontosAtuais: campanha.valorAtual ?? 0,
+      recompensaCurta: null,
+      recompensaLabel: `${campanha.pontuacao} pontos`,
+      missoesAtribuidas: [],
+      progresso: null,
+      epico,
+      corDestaque: colors.typeAccentC,
+    };
+
+    setCampaigns((current) => [...current, campanhaHidratada]);
+    return campanhaHidratada;
+  }, []);
+
   const value = useMemo(
-    () => ({ campaigns, addCampaign, updateCampaign, getCampaignById }),
-    [campaigns, addCampaign, updateCampaign, getCampaignById],
+    () => ({ campaigns, addCampaign, updateCampaign, getCampaignById, hidratarDoOnboarding }),
+    [campaigns, addCampaign, updateCampaign, getCampaignById, hidratarDoOnboarding],
   );
 
   return <CampaignsContext.Provider value={value}>{children}</CampaignsContext.Provider>;

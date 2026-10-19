@@ -1,26 +1,38 @@
 import { useEffect, useState } from 'react';
-import { BackHandler, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, BackHandler, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { OnboardingProgress } from '../../components/OnboardingProgress';
 import { OptionCard } from '../../components/OptionCard';
 import { PrimaryButton } from '../../components/Button';
 import { QuestionPrompt } from '../../components/QuestionPrompt';
+import { iniciarOnboarding, obterStatusOnboarding } from '../../services/onboarding';
+import { useAuth } from '../../state/AuthContext';
 import { useCampaigns } from '../../state/CampaignsContext';
 import { useEpics } from '../../state/EpicsContext';
 import { useMissions } from '../../state/MissionsContext';
 import { useOnboarding } from '../../state/OnboardingContext';
 import { colors } from '../../theme/colors';
-import { getStepQuestion, TOTAL_ONBOARDING_STEPS } from './onboardingQuestions';
-import { buildPlanningSeedFromAnswers } from './onboardingToPlanning';
+import { fontFamily, fontSize } from '../../theme/typography';
+import { buildRespostasFromAnswers, getStepQuestion, TOTAL_ONBOARDING_STEPS } from './onboardingQuestions';
+
+const INTERVALO_CONSULTA_MS = 2000;
+const TENTATIVAS_MAXIMAS = 30; // ~60s no total
+
+function aguardar(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 export function OnboardingScreen({ navigation }) {
   const { answers, setSingleAnswer, toggleMultiAnswer } = useOnboarding();
-  const { addEpic } = useEpics();
-  const { addCampaign } = useCampaigns();
-  const { addMission } = useMissions();
+  const { usuarioId, accessToken } = useAuth();
+  const { hidratarDoOnboarding: hidratarEpico } = useEpics();
+  const { hidratarDoOnboarding: hidratarCampanha } = useCampaigns();
+  const { hidratarDoOnboarding: hidratarMissao } = useMissions();
   const insets = useSafeAreaInsets();
   const [stepIndex, setStepIndex] = useState(0);
+  const [gerando, setGerando] = useState(false);
+  const [erroGeracao, setErroGeracao] = useState(null);
 
   useEffect(() => {
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -51,28 +63,59 @@ export function OnboardingScreen({ navigation }) {
 
   function handleContinue() {
     if (isLastStep) {
-      seedInitialPlanning();
-      navigation.replace('MissionList', { initialSegment: 'EPICO' });
+      iniciarGeracaoDaJornada();
     } else {
       setStepIndex((current) => current + 1);
     }
   }
 
-  function seedInitialPlanning() {
-    const seed = buildPlanningSeedFromAnswers(answers);
-    if (!seed) {
-      return;
+  async function iniciarGeracaoDaJornada() {
+    setErroGeracao(null);
+    setGerando(true);
+
+    try {
+      const respostas = buildRespostasFromAnswers(answers);
+      const { jobId } = await iniciarOnboarding({ usuarioId, token: accessToken, respostas });
+      const resultado = await aguardarConclusao(jobId);
+
+      const epic = hidratarEpico(resultado.epico);
+      const campaign = hidratarCampanha(resultado.epico.campanha, epic);
+      resultado.epico.campanha.missoes.forEach((missao) => hidratarMissao(missao, campaign));
+
+      navigation.replace('MissionList', { initialSegment: 'EPICO' });
+    } catch {
+      setErroGeracao('Não foi possível gerar sua jornada agora. Tente novamente.');
+    } finally {
+      setGerando(false);
+    }
+  }
+
+  async function aguardarConclusao(jobId) {
+    for (let tentativa = 0; tentativa < TENTATIVAS_MAXIMAS; tentativa += 1) {
+      const status = await obterStatusOnboarding({ usuarioId, token: accessToken, jobId });
+
+      if (status.status === 'concluido') {
+        return status;
+      }
+      if (status.status === 'falhou') {
+        throw new Error(status.erro ?? 'Onboarding falhou.');
+      }
+
+      await aguardar(INTERVALO_CONSULTA_MS);
     }
 
-    const epic = addEpic(seed.epic);
-    const campaigns = seed.campaigns.map((campaign) =>
-      addCampaign({ ...campaign, atribuirEpico: 'Sim', epico: epic }),
-    );
+    throw new Error('Tempo esgotado esperando a geração da jornada.');
+  }
 
-    seed.missions.forEach((mission) => {
-      const campanha = campaigns[mission.campanhaIndex];
-      addMission({ ...mission, atribuirCampanha: 'Sim', campanha });
-    });
+  if (gerando) {
+    return (
+      <View style={[styles.screen, styles.loadingScreen, { paddingTop: insets.top + 12 }]}>
+        <ActivityIndicator size="large" color={colors.brand} />
+        <Text style={styles.loadingText} accessibilityLiveRegion="polite">
+          Gerando sua jornada...
+        </Text>
+      </View>
+    );
   }
 
   return (
@@ -95,6 +138,12 @@ export function OnboardingScreen({ navigation }) {
             />
           ))}
         </View>
+
+        {erroGeracao ? (
+          <Text style={styles.errorBanner} accessibilityLiveRegion="polite">
+            {erroGeracao}
+          </Text>
+        ) : null}
 
         <PrimaryButton
           label={isLastStep ? 'Preparar minha jornada' : 'Continuar'}
@@ -119,5 +168,21 @@ const styles = StyleSheet.create({
   options: {
     width: '100%',
     gap: 12,
+  },
+  loadingScreen: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 16,
+    paddingHorizontal: 24,
+  },
+  loadingText: {
+    fontFamily: fontFamily.regular,
+    fontSize: fontSize.base,
+    color: colors.textSecondary,
+  },
+  errorBanner: {
+    fontFamily: fontFamily.regular,
+    fontSize: fontSize.base,
+    color: colors.dangerText,
   },
 });

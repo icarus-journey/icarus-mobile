@@ -4,7 +4,7 @@
 
 **Responsável:** Izael
 
-**Última atualização:** 2026-09-05
+**Última atualização:** 2026-10-17
 
 ## 1. Objetivo
 
@@ -26,8 +26,8 @@ validada no `icarus-context`:
 - o aplicativo fala **somente** com a API, por HTTP, através do proxy Nginx;
 - é proibido o aplicativo acessar PostgreSQL, RabbitMQ, MinIO, DuckDB, o
   trabalhador Python, o ETL ou o provedor de IA diretamente;
-- o token JWT deve ficar em armazenamento seguro do dispositivo, hoje previsto
-  como `react-native-keychain`;
+- o token JWT deve ficar em armazenamento seguro do dispositivo — decidido
+  `expo-secure-store` (ver nota abaixo);
 - alvo de compatibilidade: Android 16/API 36;
 - acessibilidade mínima: WCAG 2.2 nível A, operável com TalkBack.
 
@@ -36,10 +36,12 @@ voz do diário exige *development build*; no Expo Go, o restante do aplicativo e
 a entrada digitada do diário continuam disponíveis, sem carregar o módulo
 nativo ausente.
 
-> **Pendência conhecida:** `react-native-keychain` exige módulo nativo
-> vinculado. O *development build* agora utilizado remove a limitação do Expo
-> Go, mas a decisão entre `expo-secure-store` e `react-native-keychain` ainda
-> deve ser tomada quando o fluxo de autenticação (RF-02) for implementado.
+> **Decisão (RF-02 implementado):** entre `expo-secure-store` e
+> `react-native-keychain`, ficou `expo-secure-store` — já é dependência do SDK
+> Expo em uso (sem módulo nativo extra pra vincular) e cobre a necessidade do
+> MVP (par access/refresh token). `react-native-keychain` fica como opção
+> futura só se surgir uma necessidade concreta que o `expo-secure-store` não
+> atenda. Implementação em `src/services/armazenamentoToken.js`.
 
 ## 3. Estrutura de pastas
 
@@ -109,9 +111,11 @@ Regras gerais:
   `services/perfil.js`); cada módulo expõe funções (`buscarMissoes`,
   `concluirMissao`) e não estruturas de request/response cruas;
 - **os contratos exatos de cada endpoint (rota, payload, códigos de erro)
-  ainda não existem** — serão definidos no OpenAPI do `icarus-platform`. Até
-  lá, os módulos de serviço podem ficar com assinatura definida e
-  implementação pendente (`TODO` explícito), sem inventar contrato;
+  ainda não existem pra todo domínio** — serão definidos no OpenAPI do
+  `icarus-platform` conforme cada fluxo for implementado. Auth
+  (`services/autenticacao.js`) e onboarding por IA (`services/onboarding.js`)
+  já falam com endpoints reais; os demais módulos podem ficar com assinatura
+  definida e implementação pendente (`TODO` explícito), sem inventar contrato;
 - nenhuma regra de domínio (cálculo de sequência, validação de recorrência,
   etc.) é replicada no aplicativo; o aplicativo exibe o que a API retorna e
   envia o que o usuário informa.

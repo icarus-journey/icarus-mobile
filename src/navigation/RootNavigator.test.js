@@ -1,5 +1,5 @@
 import { NavigationContainer } from '@react-navigation/native';
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen } from '@testing-library/react-native';
 
 import { CampaignsProvider } from '../state/CampaignsContext';
 import { DiariosProvider } from '../state/DiariosContext';
@@ -7,6 +7,16 @@ import { EpicsProvider } from '../state/EpicsContext';
 import { MissionsProvider } from '../state/MissionsContext';
 import { OnboardingProvider } from '../state/OnboardingContext';
 import { RootNavigator } from './RootNavigator';
+
+jest.mock('../state/AuthContext', () => ({
+  useAuth: () => ({
+    usuarioId: 'usuario-1',
+    accessToken: 'token-1',
+    entrar: jest.fn().mockResolvedValue('usuario-1'),
+    registrar: jest.fn().mockResolvedValue('usuario-1'),
+    sair: jest.fn(),
+  }),
+}));
 
 function renderApp(initialRouteName = 'Login') {
   return render(
@@ -26,19 +36,21 @@ function renderApp(initialRouteName = 'Login') {
   );
 }
 
-function enterApp() {
+async function enterApp() {
   fireEvent.changeText(screen.getByLabelText('E-mail'), 'paloma@email.com');
   fireEvent.changeText(screen.getByLabelText('Senha'), 'Senha123!');
-  fireEvent.press(screen.getByLabelText('Entrar na minha jornada'));
+  await act(async () => {
+    fireEvent.press(screen.getByLabelText('Entrar na minha jornada'));
+  });
 }
 
 describe('fluxo de autenticação e missões', () => {
-  it('abre o app no login e entra na lista de missões', () => {
+  it('abre o app no login e entra na lista de missões', async () => {
     renderApp();
 
     expect(screen.getByLabelText('Icarus')).toBeTruthy();
 
-    enterApp();
+    await enterApp();
 
     expect(screen.getByText('Seus próximos passos.')).toBeTruthy();
   });
