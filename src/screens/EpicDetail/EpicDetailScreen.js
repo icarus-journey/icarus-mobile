@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -20,11 +21,19 @@ const DIFICULDADE_LABELS = {
   DIFICIL: 'Difícil',
 };
 
+const ESTADO_EPICO_LABELS = {
+  emAndamento: 'Em andamento',
+  concluido: 'Concluído',
+  excluido: 'Excluído',
+};
+
 export function EpicDetailScreen({ route, navigation }) {
   const { epicId } = route.params;
-  const { getEpicById } = useEpics();
+  const { getEpicById, concluirEpico } = useEpics();
   const insets = useSafeAreaInsets();
   const epic = getEpicById(epicId);
+  const [concluindo, setConcluindo] = useState(false);
+  const [erro, setErro] = useState('');
 
   if (!epic) {
     return (
@@ -33,6 +42,21 @@ export function EpicDetailScreen({ route, navigation }) {
         <Text style={styles.notFound}>Este épico não está mais disponível.</Text>
       </View>
     );
+  }
+
+  const concluido = epic.estado === 'concluido';
+  const estadoLabel = ESTADO_EPICO_LABELS[epic.estado] ?? 'Em andamento';
+
+  async function handleConcluir() {
+    setConcluindo(true);
+    setErro('');
+    try {
+      await concluirEpico(epic.id);
+    } catch {
+      setErro('Não foi possível concluir o épico. Tente novamente.');
+    } finally {
+      setConcluindo(false);
+    }
   }
 
   const quantidadeCampanhas = epic.campanhasAtribuidas?.length ?? 0;
@@ -54,11 +78,9 @@ export function EpicDetailScreen({ route, navigation }) {
           description={epic.descricao}
           chips={[
             { label: 'Épico', backgroundColor: colors.dangerSoft, textColor: colors.dangerText },
-            {
-              label: 'Em andamento',
-              backgroundColor: colors.softPurpleAlt,
-              textColor: colors.brandDark,
-            },
+            concluido
+              ? { label: estadoLabel, backgroundColor: colors.successSoft, textColor: colors.success }
+              : { label: estadoLabel, backgroundColor: colors.softPurpleAlt, textColor: colors.brandDark },
             epic.pontos
               ? {
                   label: `+${epic.pontos} pts`,
@@ -77,7 +99,7 @@ export function EpicDetailScreen({ route, navigation }) {
               label: 'Campanhas',
               value: quantidadeCampanhas > 0 ? `${quantidadeCampanhas} atribuídas` : null,
             },
-            { label: 'Status', value: 'Em andamento' },
+            { label: 'Status', value: estadoLabel },
           ]}
         />
 
@@ -92,10 +114,16 @@ export function EpicDetailScreen({ route, navigation }) {
 
         <DetailRewardCard value={epic.recompensaLabel} />
 
+        {erro ? (
+          <Text style={styles.errorText} accessibilityRole="alert">
+            {erro}
+          </Text>
+        ) : null}
+
         <PrimaryButton
-          label="Concluir épico"
-          onPress={() => {}}
-          accessibilityHint="Ainda não disponível nesta versão"
+          label={concluido ? 'Épico concluído' : concluindo ? 'Concluindo...' : 'Concluir épico'}
+          onPress={handleConcluir}
+          disabled={concluido || concluindo}
         />
         <SecondaryButton
           label="Editar épico"
@@ -127,5 +155,10 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.regular,
     fontSize: fontSize.label,
     color: colors.textSecondary,
+  },
+  errorText: {
+    fontFamily: fontFamily.regular,
+    fontSize: fontSize.base,
+    color: colors.dangerText,
   },
 });

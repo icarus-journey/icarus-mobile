@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useMemo, useState } from 'react';
 
-import { criarCampanha, atualizarCampanha } from '../services/campanhas';
+import { criarCampanha, atualizarCampanha, concluirCampanha as concluirCampanhaNaApi } from '../services/campanhas';
 import { colors } from '../theme';
 import { deDataIso, paraDataIso } from '../utils/dateInput';
 import { useSessao } from './SessaoContext';
@@ -24,6 +24,7 @@ function mapearCampanhaDaApi(campanha, epico) {
     unidade: campanha.unidade ?? null,
     recompensaCurta: null,
     recompensaLabel: `${campanha.pontuacao} pontos`,
+    estado: campanha.estado,
     missoesAtribuidas: [],
     progresso: null,
     epico,
@@ -103,6 +104,18 @@ export function CampaignsProvider({ children, initialCampaigns = MOCK_CAMPAIGNS 
     return campanhaHidratada;
   }, []);
 
+  // Conclusão manual (RF-03.7) — atingir o valor mensurado não conclui por si só.
+  const concluirCampanha = useCallback(
+    async (campaignId) => {
+      const resposta = await concluirCampanhaNaApi({ usuarioId: sessao.usuarioId, campanhaId: campaignId, requisitarAutenticado });
+      setCampaigns((current) =>
+        current.map((campaign) => (campaign.id === campaignId ? { ...campaign, estado: resposta.estado } : campaign)),
+      );
+      return resposta;
+    },
+    [sessao, requisitarAutenticado],
+  );
+
   // Substitui a lista inteira pelas campanhas reais do usuário, extraídas do grafo aninhado
   // devolvido por GET /usuarios/{id}/epicos — chamado uma vez ao abrir o app.
   const carregarLista = useCallback((epicosDoServidor) => {
@@ -115,8 +128,8 @@ export function CampaignsProvider({ children, initialCampaigns = MOCK_CAMPAIGNS 
   }, []);
 
   const value = useMemo(
-    () => ({ campaigns, addCampaign, updateCampaign, getCampaignById, hidratarDoOnboarding, carregarLista }),
-    [campaigns, addCampaign, updateCampaign, getCampaignById, hidratarDoOnboarding, carregarLista],
+    () => ({ campaigns, addCampaign, updateCampaign, getCampaignById, hidratarDoOnboarding, carregarLista, concluirCampanha }),
+    [campaigns, addCampaign, updateCampaign, getCampaignById, hidratarDoOnboarding, carregarLista, concluirCampanha],
   );
 
   return <CampaignsContext.Provider value={value}>{children}</CampaignsContext.Provider>;

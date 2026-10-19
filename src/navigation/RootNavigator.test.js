@@ -13,23 +13,29 @@ jest.mock('../state/SessaoContext', () => ({ useSessao: jest.fn() }));
 
 const mockCriarEpico = jest.fn();
 const mockAtualizarEpico = jest.fn();
+const mockConcluirEpico = jest.fn();
 jest.mock('../services/epicos', () => ({
   criarEpico: (...args) => mockCriarEpico(...args),
   atualizarEpico: (...args) => mockAtualizarEpico(...args),
+  concluirEpico: (...args) => mockConcluirEpico(...args),
 }));
 
 const mockCriarCampanha = jest.fn();
 const mockAtualizarCampanha = jest.fn();
+const mockConcluirCampanha = jest.fn();
 jest.mock('../services/campanhas', () => ({
   criarCampanha: (...args) => mockCriarCampanha(...args),
   atualizarCampanha: (...args) => mockAtualizarCampanha(...args),
+  concluirCampanha: (...args) => mockConcluirCampanha(...args),
 }));
 
 const mockCriarMissao = jest.fn();
 const mockAtualizarMissao = jest.fn();
+const mockConcluirMissao = jest.fn();
 jest.mock('../services/missoes', () => ({
   criarMissao: (...args) => mockCriarMissao(...args),
   atualizarMissao: (...args) => mockAtualizarMissao(...args),
+  concluirMissao: (...args) => mockConcluirMissao(...args),
 }));
 
 function renderApp(initialRouteName = 'Login') {
@@ -62,6 +68,9 @@ beforeEach(() => {
   mockAtualizarCampanha.mockReset();
   mockCriarMissao.mockReset();
   mockAtualizarMissao.mockReset();
+  mockConcluirEpico.mockReset();
+  mockConcluirCampanha.mockReset();
+  mockConcluirMissao.mockReset();
 });
 
 describe('fluxo de autenticação e missões', () => {
@@ -156,6 +165,28 @@ describe('fluxo de autenticação e missões', () => {
     expect(screen.getByText('Fazer exercício de dados avançado')).toBeTruthy();
   });
 
+  it('conclui uma missão a partir do detalhe e credita pontos (RF-04.6)', async () => {
+    mockConcluirMissao.mockResolvedValue({
+      id: 'missao-1',
+      concluidaEm: '2026-01-01T18:00:00+00:00',
+      concluidaComAtraso: false,
+      pontuacaoCreditada: 20,
+      saldoPontosAtual: 20,
+    });
+    renderApp('MissionList');
+
+    fireEvent.press(screen.getAllByLabelText(/Fazer exercício de dados/)[0]);
+    expect(screen.getByLabelText('Concluir missão')).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.press(screen.getByLabelText('Concluir missão'));
+    });
+
+    expect(mockConcluirMissao).toHaveBeenCalledTimes(1);
+    expect(screen.getByText('Missão concluída')).toBeTruthy();
+    expect(screen.queryByLabelText('Editar missão')).toBeNull();
+  });
+
   it('não salva e mostra erros quando campos obrigatórios estão vazios', () => {
     renderApp('MissionList');
 
@@ -246,6 +277,23 @@ describe('fluxo de épicos', () => {
     expect(screen.getByText('Épicos')).toBeTruthy();
     expect(screen.getByText('Aprender inglês fluente')).toBeTruthy();
   });
+
+  it('conclui o épico a partir do detalhe sem alterar as campanhas (RF-03.8)', async () => {
+    mockConcluirEpico.mockResolvedValue({ id: 'epico-1', estado: 'concluido' });
+    renderApp('MissionList');
+
+    fireEvent.press(screen.getByLabelText('Épico'));
+    fireEvent.press(screen.getByLabelText(/Ser promovido/));
+
+    expect(screen.getByLabelText('Concluir épico')).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.press(screen.getByLabelText('Concluir épico'));
+    });
+
+    expect(mockConcluirEpico).toHaveBeenCalledTimes(1);
+    expect(screen.getByText('Épico concluído')).toBeTruthy();
+  });
 });
 
 describe('fluxo de campanhas', () => {
@@ -323,5 +371,22 @@ describe('fluxo de campanhas', () => {
 
     expect(screen.getByText('Campanhas')).toBeTruthy();
     expect(screen.getByText('Correr uma meia maratona')).toBeTruthy();
+  });
+
+  it('conclui a campanha a partir do detalhe mesmo sem atingir o valor mensurado (RF-03.7)', async () => {
+    mockConcluirCampanha.mockResolvedValue({ id: 'campanha-1', estado: 'concluida' });
+    renderApp('MissionList');
+
+    fireEvent.press(screen.getByLabelText('Campanha'));
+    fireEvent.press(screen.getByLabelText(/Capacitação em Python/));
+
+    expect(screen.getByLabelText('Concluir campanha')).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.press(screen.getByLabelText('Concluir campanha'));
+    });
+
+    expect(mockConcluirCampanha).toHaveBeenCalledTimes(1);
+    expect(screen.getByText('Campanha concluída')).toBeTruthy();
   });
 });

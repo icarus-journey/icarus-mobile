@@ -9,3 +9,7 @@ export async function criarMissao({ usuarioId, dados, requisitarAutenticado }) {
 export async function atualizarMissao({ usuarioId, missaoId, dados, requisitarAutenticado }) {
   return requisitarAutenticado(`/api/usuarios/${usuarioId}/missoes/${missaoId}`, { metodo: 'PATCH', corpo: dados });
 }
+
+export async function concluirMissao({ usuarioId, missaoId, requisitarAutenticado }) {
+  return requisitarAutenticado(`/api/usuarios/${usuarioId}/missoes/${missaoId}/concluir`, { metodo: 'POST' });
+}

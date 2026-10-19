@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useMemo, useState } from 'react';
 
-import { criarEpico, atualizarEpico } from '../services/epicos';
+import { criarEpico, atualizarEpico, concluirEpico as concluirEpicoNaApi } from '../services/epicos';
 import { colors } from '../theme';
 import { deDataIso, paraDataIso } from '../utils/dateInput';
 import { useSessao } from './SessaoContext';
@@ -21,6 +21,7 @@ function mapearEpicoDaApi(epico) {
     dificuldade: epico.dificuldade.toUpperCase(),
     pontos: epico.pontuacao,
     recompensaLabel: `${epico.pontuacao} pontos`,
+    estado: epico.estado,
     campanhasAtribuidas: (epico.campanhas ?? []).map((campanha) => ({
       id: campanha.id,
       titulo: campanha.titulo,
@@ -104,6 +105,7 @@ export function EpicsProvider({ children, initialEpics = MOCK_EPICS }) {
       dificuldade: epico.dificuldade.toUpperCase(),
       pontos: epico.pontuacao,
       recompensaLabel: `${epico.pontuacao} pontos`,
+      estado: epico.estado,
       campanhasAtribuidas: [],
       progresso: null,
       corDestaque: colors.typeAccentB,
@@ -131,6 +133,18 @@ export function EpicsProvider({ children, initialEpics = MOCK_EPICS }) {
     );
   }, []);
 
+  // Conclusão manual e irreversível (RF-03.8) — não altera o estado das campanhas do épico.
+  const concluirEpico = useCallback(
+    async (epicId) => {
+      const resposta = await concluirEpicoNaApi({ usuarioId: sessao.usuarioId, epicoId: epicId, requisitarAutenticado });
+      setEpics((current) =>
+        current.map((epic) => (epic.id === epicId ? { ...epic, estado: resposta.estado } : epic)),
+      );
+      return resposta;
+    },
+    [sessao, requisitarAutenticado],
+  );
+
   // Substitui a lista inteira pelos épicos reais do usuário (GET /usuarios/{id}/epicos), com
   // campanhas e missões já aninhadas — chamado uma vez ao abrir o app (ver CarregadorDeDados).
   const carregarLista = useCallback((epicosDoServidor) => {
@@ -138,8 +152,8 @@ export function EpicsProvider({ children, initialEpics = MOCK_EPICS }) {
   }, []);
 
   const value = useMemo(
-    () => ({ epics, addEpic, updateEpic, getEpicById, hidratarDoOnboarding, vincularCampanha, carregarLista }),
-    [epics, addEpic, updateEpic, getEpicById, hidratarDoOnboarding, vincularCampanha, carregarLista],
+    () => ({ epics, addEpic, updateEpic, getEpicById, hidratarDoOnboarding, vincularCampanha, carregarLista, concluirEpico }),
+    [epics, addEpic, updateEpic, getEpicById, hidratarDoOnboarding, vincularCampanha, carregarLista, concluirEpico],
   );
 
   return <EpicsContext.Provider value={value}>{children}</EpicsContext.Provider>;

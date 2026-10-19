@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -28,9 +29,11 @@ const RECORRENCIA_LABELS = {
 
 export function MissionDetailScreen({ route, navigation }) {
   const { missionId } = route.params;
-  const { getMissionById } = useMissions();
+  const { getMissionById, concluirMissao } = useMissions();
   const insets = useSafeAreaInsets();
   const mission = getMissionById(missionId);
+  const [concluindo, setConcluindo] = useState(false);
+  const [erro, setErro] = useState('');
 
   if (!mission) {
     return (
@@ -39,6 +42,20 @@ export function MissionDetailScreen({ route, navigation }) {
         <Text style={styles.notFound}>Esta missão não está mais disponível.</Text>
       </View>
     );
+  }
+
+  const concluida = Boolean(mission.concluidaEm);
+
+  async function handleConcluir() {
+    setConcluindo(true);
+    setErro('');
+    try {
+      await concluirMissao(mission.id);
+    } catch {
+      setErro('Não foi possível concluir a missão. Tente novamente.');
+    } finally {
+      setConcluindo(false);
+    }
   }
 
   return (
@@ -58,11 +75,9 @@ export function MissionDetailScreen({ route, navigation }) {
           description={mission.descricao}
           chips={[
             { label: 'Missão', backgroundColor: colors.dangerSoft, textColor: colors.dangerText },
-            {
-              label: 'Em andamento',
-              backgroundColor: colors.softPurpleAlt,
-              textColor: colors.brandDark,
-            },
+            concluida
+              ? { label: 'Concluída', backgroundColor: colors.successSoft, textColor: colors.success }
+              : { label: 'Em andamento', backgroundColor: colors.softPurpleAlt, textColor: colors.brandDark },
             {
               label: `+${mission.pontos} pts`,
               backgroundColor: colors.softPurpleAlt,
@@ -98,16 +113,24 @@ export function MissionDetailScreen({ route, navigation }) {
 
         <DetailRewardCard value={mission.recompensaLabel} />
 
+        {erro ? (
+          <Text style={styles.errorText} accessibilityRole="alert">
+            {erro}
+          </Text>
+        ) : null}
+
         <PrimaryButton
-          label="Concluir missão"
-          onPress={() => {}}
-          accessibilityHint="Ainda não disponível nesta versão"
+          label={concluida ? 'Missão concluída' : concluindo ? 'Concluindo...' : 'Concluir missão'}
+          onPress={handleConcluir}
+          disabled={concluida || concluindo}
         />
-        <SecondaryButton
-          label="Editar missão"
-          onPress={() => navigation.navigate('MissionForm', { missionId: mission.id })}
-          icon={<IconEdit width={24} height={24} />}
-        />
+        {!concluida ? (
+          <SecondaryButton
+            label="Editar missão"
+            onPress={() => navigation.navigate('MissionForm', { missionId: mission.id })}
+            icon={<IconEdit width={24} height={24} />}
+          />
+        ) : null}
       </ScrollView>
 
       <BottomNav onPressMissoes={() => navigation.popToTop()} />
@@ -133,6 +156,11 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.regular,
     fontSize: fontSize.label,
     color: colors.textSecondary,
+  },
+  errorText: {
+    fontFamily: fontFamily.regular,
+    fontSize: fontSize.base,
+    color: colors.dangerText,
   },
   card: {
     width: '100%',

@@ -25,6 +25,7 @@ export const colors = {
   dangerSoft: '#ffecef',
   dangerText: '#b53049',
   success: '#1f8c59',
+  successSoft: '#e5f5ec',
   progressTrack: '#e9e3f1',
 
   typeAccentA: '#e85d75',

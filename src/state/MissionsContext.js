@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useMemo, useState } from 'react';
 
-import { criarMissao, atualizarMissao } from '../services/missoes';
+import { criarMissao, atualizarMissao, concluirMissao as concluirMissaoNaApi } from '../services/missoes';
 import { colors } from '../theme';
 import { deDataIso, paraDataIso } from '../utils/dateInput';
 import { useSessao } from './SessaoContext';
@@ -26,6 +26,7 @@ function mapearMissaoDaApi(missao, campanha) {
     dificuldade: missao.dificuldade.toUpperCase(),
     pontos: missao.pontuacao,
     horarioIso: missao.horario,
+    concluidaEm: missao.concluidaEm ?? null,
     recorrencia: null,
     campanha,
     corDestaque: colors.typeAccentB,
@@ -105,6 +106,19 @@ export function MissionsProvider({ children, initialMissions = MOCK_MISSIONS }) 
     return missaoHidratada;
   }, []);
 
+  // Credita pontos ao usuário e, se a missão tiver campanha mensurável, soma ao valor atual
+  // dela (RF-04.6). Idempotente no backend: concluir de novo não credita pontos de novo.
+  const concluirMissao = useCallback(
+    async (missionId) => {
+      const resposta = await concluirMissaoNaApi({ usuarioId: sessao.usuarioId, missaoId: missionId, requisitarAutenticado });
+      setMissions((current) =>
+        current.map((mission) => (mission.id === missionId ? { ...mission, concluidaEm: resposta.concluidaEm } : mission)),
+      );
+      return resposta;
+    },
+    [sessao, requisitarAutenticado],
+  );
+
   // Substitui a lista inteira pelas missões reais do usuário — chamado uma vez ao abrir o app.
   // epicosDoServidor traz as vinculadas (aninhadas em GET /usuarios/{id}/epicos);
   // missoesAvulsasDoServidor traz as sem campanha (GET /usuarios/{id}/missoes), que não
@@ -123,8 +137,8 @@ export function MissionsProvider({ children, initialMissions = MOCK_MISSIONS }) 
   }, []);
 
   const value = useMemo(
-    () => ({ missions, addMission, updateMission, getMissionById, hidratarDoOnboarding, carregarLista }),
-    [missions, addMission, updateMission, getMissionById, hidratarDoOnboarding, carregarLista],
+    () => ({ missions, addMission, updateMission, getMissionById, hidratarDoOnboarding, carregarLista, concluirMissao }),
+    [missions, addMission, updateMission, getMissionById, hidratarDoOnboarding, carregarLista, concluirMissao],
   );
 
   return <MissionsContext.Provider value={value}>{children}</MissionsContext.Provider>;
