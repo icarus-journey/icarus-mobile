@@ -77,6 +77,30 @@ describe('PlanningHubScreen — aba Missão', () => {
       screen.getByLabelText('Missão já feita, Ontem, concluída, mais 20 pontos'),
     ).toBeTruthy();
   });
+
+  it('separa missões com prazo vencido numa seção "Atrasados", mesmo sem status explícito', () => {
+    renderScreen({
+      initialMissions: [
+        ...MOCK_MISSIONS,
+        {
+          id: 'missao-atrasada-por-data',
+          titulo: 'Missão vencida',
+          status: 'PENDENTE',
+          prazoLabel: '01/01/2020',
+          dataLimite: '01/01/2020',
+          pontos: 15,
+          corDestaque: '#7048d6',
+          concluidaEm: null,
+        },
+      ],
+    });
+
+    expect(screen.getByText('Atrasados')).toBeTruthy();
+    expect(screen.getByText('Missão vencida')).toBeTruthy();
+    expect(
+      screen.getByLabelText('Missão vencida, 01/01/2020, atrasada, mais 15 pontos'),
+    ).toBeTruthy();
+  });
 });
 
 describe('PlanningHubScreen — aba Épico', () => {
@@ -144,6 +168,25 @@ describe('PlanningHubScreen — aba Épico', () => {
     expect(screen.getByText('Concluídos')).toBeTruthy();
     expect(screen.getByText('Épico já feito')).toBeTruthy();
   });
+
+  it('separa épicos com prazo vencido numa seção "Atrasados"', () => {
+    renderScreen({
+      initialEpics: [
+        ...MOCK_EPICS,
+        {
+          id: 'epico-atrasado',
+          titulo: 'Épico vencido',
+          dataLimite: '01/01/2020',
+          campanhasAtribuidas: [],
+          estado: 'emAndamento',
+        },
+      ],
+      params: { initialSegment: 'EPICO' },
+    });
+
+    expect(screen.getByText('Atrasados')).toBeTruthy();
+    expect(screen.getByText('Épico vencido')).toBeTruthy();
+  });
 });
 
 describe('PlanningHubScreen — aba Campanha', () => {
@@ -208,5 +251,27 @@ describe('PlanningHubScreen — aba Campanha', () => {
 
     expect(screen.getByText('Concluídos')).toBeTruthy();
     expect(screen.getByText('Campanha já feita')).toBeTruthy();
+  });
+
+  it('separa campanhas com prazo vencido numa seção "Atrasados"', () => {
+    renderScreen({
+      initialCampaigns: [
+        ...MOCK_CAMPAIGNS,
+        {
+          id: 'campanha-atrasada',
+          titulo: 'Campanha vencida',
+          dataLimite: '01/01/2020',
+          progresso: null,
+          pontosAtuais: 0,
+          pontos: 30,
+          recompensaCurta: null,
+          estado: 'emAndamento',
+        },
+      ],
+      params: { initialSegment: 'CAMPANHA' },
+    });
+
+    expect(screen.getByText('Atrasados')).toBeTruthy();
+    expect(screen.getByText('Campanha vencida')).toBeTruthy();
   });
 });

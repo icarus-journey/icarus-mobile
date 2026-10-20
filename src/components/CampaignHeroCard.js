@@ -2,9 +2,11 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors } from '../theme/colors';
 import { fontFamily, fontSize } from '../theme/typography';
+import { isDataLimiteVencida } from '../utils/dateInput';
 
 export function CampaignHeroCard({ campaign, onPress }) {
   const concluida = campaign.estado === 'concluida';
+  const atrasada = !concluida && isDataLimiteVencida(campaign.dataLimite);
   const subtitle = campaign.progresso
     ? `${campaign.progresso.concluidas} de ${campaign.progresso.total} missões • ${campaign.pontosAtuais}/${campaign.pontos} XP`
     : 'Sua campanha está começando agora.';
@@ -19,7 +21,9 @@ export function CampaignHeroCard({ campaign, onPress }) {
       accessibilityLabel={`${campaign.titulo}, ${subtitle}`}
       style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
     >
-      {concluida ? <View style={styles.accent} /> : null}
+      {concluida || atrasada ? (
+        <View style={[styles.accent, { backgroundColor: concluida ? colors.success : colors.danger }]} />
+      ) : null}
       <Text style={styles.title}>{campaign.titulo}</Text>
       <Text style={styles.subtitle}>{subtitle}</Text>
       {recompensaLabel ? <Text style={styles.reward}>{recompensaLabel}</Text> : null}
@@ -63,6 +67,5 @@ const styles = StyleSheet.create({
     bottom: 16,
     width: 4,
     borderRadius: 2,
-    backgroundColor: colors.danger,
   },
 });

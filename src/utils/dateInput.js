@@ -44,6 +44,20 @@ export function deDataIso(dataIso) {
   return `${day}/${month}/${year}`;
 }
 
+/** Verifica se "dd/mm/aaaa" já passou em relação a hoje (ou à data de referência, em teste). */
+export function isDataLimiteVencida(dataBr, referenceDate = new Date()) {
+  if (!dataBr) return false;
+
+  const [day, month, year] = dataBr.split('/').map(Number);
+  const limite = new Date(year, month - 1, day);
+  limite.setHours(0, 0, 0, 0);
+
+  const hoje = new Date(referenceDate);
+  hoje.setHours(0, 0, 0, 0);
+
+  return limite < hoje;
+}
+
 export function formatDateDaysFromNow(days, referenceDate = new Date()) {
   const target = new Date(referenceDate);
   target.setDate(target.getDate() + days);

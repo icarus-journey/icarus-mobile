@@ -13,8 +13,20 @@ import { useEpics } from '../../state/EpicsContext';
 import { useMissions } from '../../state/MissionsContext';
 import { colors } from '../../theme/colors';
 import { fontFamily, fontSize } from '../../theme/typography';
+import { isDataLimiteVencida } from '../../utils/dateInput';
 
-const MISSION_STATUS_ORDER = { ATRASADA: 0, PENDENTE: 1 };
+function isMissaoAtrasada(mission) {
+  return mission.status === 'ATRASADA' || isDataLimiteVencida(mission.dataLimite);
+}
+
+function SecaoExtra({ title, children }) {
+  return (
+    <View style={styles.extraSection}>
+      <Text style={styles.extraTitle}>{title}</Text>
+      <View style={styles.extraList}>{children}</View>
+    </View>
+  );
+}
 
 const HEADERS = {
   MISSAO: { title: 'Missões', subtitle: 'Seus próximos passos.' },
@@ -41,18 +53,30 @@ export function PlanningHubScreen({ navigation, route }) {
   const insets = useSafeAreaInsets();
   const [segment, setSegment] = useState(route.params?.initialSegment ?? 'MISSAO');
 
-  const { ativas: missoesAtivas, concluidas: missoesConcluidas } = useMemo(() => {
-    const ativas = missions.filter((mission) => !mission.concluidaEm);
-    const concluidas = missions.filter((mission) => mission.concluidaEm);
-    ativas.sort((a, b) => MISSION_STATUS_ORDER[a.status] - MISSION_STATUS_ORDER[b.status]);
-    return { ativas, concluidas };
+  const { ativas: missoesAtivas, atrasadas: missoesAtrasadas, concluidas: missoesConcluidas } = useMemo(() => {
+    const concluidas = missions.filter((m) => m.concluidaEm);
+    const atrasadas = missions.filter((m) => !m.concluidaEm && isMissaoAtrasada(m));
+    const ativas = missions.filter((m) => !m.concluidaEm && !isMissaoAtrasada(m));
+    return { ativas, atrasadas, concluidas };
   }, [missions]);
 
-  const campanhasAtivas = useMemo(() => campaigns.filter((c) => c.estado !== 'concluida'), [campaigns]);
-  const campanhasConcluidas = useMemo(() => campaigns.filter((c) => c.estado === 'concluida'), [campaigns]);
+  const {
+    ativas: campanhasAtivas,
+    atrasadas: campanhasAtrasadas,
+    concluidas: campanhasConcluidas,
+  } = useMemo(() => {
+    const concluidas = campaigns.filter((c) => c.estado === 'concluida');
+    const atrasadas = campaigns.filter((c) => c.estado !== 'concluida' && isDataLimiteVencida(c.dataLimite));
+    const ativas = campaigns.filter((c) => c.estado !== 'concluida' && !isDataLimiteVencida(c.dataLimite));
+    return { ativas, atrasadas, concluidas };
+  }, [campaigns]);
 
-  const epicosAtivos = useMemo(() => epics.filter((e) => e.estado !== 'concluido'), [epics]);
-  const epicosConcluidos = useMemo(() => epics.filter((e) => e.estado === 'concluido'), [epics]);
+  const { ativos: epicosAtivos, atrasados: epicosAtrasados, concluidos: epicosConcluidos } = useMemo(() => {
+    const concluidos = epics.filter((e) => e.estado === 'concluido');
+    const atrasados = epics.filter((e) => e.estado !== 'concluido' && isDataLimiteVencida(e.dataLimite));
+    const ativos = epics.filter((e) => e.estado !== 'concluido' && !isDataLimiteVencida(e.dataLimite));
+    return { ativos, atrasados, concluidos };
+  }, [epics]);
 
   const header = HEADERS[segment];
 
@@ -93,7 +117,7 @@ export function PlanningHubScreen({ navigation, route }) {
               />
             )}
             ListEmptyComponent={
-              missoesConcluidas.length === 0 ? (
+              missoesAtrasadas.length === 0 && missoesConcluidas.length === 0 ? (
                 <EmptyState
                   title="Nenhuma missão por aqui"
                   subtitle="Crie sua primeira missão para começar a acompanhar seus passos."
@@ -103,10 +127,20 @@ export function PlanningHubScreen({ navigation, route }) {
               ) : null
             }
             ListFooterComponent={
-              missoesConcluidas.length > 0 ? (
-                <View style={styles.concludedSection}>
-                  <Text style={styles.concludedTitle}>Concluídos</Text>
-                  <View style={styles.concludedList}>
+              <>
+                {missoesAtrasadas.length > 0 ? (
+                  <SecaoExtra title="Atrasados">
+                    {missoesAtrasadas.map((item) => (
+                      <TaskCard
+                        key={item.id}
+                        mission={item}
+                        onPress={() => navigation.navigate('MissionDetail', { missionId: item.id })}
+                      />
+                    ))}
+                  </SecaoExtra>
+                ) : null}
+                {missoesConcluidas.length > 0 ? (
+                  <SecaoExtra title="Concluídos">
                     {missoesConcluidas.map((item) => (
                       <TaskCard
                         key={item.id}
@@ -114,9 +148,9 @@ export function PlanningHubScreen({ navigation, route }) {
                         onPress={() => navigation.navigate('MissionDetail', { missionId: item.id })}
                       />
                     ))}
-                  </View>
-                </View>
-              ) : null
+                  </SecaoExtra>
+                ) : null}
+              </>
             }
           />
         ) : null}
@@ -133,7 +167,7 @@ export function PlanningHubScreen({ navigation, route }) {
               />
             )}
             ListEmptyComponent={
-              campanhasConcluidas.length === 0 ? (
+              campanhasAtrasadas.length === 0 && campanhasConcluidas.length === 0 ? (
                 <EmptyState
                   title="Nenhuma campanha por aqui"
                   subtitle="Crie sua primeira campanha para organizar suas missões."
@@ -143,10 +177,20 @@ export function PlanningHubScreen({ navigation, route }) {
               ) : null
             }
             ListFooterComponent={
-              campanhasConcluidas.length > 0 ? (
-                <View style={styles.concludedSection}>
-                  <Text style={styles.concludedTitle}>Concluídos</Text>
-                  <View style={styles.concludedList}>
+              <>
+                {campanhasAtrasadas.length > 0 ? (
+                  <SecaoExtra title="Atrasados">
+                    {campanhasAtrasadas.map((item) => (
+                      <CampaignHeroCard
+                        key={item.id}
+                        campaign={item}
+                        onPress={() => navigation.navigate('CampaignDetail', { campaignId: item.id })}
+                      />
+                    ))}
+                  </SecaoExtra>
+                ) : null}
+                {campanhasConcluidas.length > 0 ? (
+                  <SecaoExtra title="Concluídos">
                     {campanhasConcluidas.map((item) => (
                       <CampaignHeroCard
                         key={item.id}
@@ -154,9 +198,9 @@ export function PlanningHubScreen({ navigation, route }) {
                         onPress={() => navigation.navigate('CampaignDetail', { campaignId: item.id })}
                       />
                     ))}
-                  </View>
-                </View>
-              ) : null
+                  </SecaoExtra>
+                ) : null}
+              </>
             }
           />
         ) : null}
@@ -173,7 +217,7 @@ export function PlanningHubScreen({ navigation, route }) {
               />
             )}
             ListEmptyComponent={
-              epicosConcluidos.length === 0 ? (
+              epicosAtrasados.length === 0 && epicosConcluidos.length === 0 ? (
                 <EmptyState
                   title="Nenhum épico por aqui"
                   subtitle="Crie seu primeiro épico para dar rumo à sua jornada."
@@ -183,10 +227,20 @@ export function PlanningHubScreen({ navigation, route }) {
               ) : null
             }
             ListFooterComponent={
-              epicosConcluidos.length > 0 ? (
-                <View style={styles.concludedSection}>
-                  <Text style={styles.concludedTitle}>Concluídos</Text>
-                  <View style={styles.concludedList}>
+              <>
+                {epicosAtrasados.length > 0 ? (
+                  <SecaoExtra title="Atrasados">
+                    {epicosAtrasados.map((item) => (
+                      <EpicHeroCard
+                        key={item.id}
+                        epic={item}
+                        onPress={() => navigation.navigate('EpicDetail', { epicId: item.id })}
+                      />
+                    ))}
+                  </SecaoExtra>
+                ) : null}
+                {epicosConcluidos.length > 0 ? (
+                  <SecaoExtra title="Concluídos">
                     {epicosConcluidos.map((item) => (
                       <EpicHeroCard
                         key={item.id}
@@ -194,9 +248,9 @@ export function PlanningHubScreen({ navigation, route }) {
                         onPress={() => navigation.navigate('EpicDetail', { epicId: item.id })}
                       />
                     ))}
-                  </View>
-                </View>
-              ) : null
+                  </SecaoExtra>
+                ) : null}
+              </>
             }
           />
         ) : null}
@@ -266,16 +320,16 @@ const styles = StyleSheet.create({
     gap: 16,
     flexGrow: 1,
   },
-  concludedSection: {
+  extraSection: {
     marginTop: 24,
     gap: 12,
   },
-  concludedTitle: {
+  extraTitle: {
     fontFamily: fontFamily.semiBold,
     fontSize: fontSize.input,
     color: colors.textSecondary,
   },
-  concludedList: {
+  extraList: {
     gap: 16,
   },
 });

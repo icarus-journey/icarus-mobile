@@ -2,12 +2,14 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors } from '../theme/colors';
 import { fontFamily, fontSize } from '../theme/typography';
+import { isDataLimiteVencida } from '../utils/dateInput';
 
 export function TaskCard({ mission, onPress, statusLabel }) {
   const concluida = Boolean(mission.concluidaEm);
-  const accentColor = concluida ? colors.danger : mission.corDestaque;
+  const atrasada = !concluida && (mission.status === 'ATRASADA' || isDataLimiteVencida(mission.dataLimite));
+  const accentColor = concluida ? colors.success : atrasada ? colors.danger : mission.corDestaque;
   const resolvedStatusLabel =
-    statusLabel ?? (concluida ? 'concluída' : mission.status === 'ATRASADA' ? 'atrasada' : 'pendente');
+    statusLabel ?? (concluida ? 'concluída' : atrasada ? 'atrasada' : 'pendente');
   const accessibilityLabel = [
     mission.titulo,
     mission.prazoLabel,
