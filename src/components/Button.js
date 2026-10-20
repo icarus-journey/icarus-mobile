@@ -4,7 +4,14 @@ import IconArrowRight from '../assets/icons/icon-arrow-right.svg';
 import { colors } from '../theme/colors';
 import { fontFamily, fontSize } from '../theme/typography';
 
-export function PrimaryButton({ label, onPress, disabled, showIcon = true, accessibilityHint }) {
+export function PrimaryButton({
+  label,
+  onPress,
+  disabled,
+  showIcon = true,
+  accessibilityHint,
+  cor = colors.brand,
+}) {
   return (
     <Pressable
       onPress={onPress}
@@ -15,6 +22,7 @@ export function PrimaryButton({ label, onPress, disabled, showIcon = true, acces
       accessibilityState={{ disabled: Boolean(disabled) }}
       style={({ pressed }) => [
         styles.primary,
+        { backgroundColor: cor },
         disabled && styles.primaryDisabled,
         pressed && !disabled && styles.pressed,
       ]}

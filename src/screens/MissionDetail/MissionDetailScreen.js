@@ -83,8 +83,16 @@ export function MissionDetailScreen({ route, navigation }) {
           chips={[
             { label: 'Missão', backgroundColor: colors.dangerSoft, textColor: colors.dangerText },
             concluida
-              ? { label: 'Concluída', backgroundColor: colors.successSoft, textColor: colors.success }
-              : { label: 'Em andamento', backgroundColor: colors.softPurpleAlt, textColor: colors.brandDark },
+              ? {
+                  label: 'Concluída',
+                  backgroundColor: colors.successSoft,
+                  textColor: colors.success,
+                }
+              : {
+                  label: 'Em andamento',
+                  backgroundColor: colors.softPurpleAlt,
+                  textColor: colors.brandDark,
+                },
             {
               label: `+${mission.pontos} pts`,
               backgroundColor: colors.softPurpleAlt,
@@ -140,7 +148,10 @@ export function MissionDetailScreen({ route, navigation }) {
         ) : null}
       </ScrollView>
 
-      <BottomNav onPressMissoes={() => navigation.popToTop()} />
+      <BottomNav
+        onPressLoja={() => navigation.navigate('Loja')}
+        onPressMissoes={() => navigation.popToTop()}
+      />
     </View>
   );
 }

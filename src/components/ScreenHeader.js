@@ -4,17 +4,22 @@ import IconChevronLeft from '../assets/icons/icon-chevron-left.svg';
 import { colors } from '../theme/colors';
 import { fontFamily, fontSize } from '../theme/typography';
 
-export function ScreenHeader({ title, onBack }) {
+export function ScreenHeader({
+  title,
+  onBack,
+  corVoltar = colors.softPurple,
+  IconeVoltar = IconChevronLeft,
+}) {
   return (
     <View style={styles.container}>
       <Pressable
         onPress={onBack}
         accessibilityRole="button"
         accessibilityLabel="Voltar"
-        style={styles.backButton}
+        style={[styles.backButton, { backgroundColor: corVoltar }]}
         hitSlop={8}
       >
-        <IconChevronLeft width={20} height={20} />
+        <IconeVoltar />
       </Pressable>
       <Text style={styles.title} numberOfLines={1}>
         {title}

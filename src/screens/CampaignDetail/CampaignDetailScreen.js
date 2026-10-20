@@ -84,8 +84,16 @@ export function CampaignDetailScreen({ route, navigation }) {
               textColor: colors.dangerText,
             },
             concluida
-              ? { label: estadoLabel, backgroundColor: colors.successSoft, textColor: colors.success }
-              : { label: estadoLabel, backgroundColor: colors.softPurpleAlt, textColor: colors.brandDark },
+              ? {
+                  label: estadoLabel,
+                  backgroundColor: colors.successSoft,
+                  textColor: colors.success,
+                }
+              : {
+                  label: estadoLabel,
+                  backgroundColor: colors.softPurpleAlt,
+                  textColor: colors.brandDark,
+                },
             campaign.recompensaCurta
               ? {
                   label: `+${campaign.recompensaCurta}`,
@@ -133,7 +141,9 @@ export function CampaignDetailScreen({ route, navigation }) {
         ) : null}
 
         <PrimaryButton
-          label={concluida ? 'Campanha concluída' : concluindo ? 'Concluindo...' : 'Concluir campanha'}
+          label={
+            concluida ? 'Campanha concluída' : concluindo ? 'Concluindo...' : 'Concluir campanha'
+          }
           onPress={handleConcluir}
           disabled={concluida || concluindo}
         />
@@ -144,7 +154,10 @@ export function CampaignDetailScreen({ route, navigation }) {
         />
       </ScrollView>
 
-      <BottomNav onPressMissoes={() => navigation.popToTop()} />
+      <BottomNav
+        onPressLoja={() => navigation.navigate('Loja')}
+        onPressMissoes={() => navigation.popToTop()}
+      />
     </View>
   );
 }

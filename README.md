@@ -39,9 +39,23 @@ Secrets e aplique as migrations conforme a seção 6 de `icarus-platform/PROJETO
   dispositivo por meio do `expo-secure-store`; a senha não é persistida. A sessão
   é conferida em `GET /api/auth/me` na
   abertura e renovada por `POST /api/auth/refresh`, inclusive ao retornar ao app.
-- A aba Perfil oferece a saída: remove a sessão local e tenta revogar a
-  renovação no servidor. Sem rede, a saída local continua funcionando.
+- A aba Perfil consulta o cadastro real (somente leitura) e permite salvar ou limpar
+  situação e horas semanais de estudo/trabalho. O fuso IANA do dispositivo é
+  sincronizado ao abrir a sessão e ao retornar ao aplicativo.
+- Sair da conta exige confirmação. Confirmar remove a sessão local e tenta
+  revogar a renovação no servidor; a saída local funciona inclusive sem rede.
 - Missões, campanhas, épicos, onboarding e diário ainda são dados em memória:
   autenticar não os persiste na API; sair ou trocar de conta limpa esses estados.
 
 Validação: `npm test -- --runInBand --watch=false` e `npm run lint`.
+
+## Loja de recompensas
+
+A aba Loja consulta a API autenticada e permite criar, editar e excluir
+recompensas disponíveis, resgatar, desfazer resgate e confirmar o uso
+irreversível. Saldo e estado vêm do servidor. Proteções de sequência têm preço
+visível e limite de três unidades; o consumo automático depende da rotina
+diária, ainda não implementada. A loja oferece atualização por gesto e ao
+receber foco, além de estados de carregamento, vazio e erro.
+
+Contrato e limites: [`05-contrato-da-loja.md`](../icarus-context/docs/implementation-design/platform/05-contrato-da-loja.md).

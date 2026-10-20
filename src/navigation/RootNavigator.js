@@ -12,6 +12,8 @@ import { MissionFormScreen } from '../screens/MissionForm/MissionFormScreen';
 import { OnboardingScreen } from '../screens/Onboarding/OnboardingScreen';
 import { PlanningHubScreen } from '../screens/PlanningHub/PlanningHubScreen';
 import { ContaScreen } from '../screens/Conta/ContaScreen';
+import { LojaScreen } from '../screens/Loja/LojaScreen';
+import { FormularioRecompensaScreen } from '../screens/Loja/FormularioRecompensaScreen';
 import { useSessao } from '../state/SessaoContext';
 
 const Stack = createNativeStackNavigator();
@@ -42,6 +44,8 @@ export function RootNavigator({ initialRouteName }) {
       <Stack.Screen name="CampaignForm" component={CampaignFormScreen} />
       <Stack.Screen name="CampaignDetail" component={CampaignDetailScreen} />
       <Stack.Screen name="Conta" component={ContaScreen} />
+      <Stack.Screen name="Loja" component={LojaScreen} />
+      <Stack.Screen name="FormularioRecompensa" component={FormularioRecompensaScreen} />
     </Stack.Navigator>
   );
 }

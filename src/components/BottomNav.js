@@ -19,10 +19,17 @@ export function BottomNav({
   activeItem = 'missoes',
   onPressMissoes,
   onPressDiario,
+  onPressLoja,
   onPressPerfil,
 }) {
   const insets = useSafeAreaInsets();
-  const acoes = { missoes: onPressMissoes, diario: onPressDiario, perfil: onPressPerfil };
+  const acoes = {
+    missoes: onPressMissoes,
+    diario: onPressDiario,
+    loja: onPressLoja,
+    perfil: onPressPerfil,
+  };
+  const corAtiva = activeItem === 'loja' ? colors.loja : colors.brand;
 
   return (
     <View
@@ -33,14 +40,22 @@ export function BottomNav({
         const onPress = acoes[key];
         const content = (
           <>
-            <View style={isActive ? styles.activeCircle : styles.iconContainer}>
+            <View
+              style={
+                isActive
+                  ? [styles.activeCircle, { backgroundColor: corAtiva }]
+                  : styles.iconContainer
+              }
+            >
               <Icon
-                width={isActive ? 24 : 22}
-                height={isActive ? 24 : 22}
+                width={key === 'loja' ? 22 : isActive ? 24 : 22}
+                height={key === 'loja' ? 22 : isActive ? 24 : 22}
                 color={isActive ? colors.white : colors.textMuted}
               />
             </View>
-            <Text style={isActive ? styles.activeLabel : styles.label}>{label}</Text>
+            <Text style={isActive ? [styles.activeLabel, { color: corAtiva }] : styles.label}>
+              {label}
+            </Text>
           </>
         );
 

@@ -35,6 +35,19 @@ function iniciar({ salva = null, semConexao = false } = {}) {
       };
     }
     if (url.endsWith('/logout')) return { ok: true, status: 204 };
+    if (url.endsWith(`/api/usuarios/usuario-${conta}`))
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          id: `usuario-${conta}`,
+          nome: `Pessoa ${conta}`,
+          email: `${conta}@exemplo.com`,
+          dataNascimento: '2000-01-01',
+          estuda: null,
+          trabalha: null,
+        }),
+      };
     return { ok: true, status: 200, json: async () => ({ usuarioId: `usuario-${conta}` }) };
   });
   const servico = criarServicoSessao({
@@ -51,6 +64,9 @@ function iniciar({ salva = null, semConexao = false } = {}) {
   return {
     ...resultado,
     executarFetch,
+    ficarSemConexao: () => {
+      semConexao = true;
+    },
     outraConta: () => {
       conta = 'b';
     },
@@ -86,13 +102,21 @@ it('limpa o diário e a navegação ao sair e entrar com outra conta', async () 
   fireEvent.press(screen.getByLabelText('Registrar reflexão'));
   expect(screen.getByText('Reflexão privada da primeira conta')).toBeTruthy();
   fireEvent.press(screen.getByLabelText('Perfil'));
+  await screen.findByLabelText('Nome: Pessoa a');
   fireEvent.press(screen.getByLabelText('Sair da conta'));
+  fireEvent.press(screen.getByLabelText('Cancelar'));
+  expect(screen.getByLabelText('Nome: Pessoa a')).toBeTruthy();
+  fireEvent.press(screen.getByLabelText('Sair da conta'));
+  fireEvent.press(screen.getByLabelText('Sim, sair da conta'));
   await screen.findByLabelText('E-mail');
   outraConta();
   await entrar();
   await screen.findByText('Seus próximos passos.');
   fireEvent.press(screen.getByLabelText('Diário'));
   expect(screen.queryByText('Reflexão privada da primeira conta')).toBeNull();
+  fireEvent.press(screen.getByLabelText('Perfil'));
+  expect(await screen.findByLabelText('Nome: Pessoa b')).toBeTruthy();
+  expect(screen.queryByText('Pessoa a')).toBeNull();
 });
 
 it('permite tentar novamente sem liberar telas privadas se a restauração estiver sem rede', async () => {
@@ -108,4 +132,17 @@ it('permite tentar novamente sem liberar telas privadas se a restauração estiv
   });
   await waitFor(() => expect(screen.getByLabelText('Tentar novamente')).toBeTruthy());
   expect(screen.queryByText('Seus próximos passos.')).toBeNull();
+});
+
+it('confirma a saída e volta ao login mesmo sem rede', async () => {
+  const { ficarSemConexao } = iniciar();
+  await entrar();
+  await screen.findByText('Seus próximos passos.');
+  ficarSemConexao();
+  fireEvent.press(screen.getByLabelText('Perfil'));
+  await screen.findByText(/Não foi possível carregar seu perfil/);
+  fireEvent.press(screen.getByLabelText('Sair da conta'));
+  fireEvent.press(screen.getByLabelText('Sim, sair da conta'));
+  expect(await screen.findByLabelText('Entrar na minha jornada')).toBeTruthy();
+  expect(screen.queryByText('Perfil e configurações')).toBeNull();
 });
