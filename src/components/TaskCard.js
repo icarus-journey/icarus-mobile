@@ -4,8 +4,10 @@ import { colors } from '../theme/colors';
 import { fontFamily, fontSize } from '../theme/typography';
 
 export function TaskCard({ mission, onPress, statusLabel }) {
+  const concluida = Boolean(mission.concluidaEm);
+  const accentColor = concluida ? colors.danger : mission.corDestaque;
   const resolvedStatusLabel =
-    statusLabel ?? (mission.status === 'ATRASADA' ? 'atrasada' : 'pendente');
+    statusLabel ?? (concluida ? 'concluída' : mission.status === 'ATRASADA' ? 'atrasada' : 'pendente');
   const accessibilityLabel = [
     mission.titulo,
     mission.prazoLabel,
@@ -22,7 +24,7 @@ export function TaskCard({ mission, onPress, statusLabel }) {
       accessibilityLabel={accessibilityLabel}
       style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
     >
-      <View style={[styles.accent, { backgroundColor: mission.corDestaque }]} />
+      <View style={[styles.accent, { backgroundColor: accentColor }]} />
       <View style={styles.body}>
         <Text style={styles.title} numberOfLines={1}>
           {mission.titulo}

@@ -54,6 +54,29 @@ describe('PlanningHubScreen — aba Missão', () => {
 
     expect(navigation.navigate).toHaveBeenCalledWith('MissionForm');
   });
+
+  it('separa missões concluídas numa seção própria, abaixo da lista ativa', () => {
+    renderScreen({
+      initialMissions: [
+        ...MOCK_MISSIONS,
+        {
+          id: 'missao-concluida',
+          titulo: 'Missão já feita',
+          status: 'PENDENTE',
+          prazoLabel: 'Ontem',
+          pontos: 20,
+          corDestaque: '#7048d6',
+          concluidaEm: '2026-01-01T09:00:00+00:00',
+        },
+      ],
+    });
+
+    expect(screen.getByText('Concluídos')).toBeTruthy();
+    expect(screen.getByText('Missão já feita')).toBeTruthy();
+    expect(
+      screen.getByLabelText('Missão já feita, Ontem, concluída, mais 20 pontos'),
+    ).toBeTruthy();
+  });
 });
 
 describe('PlanningHubScreen — aba Épico', () => {
@@ -102,6 +125,25 @@ describe('PlanningHubScreen — aba Épico', () => {
 
     expect(navigation.navigate).toHaveBeenCalledWith('EpicDetail', { epicId: 'epico-1' });
   });
+
+  it('separa épicos concluídos numa seção própria, abaixo da lista ativa', () => {
+    renderScreen({
+      initialEpics: [
+        ...MOCK_EPICS,
+        {
+          id: 'epico-concluido',
+          titulo: 'Épico já feito',
+          dataLimite: '31/12/2026',
+          campanhasAtribuidas: [],
+          estado: 'concluido',
+        },
+      ],
+      params: { initialSegment: 'EPICO' },
+    });
+
+    expect(screen.getByText('Concluídos')).toBeTruthy();
+    expect(screen.getByText('Épico já feito')).toBeTruthy();
+  });
 });
 
 describe('PlanningHubScreen — aba Campanha', () => {
@@ -145,5 +187,26 @@ describe('PlanningHubScreen — aba Campanha', () => {
     expect(navigation.navigate).toHaveBeenCalledWith('CampaignDetail', {
       campaignId: 'campanha-1',
     });
+  });
+
+  it('separa campanhas concluídas numa seção própria, abaixo da lista ativa', () => {
+    renderScreen({
+      initialCampaigns: [
+        ...MOCK_CAMPAIGNS,
+        {
+          id: 'campanha-concluida',
+          titulo: 'Campanha já feita',
+          progresso: null,
+          pontosAtuais: 0,
+          pontos: 45,
+          recompensaCurta: null,
+          estado: 'concluida',
+        },
+      ],
+      params: { initialSegment: 'CAMPANHA' },
+    });
+
+    expect(screen.getByText('Concluídos')).toBeTruthy();
+    expect(screen.getByText('Campanha já feita')).toBeTruthy();
   });
 });

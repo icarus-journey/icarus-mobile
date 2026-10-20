@@ -1,9 +1,10 @@
-import { Pressable, StyleSheet, Text } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors } from '../theme/colors';
 import { fontFamily, fontSize } from '../theme/typography';
 
 export function EpicHeroCard({ epic, onPress }) {
+  const concluido = epic.estado === 'concluido';
   const ano = epic.dataLimite?.split('/')?.[2];
   const quantidadeCampanhas = epic.campanhasAtribuidas?.length ?? 0;
   const subtitle = [ano ? `Meta para ${ano}` : null, `${quantidadeCampanhas} campanhas`]
@@ -17,6 +18,7 @@ export function EpicHeroCard({ epic, onPress }) {
       accessibilityLabel={`${epic.titulo}, ${subtitle}`}
       style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
     >
+      {concluido ? <View style={styles.accent} /> : null}
       <Text style={styles.title}>{epic.titulo}</Text>
       <Text style={styles.subtitle}>{subtitle}</Text>
     </Pressable>
@@ -44,5 +46,14 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.regular,
     fontSize: fontSize.input,
     color: '#f0e8ff',
+  },
+  accent: {
+    position: 'absolute',
+    left: 6,
+    top: 16,
+    bottom: 16,
+    width: 4,
+    borderRadius: 2,
+    backgroundColor: colors.danger,
   },
 });

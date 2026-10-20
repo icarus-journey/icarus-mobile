@@ -41,11 +41,18 @@ export function PlanningHubScreen({ navigation, route }) {
   const insets = useSafeAreaInsets();
   const [segment, setSegment] = useState(route.params?.initialSegment ?? 'MISSAO');
 
-  const orderedMissions = useMemo(
-    () =>
-      [...missions].sort((a, b) => MISSION_STATUS_ORDER[a.status] - MISSION_STATUS_ORDER[b.status]),
-    [missions],
-  );
+  const { ativas: missoesAtivas, concluidas: missoesConcluidas } = useMemo(() => {
+    const ativas = missions.filter((mission) => !mission.concluidaEm);
+    const concluidas = missions.filter((mission) => mission.concluidaEm);
+    ativas.sort((a, b) => MISSION_STATUS_ORDER[a.status] - MISSION_STATUS_ORDER[b.status]);
+    return { ativas, concluidas };
+  }, [missions]);
+
+  const campanhasAtivas = useMemo(() => campaigns.filter((c) => c.estado !== 'concluida'), [campaigns]);
+  const campanhasConcluidas = useMemo(() => campaigns.filter((c) => c.estado === 'concluida'), [campaigns]);
+
+  const epicosAtivos = useMemo(() => epics.filter((e) => e.estado !== 'concluido'), [epics]);
+  const epicosConcluidos = useMemo(() => epics.filter((e) => e.estado === 'concluido'), [epics]);
 
   const header = HEADERS[segment];
 
@@ -76,7 +83,7 @@ export function PlanningHubScreen({ navigation, route }) {
 
         {segment === 'MISSAO' ? (
           <FlatList
-            data={orderedMissions}
+            data={missoesAtivas}
             keyExtractor={(item) => item.id}
             contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + 16 }]}
             renderItem={({ item }) => (
@@ -86,19 +93,37 @@ export function PlanningHubScreen({ navigation, route }) {
               />
             )}
             ListEmptyComponent={
-              <EmptyState
-                title="Nenhuma missão por aqui"
-                subtitle="Crie sua primeira missão para começar a acompanhar seus passos."
-                buttonLabel="Criar missão"
-                onCreate={() => navigation.navigate('MissionForm')}
-              />
+              missoesConcluidas.length === 0 ? (
+                <EmptyState
+                  title="Nenhuma missão por aqui"
+                  subtitle="Crie sua primeira missão para começar a acompanhar seus passos."
+                  buttonLabel="Criar missão"
+                  onCreate={() => navigation.navigate('MissionForm')}
+                />
+              ) : null
+            }
+            ListFooterComponent={
+              missoesConcluidas.length > 0 ? (
+                <View style={styles.concludedSection}>
+                  <Text style={styles.concludedTitle}>Concluídos</Text>
+                  <View style={styles.concludedList}>
+                    {missoesConcluidas.map((item) => (
+                      <TaskCard
+                        key={item.id}
+                        mission={item}
+                        onPress={() => navigation.navigate('MissionDetail', { missionId: item.id })}
+                      />
+                    ))}
+                  </View>
+                </View>
+              ) : null
             }
           />
         ) : null}
 
         {segment === 'CAMPANHA' ? (
           <FlatList
-            data={campaigns}
+            data={campanhasAtivas}
             keyExtractor={(item) => item.id}
             contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + 16 }]}
             renderItem={({ item }) => (
@@ -108,19 +133,37 @@ export function PlanningHubScreen({ navigation, route }) {
               />
             )}
             ListEmptyComponent={
-              <EmptyState
-                title="Nenhuma campanha por aqui"
-                subtitle="Crie sua primeira campanha para organizar suas missões."
-                buttonLabel="Criar campanha"
-                onCreate={() => navigation.navigate('CampaignForm')}
-              />
+              campanhasConcluidas.length === 0 ? (
+                <EmptyState
+                  title="Nenhuma campanha por aqui"
+                  subtitle="Crie sua primeira campanha para organizar suas missões."
+                  buttonLabel="Criar campanha"
+                  onCreate={() => navigation.navigate('CampaignForm')}
+                />
+              ) : null
+            }
+            ListFooterComponent={
+              campanhasConcluidas.length > 0 ? (
+                <View style={styles.concludedSection}>
+                  <Text style={styles.concludedTitle}>Concluídos</Text>
+                  <View style={styles.concludedList}>
+                    {campanhasConcluidas.map((item) => (
+                      <CampaignHeroCard
+                        key={item.id}
+                        campaign={item}
+                        onPress={() => navigation.navigate('CampaignDetail', { campaignId: item.id })}
+                      />
+                    ))}
+                  </View>
+                </View>
+              ) : null
             }
           />
         ) : null}
 
         {segment === 'EPICO' ? (
           <FlatList
-            data={epics}
+            data={epicosAtivos}
             keyExtractor={(item) => item.id}
             contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + 16 }]}
             renderItem={({ item }) => (
@@ -130,12 +173,30 @@ export function PlanningHubScreen({ navigation, route }) {
               />
             )}
             ListEmptyComponent={
-              <EmptyState
-                title="Nenhum épico por aqui"
-                subtitle="Crie seu primeiro épico para dar rumo à sua jornada."
-                buttonLabel="Criar épico"
-                onCreate={() => navigation.navigate('EpicForm')}
-              />
+              epicosConcluidos.length === 0 ? (
+                <EmptyState
+                  title="Nenhum épico por aqui"
+                  subtitle="Crie seu primeiro épico para dar rumo à sua jornada."
+                  buttonLabel="Criar épico"
+                  onCreate={() => navigation.navigate('EpicForm')}
+                />
+              ) : null
+            }
+            ListFooterComponent={
+              epicosConcluidos.length > 0 ? (
+                <View style={styles.concludedSection}>
+                  <Text style={styles.concludedTitle}>Concluídos</Text>
+                  <View style={styles.concludedList}>
+                    {epicosConcluidos.map((item) => (
+                      <EpicHeroCard
+                        key={item.id}
+                        epic={item}
+                        onPress={() => navigation.navigate('EpicDetail', { epicId: item.id })}
+                      />
+                    ))}
+                  </View>
+                </View>
+              ) : null
             }
           />
         ) : null}
@@ -204,5 +265,17 @@ const styles = StyleSheet.create({
   list: {
     gap: 16,
     flexGrow: 1,
+  },
+  concludedSection: {
+    marginTop: 24,
+    gap: 12,
+  },
+  concludedTitle: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: fontSize.input,
+    color: colors.textSecondary,
+  },
+  concludedList: {
+    gap: 16,
   },
 });
