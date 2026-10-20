@@ -116,6 +116,20 @@ export function CampaignsProvider({ children, initialCampaigns = MOCK_CAMPAIGNS 
     [sessao, requisitarAutenticado],
   );
 
+  // Reflete, sem round-trip à API, o crédito que ConcluirMissaoUseCase já aplicou no backend
+  // ao valor_atual da campanha (RF-03.5) — chamado pela tela de missão na mesma ação de
+  // concluir, já que missão e campanha vivem em Contexts separados. Campanha não mensurável
+  // (valorMensurado nulo) não tem valor_atual a incrementar, mesmo backend.
+  const incrementarValorAtual = useCallback((campaignId, pontos) => {
+    setCampaigns((current) =>
+      current.map((campaign) =>
+        campaign.id === campaignId && campaign.valorMensurado != null
+          ? { ...campaign, pontosAtuais: (campaign.pontosAtuais ?? 0) + pontos }
+          : campaign,
+      ),
+    );
+  }, []);
+
   // Substitui a lista inteira pelas campanhas reais do usuário, extraídas do grafo aninhado
   // devolvido por GET /usuarios/{id}/epicos — chamado uma vez ao abrir o app.
   const carregarLista = useCallback((epicosDoServidor) => {
@@ -128,8 +142,26 @@ export function CampaignsProvider({ children, initialCampaigns = MOCK_CAMPAIGNS 
   }, []);
 
   const value = useMemo(
-    () => ({ campaigns, addCampaign, updateCampaign, getCampaignById, hidratarDoOnboarding, carregarLista, concluirCampanha }),
-    [campaigns, addCampaign, updateCampaign, getCampaignById, hidratarDoOnboarding, carregarLista, concluirCampanha],
+    () => ({
+      campaigns,
+      addCampaign,
+      updateCampaign,
+      getCampaignById,
+      hidratarDoOnboarding,
+      carregarLista,
+      concluirCampanha,
+      incrementarValorAtual,
+    }),
+    [
+      campaigns,
+      addCampaign,
+      updateCampaign,
+      getCampaignById,
+      hidratarDoOnboarding,
+      carregarLista,
+      concluirCampanha,
+      incrementarValorAtual,
+    ],
   );
 
   return <CampaignsContext.Provider value={value}>{children}</CampaignsContext.Provider>;

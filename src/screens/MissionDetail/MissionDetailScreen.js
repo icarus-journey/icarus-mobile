@@ -10,6 +10,7 @@ import { DetailRewardCard } from '../../components/DetailRewardCard';
 import { DetailSummaryCard } from '../../components/DetailSummaryCard';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import IconEdit from '../../assets/icons/icon-edit.svg';
+import { useCampaigns } from '../../state/CampaignsContext';
 import { useMissions } from '../../state/MissionsContext';
 import { colors } from '../../theme/colors';
 import { fontFamily, fontSize } from '../../theme/typography';
@@ -30,6 +31,7 @@ const RECORRENCIA_LABELS = {
 export function MissionDetailScreen({ route, navigation }) {
   const { missionId } = route.params;
   const { getMissionById, concluirMissao } = useMissions();
+  const { incrementarValorAtual } = useCampaigns();
   const insets = useSafeAreaInsets();
   const mission = getMissionById(missionId);
   const [concluindo, setConcluindo] = useState(false);
@@ -50,7 +52,12 @@ export function MissionDetailScreen({ route, navigation }) {
     setConcluindo(true);
     setErro('');
     try {
-      await concluirMissao(mission.id);
+      const resultado = await concluirMissao(mission.id);
+      // Missão e campanha vivem em Contexts separados — reflete aqui, sem round-trip à API,
+      // o mesmo crédito que ConcluirMissaoUseCase já aplicou ao valor_atual no backend.
+      if (mission.campanha) {
+        incrementarValorAtual(mission.campanha.id, resultado.pontuacaoCreditada);
+      }
     } catch {
       setErro('Não foi possível concluir a missão. Tente novamente.');
     } finally {

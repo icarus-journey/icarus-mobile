@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react-native';
 
+import { CampaignsProvider } from '../../state/CampaignsContext';
 import { MissionsProvider } from '../../state/MissionsContext';
 import { MissionDetailScreen } from './MissionDetailScreen';
 
@@ -9,11 +10,13 @@ jest.mock('../../state/SessaoContext', () => ({
 
 const navigation = { goBack: jest.fn(), popToTop: jest.fn() };
 
-function renderScreen(missionId, initialMissions) {
+function renderScreen(missionId, initialMissions, initialCampaigns = []) {
   return render(
-    <MissionsProvider initialMissions={initialMissions}>
-      <MissionDetailScreen navigation={navigation} route={{ params: { missionId } }} />
-    </MissionsProvider>,
+    <CampaignsProvider initialCampaigns={initialCampaigns}>
+      <MissionsProvider initialMissions={initialMissions}>
+        <MissionDetailScreen navigation={navigation} route={{ params: { missionId } }} />
+      </MissionsProvider>
+    </CampaignsProvider>,
   );
 }
 

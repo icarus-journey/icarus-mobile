@@ -108,7 +108,14 @@ export function CampaignDetailScreen({ route, navigation }) {
           ]}
         />
 
-        {campaign.progresso ? (
+        {campaign.valorMensurado != null ? (
+          <DetailProgressCard
+            title="Progresso desta campanha"
+            subtitle={`${campaign.pontosAtuais} de ${campaign.valorMensurado} ${campaign.unidade ?? 'pontos'}`}
+            current={campaign.pontosAtuais}
+            total={campaign.valorMensurado}
+          />
+        ) : campaign.progresso ? (
           <DetailProgressCard
             title="Progresso desta campanha"
             subtitle={`${campaign.progresso.concluidas} de ${campaign.progresso.total} missões concluídas`}
