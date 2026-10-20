@@ -9,6 +9,10 @@ import { OnboardingProvider } from '../state/OnboardingContext';
 import { RootNavigator } from './RootNavigator';
 import { useSessao } from '../state/SessaoContext';
 
+jest.mock('../hooks/useRelatorioSemanal', () => ({
+  useRelatorioSemanal: () => ({ dados: null, carregando: false }),
+}));
+
 jest.mock('../state/SessaoContext', () => ({ useSessao: jest.fn() }));
 
 const mockCriarEpico = jest.fn();

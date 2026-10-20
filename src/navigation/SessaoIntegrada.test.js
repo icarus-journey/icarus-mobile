@@ -9,6 +9,7 @@ import { SessaoGate } from './SessaoGate';
 function iniciar({ salva = null, semConexao = false } = {}) {
   let armazenada = salva;
   let conta = 'a';
+  let analiseExpirada = false;
   const armazenamento = {
     ler: async () => armazenada,
     salvar: async (sessao) => {
@@ -34,6 +35,10 @@ function iniciar({ salva = null, semConexao = false } = {}) {
         }),
       };
     }
+    if (analiseExpirada && (url.includes('/progresso') || url.includes('/refresh')))
+      return { ok: false, status: 401, json: async () => ({}) };
+    if (url.includes('/relatorios/semanais'))
+      return { ok: true, status: 200, json: async () => ({ estado: 'historico_insuficiente' }) };
     if (url.endsWith('/logout')) return { ok: true, status: 204 };
     if (url.endsWith(`/api/usuarios/usuario-${conta}`))
       return {
@@ -64,6 +69,9 @@ function iniciar({ salva = null, semConexao = false } = {}) {
   return {
     ...resultado,
     executarFetch,
+    expirarAnalise: () => {
+      analiseExpirada = true;
+    },
     ficarSemConexao: () => {
       semConexao = true;
     },
@@ -145,4 +153,15 @@ it('confirma a saída e volta ao login mesmo sem rede', async () => {
   fireEvent.press(screen.getByLabelText('Sim, sair da conta'));
   expect(await screen.findByLabelText('Entrar na minha jornada')).toBeTruthy();
   expect(screen.queryByText('Perfil e configurações')).toBeNull();
+});
+
+it('encerra a sessão se a análise recusar o acesso e a renovação também expirar', async () => {
+  const { expirarAnalise, executarFetch } = iniciar();
+  await entrar();
+  await screen.findByText('Seus próximos passos.');
+  expirarAnalise();
+  fireEvent.press(screen.getByLabelText('Meu progresso'));
+  expect(await screen.findByLabelText('Entrar na minha jornada')).toBeTruthy();
+  expect(screen.queryByText('Contexto para sua jornada')).toBeNull();
+  expect(executarFetch.mock.calls.some(([url]) => url.endsWith('/refresh'))).toBe(true);
 });

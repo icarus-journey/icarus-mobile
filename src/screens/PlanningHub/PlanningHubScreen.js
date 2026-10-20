@@ -1,3 +1,5 @@
+import { ResumoInicial } from './ResumoInicial';
+import { SecondaryButton } from '../../components/Button';
 import { useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -53,7 +55,11 @@ export function PlanningHubScreen({ navigation, route }) {
   const insets = useSafeAreaInsets();
   const [segment, setSegment] = useState(route.params?.initialSegment ?? 'MISSAO');
 
-  const { ativas: missoesAtivas, atrasadas: missoesAtrasadas, concluidas: missoesConcluidas } = useMemo(() => {
+  const {
+    ativas: missoesAtivas,
+    atrasadas: missoesAtrasadas,
+    concluidas: missoesConcluidas,
+  } = useMemo(() => {
     const concluidas = missions.filter((m) => m.concluidaEm);
     const atrasadas = missions.filter((m) => !m.concluidaEm && isMissaoAtrasada(m));
     const ativas = missions.filter((m) => !m.concluidaEm && !isMissaoAtrasada(m));
@@ -66,15 +72,27 @@ export function PlanningHubScreen({ navigation, route }) {
     concluidas: campanhasConcluidas,
   } = useMemo(() => {
     const concluidas = campaigns.filter((c) => c.estado === 'concluida');
-    const atrasadas = campaigns.filter((c) => c.estado !== 'concluida' && isDataLimiteVencida(c.dataLimite));
-    const ativas = campaigns.filter((c) => c.estado !== 'concluida' && !isDataLimiteVencida(c.dataLimite));
+    const atrasadas = campaigns.filter(
+      (c) => c.estado !== 'concluida' && isDataLimiteVencida(c.dataLimite),
+    );
+    const ativas = campaigns.filter(
+      (c) => c.estado !== 'concluida' && !isDataLimiteVencida(c.dataLimite),
+    );
     return { ativas, atrasadas, concluidas };
   }, [campaigns]);
 
-  const { ativos: epicosAtivos, atrasados: epicosAtrasados, concluidos: epicosConcluidos } = useMemo(() => {
+  const {
+    ativos: epicosAtivos,
+    atrasados: epicosAtrasados,
+    concluidos: epicosConcluidos,
+  } = useMemo(() => {
     const concluidos = epics.filter((e) => e.estado === 'concluido');
-    const atrasados = epics.filter((e) => e.estado !== 'concluido' && isDataLimiteVencida(e.dataLimite));
-    const ativos = epics.filter((e) => e.estado !== 'concluido' && !isDataLimiteVencida(e.dataLimite));
+    const atrasados = epics.filter(
+      (e) => e.estado !== 'concluido' && isDataLimiteVencida(e.dataLimite),
+    );
+    const ativos = epics.filter(
+      (e) => e.estado !== 'concluido' && !isDataLimiteVencida(e.dataLimite),
+    );
     return { ativos, atrasados, concluidos };
   }, [epics]);
 
@@ -103,10 +121,17 @@ export function PlanningHubScreen({ navigation, route }) {
           </Pressable>
         </View>
 
+        <SecondaryButton
+          label="Meu progresso"
+          onPress={() => navigation.navigate('ProgressoScreen')}
+        />
         <SegmentedControl value={segment} onChange={setSegment} />
 
         {segment === 'MISSAO' ? (
           <FlatList
+            ListHeaderComponent={
+              <ResumoInicial onVerSemana={() => navigation.navigate('RelatorioSemanalScreen')} />
+            }
             data={missoesAtivas}
             keyExtractor={(item) => item.id}
             contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + 16 }]}
@@ -184,7 +209,9 @@ export function PlanningHubScreen({ navigation, route }) {
                       <CampaignHeroCard
                         key={item.id}
                         campaign={item}
-                        onPress={() => navigation.navigate('CampaignDetail', { campaignId: item.id })}
+                        onPress={() =>
+                          navigation.navigate('CampaignDetail', { campaignId: item.id })
+                        }
                       />
                     ))}
                   </SecaoExtra>
@@ -195,7 +222,9 @@ export function PlanningHubScreen({ navigation, route }) {
                       <CampaignHeroCard
                         key={item.id}
                         campaign={item}
-                        onPress={() => navigation.navigate('CampaignDetail', { campaignId: item.id })}
+                        onPress={() =>
+                          navigation.navigate('CampaignDetail', { campaignId: item.id })
+                        }
                       />
                     ))}
                   </SecaoExtra>

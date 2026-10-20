@@ -21,7 +21,7 @@ export function ScreenHeader({
       >
         <IconeVoltar />
       </Pressable>
-      <Text style={styles.title} numberOfLines={1}>
+      <Text style={styles.title}>
         {title}
       </Text>
       <View style={styles.spacer} />
@@ -33,7 +33,7 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 44,
+    minHeight: 44,
     marginBottom: 8,
   },
   backButton: {

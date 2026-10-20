@@ -1,6 +1,10 @@
 import { createContext, useCallback, useContext, useMemo, useState } from 'react';
 
-import { criarCampanha, atualizarCampanha, concluirCampanha as concluirCampanhaNaApi } from '../services/campanhas';
+import {
+  criarCampanha,
+  atualizarCampanha,
+  concluirCampanha as concluirCampanhaNaApi,
+} from '../services/campanhas';
 import { colors } from '../theme';
 import { deDataIso, paraDataIso } from '../utils/dateInput';
 import { useSessao } from './SessaoContext';
@@ -19,7 +23,7 @@ function mapearCampanhaDaApi(campanha, epico) {
     areaDaVida: campanha.areaDaVida,
     dificuldade: campanha.dificuldade.toUpperCase(),
     pontos: campanha.pontuacao,
-    pontosAtuais: campanha.valorAtual ?? 0,
+    valorAtual: campanha.valorAtual ?? null,
     valorMensurado: campanha.valorMensurado ?? null,
     unidade: campanha.unidade ?? null,
     recompensaCurta: null,
@@ -107,9 +111,15 @@ export function CampaignsProvider({ children, initialCampaigns = MOCK_CAMPAIGNS 
   // Conclusão manual (RF-03.7) — atingir o valor mensurado não conclui por si só.
   const concluirCampanha = useCallback(
     async (campaignId) => {
-      const resposta = await concluirCampanhaNaApi({ usuarioId: sessao.usuarioId, campanhaId: campaignId, requisitarAutenticado });
+      const resposta = await concluirCampanhaNaApi({
+        usuarioId: sessao.usuarioId,
+        campanhaId: campaignId,
+        requisitarAutenticado,
+      });
       setCampaigns((current) =>
-        current.map((campaign) => (campaign.id === campaignId ? { ...campaign, estado: resposta.estado } : campaign)),
+        current.map((campaign) =>
+          campaign.id === campaignId ? { ...campaign, estado: resposta.estado } : campaign,
+        ),
       );
       return resposta;
     },
@@ -118,13 +128,15 @@ export function CampaignsProvider({ children, initialCampaigns = MOCK_CAMPAIGNS 
 
   // Reflete, sem round-trip à API, o crédito que ConcluirMissaoUseCase já aplicou no backend
   // ao valor_atual da campanha (RF-03.5) — chamado pela tela de missão na mesma ação de
-  // concluir, já que missão e campanha vivem em Contexts separados. Campanha não mensurável
-  // (valorMensurado nulo) não tem valor_atual a incrementar, mesmo backend.
+  // concluir, já que missão e campanha vivem em Contexts separados. Somente a unidade
+  // pontos é contador de gamificação; outras medidas não recebem crédito de pontos.
   const incrementarValorAtual = useCallback((campaignId, pontos) => {
     setCampaigns((current) =>
       current.map((campaign) =>
-        campaign.id === campaignId && campaign.valorMensurado != null
-          ? { ...campaign, pontosAtuais: (campaign.pontosAtuais ?? 0) + pontos }
+        campaign.id === campaignId &&
+        campaign.valorMensurado != null &&
+        campaign.unidade?.toLowerCase() === 'pontos'
+          ? { ...campaign, valorAtual: (campaign.valorAtual ?? 0) + pontos }
           : campaign,
       ),
     );

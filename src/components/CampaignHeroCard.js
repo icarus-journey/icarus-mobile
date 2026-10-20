@@ -7,9 +7,11 @@ import { isDataLimiteVencida } from '../utils/dateInput';
 export function CampaignHeroCard({ campaign, onPress }) {
   const concluida = campaign.estado === 'concluida';
   const atrasada = !concluida && isDataLimiteVencida(campaign.dataLimite);
-  const subtitle = campaign.progresso
-    ? `${campaign.progresso.concluidas} de ${campaign.progresso.total} missões • ${campaign.pontosAtuais}/${campaign.pontos} XP`
-    : 'Sua campanha está começando agora.';
+  const subtitle = campaign.valorMensurado != null
+    ? `${campaign.valorAtual ?? 'Não informado'} de ${campaign.valorMensurado} ${campaign.unidade ?? 'unidade não informada'}`
+    : campaign.progresso
+      ? `${campaign.progresso.concluidas} de ${campaign.progresso.total} missões concluídas`
+      : 'Sua campanha está começando agora.';
   const recompensaLabel = campaign.recompensaCurta
     ? `Recompensa final: ${campaign.recompensaCurta}`
     : null;
@@ -22,7 +24,9 @@ export function CampaignHeroCard({ campaign, onPress }) {
       style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
     >
       {concluida || atrasada ? (
-        <View style={[styles.accent, { backgroundColor: concluida ? colors.success : colors.danger }]} />
+        <View
+          style={[styles.accent, { backgroundColor: concluida ? colors.success : colors.danger }]}
+        />
       ) : null}
       <Text style={styles.title}>{campaign.titulo}</Text>
       <Text style={styles.subtitle}>{subtitle}</Text>

@@ -1,3 +1,6 @@
+import { RelatorioSemanalScreen } from '../screens/Progresso/RelatorioSemanalScreen';
+import { ProgressoScreen } from '../screens/Progresso/ProgressoScreen';
+import { DetalhesDaReferenciaScreen } from '../screens/Progresso/DetalhesDaReferenciaScreen';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import { LoginScreen } from '../screens/Auth/LoginScreen';
@@ -43,6 +46,9 @@ export function RootNavigator({ initialRouteName }) {
       <Stack.Screen name="EpicDetail" component={EpicDetailScreen} />
       <Stack.Screen name="CampaignForm" component={CampaignFormScreen} />
       <Stack.Screen name="CampaignDetail" component={CampaignDetailScreen} />
+      <Stack.Screen name="ProgressoScreen" component={ProgressoScreen} />
+      <Stack.Screen name="RelatorioSemanalScreen" component={RelatorioSemanalScreen} />
+      <Stack.Screen name="DetalhesDaReferenciaScreen" component={DetalhesDaReferenciaScreen} />
       <Stack.Screen name="Conta" component={ContaScreen} />
       <Stack.Screen name="Loja" component={LojaScreen} />
       <Stack.Screen name="FormularioRecompensa" component={FormularioRecompensaScreen} />

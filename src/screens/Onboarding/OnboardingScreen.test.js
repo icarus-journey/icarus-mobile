@@ -201,3 +201,7 @@ describe('OnboardingScreen', () => {
     );
   });
 });
+
+jest.mock('../../hooks/useRelatorioSemanal', () => ({
+  useRelatorioSemanal: () => ({ dados: { estado: 'historico_insuficiente' }, carregando: false }),
+}));

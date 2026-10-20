@@ -44,8 +44,9 @@ Secrets e aplique as migrations conforme a seção 6 de `icarus-platform/PROJETO
   sincronizado ao abrir a sessão e ao retornar ao aplicativo.
 - Sair da conta exige confirmação. Confirmar remove a sessão local e tenta
   revogar a renovação no servidor; a saída local funciona inclusive sem rede.
-- Missões, campanhas, épicos, onboarding e diário ainda são dados em memória:
-  autenticar não os persiste na API; sair ou trocar de conta limpa esses estados.
+- Missões, campanhas, épicos e onboarding usam a API autenticada; os contextos
+  mantêm o estado de apresentação e são limpos ao trocar de conta. O diário
+  permanece local, sem endpoint de persistência nesta entrega.
 
 Validação: `npm test -- --runInBand --watch=false` e `npm run lint`.
 
@@ -59,3 +60,24 @@ diária, ainda não implementada. A loja oferece atualização por gesto e ao
 receber foco, além de estados de carregamento, vazio e erro.
 
 Contrato e limites: [`05-contrato-da-loja.md`](../icarus-context/docs/implementation-design/platform/05-contrato-da-loja.md).
+
+## Meu progresso e minha semana
+
+Na tela de Missões, **Meu progresso** abre registros pessoais por período e
+**Contexto para sua jornada**, com referências Gold reais da edição 2024.
+**Entender os dados** mostra recorte, denominador, limites e links das fontes.
+As quatro abas existentes são preservadas. Componentes novos usam os tokens
+Inter/roxo existentes; são implementação RN proposta, sem novos frames Figma.
+
+**Ver minha semana** solicita ou recupera o relatório persistido; consultas
+seguintes reutilizam o trabalho e apenas acompanham o processamento. Nova
+geração após falha exige ação explícita. Sem registros suficientes, a tela
+informa a ausência, sem relatório simulado. Fonte pública e síntese pessoal
+ficam identificadas separadamente. Pontos não incrementam campanhas medidas
+em módulos, reais ou outra unidade.
+
+A taxa e a comparação conjunta dependem do histórico de ocorrências previstas;
+cenários dependem de medições RF-03.5. Esses dados aparecem indisponíveis nesta
+fatia. Testes cobrem navegação, HTTP, estados, sessão expirada, troca de conta,
+metadados e unidades. A validação visual das novas telas em aparelho,
+TalkBack/VoiceOver e iPhone permanece pendente.
