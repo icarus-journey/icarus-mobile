@@ -55,10 +55,17 @@ export function MissionFormScreen({ navigation, route }) {
   const insets = useSafeAreaInsets();
   const editingMissionId = route.params?.missionId ?? null;
   const editingMission = editingMissionId ? getMissionById(editingMissionId) : null;
+  // Vindo do botão "Adicionar missão" da tela de campanha (route.params.campanha) — só se
+  // aplica à criação; editar uma missão existente usa o vínculo que ela já tem.
+  const campanhaPreSelecionada = !editingMission ? route.params?.campanha ?? null : null;
 
-  const [values, setValues] = useState(() =>
-    editingMission ? valuesFromMission(editingMission) : INITIAL_VALUES,
-  );
+  const [values, setValues] = useState(() => {
+    if (editingMission) return valuesFromMission(editingMission);
+    if (campanhaPreSelecionada) {
+      return { ...INITIAL_VALUES, atribuirCampanha: 'Sim', campanha: campanhaPreSelecionada };
+    }
+    return INITIAL_VALUES;
+  });
   const [errors, setErrors] = useState({});
   const [campaignModalVisible, setCampaignModalVisible] = useState(false);
   const [enviando, setEnviando] = useState(false);

@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PrimaryButton } from '../../components/Button';
@@ -12,8 +12,8 @@ import { ScreenHeader } from '../../components/ScreenHeader';
 import { SelectField } from '../../components/SelectField';
 import IconEdit from '../../assets/icons/icon-edit.svg';
 import { useCampaigns } from '../../state/CampaignsContext';
-import { MOCK_MISSOES_ATRIBUIDAS } from '../../state/campaignMockData';
 import { useEpics } from '../../state/EpicsContext';
+import { useMissions } from '../../state/MissionsContext';
 import { colors } from '../../theme/colors';
 import { fontFamily, fontSize } from '../../theme/typography';
 import { maskDateInput } from '../../utils/dateInput';
@@ -40,9 +40,15 @@ function valuesFromCampaign(campaign) {
 export function CampaignFormScreen({ navigation, route }) {
   const { addCampaign, updateCampaign, getCampaignById } = useCampaigns();
   const { epics } = useEpics();
+  const { missions } = useMissions();
   const insets = useSafeAreaInsets();
   const editingCampaignId = route.params?.campaignId ?? null;
   const editingCampaign = editingCampaignId ? getCampaignById(editingCampaignId) : null;
+
+  const missoesAtribuidas = useMemo(
+    () => missions.filter((mission) => mission.campanha?.id === editingCampaign?.id),
+    [missions, editingCampaign?.id],
+  );
 
   const [values, setValues] = useState(() =>
     editingCampaign ? valuesFromCampaign(editingCampaign) : INITIAL_VALUES,
@@ -130,35 +136,35 @@ export function CampaignFormScreen({ navigation, route }) {
           {errors.dificuldade ? <Text style={styles.errorText}>{errors.dificuldade}</Text> : null}
         </View>
 
-        <View
-          style={styles.inertButton}
-          accessible
-          accessibilityLabel="Adicionar missão, ainda não disponível nesta versão"
-        >
-          <Text style={styles.inertButtonLabel}>Adicionar missão</Text>
-          <IconEdit width={24} height={24} />
-        </View>
+        {editingCampaign ? (
+          <Pressable
+            onPress={() =>
+              navigation.navigate('MissionForm', {
+                campanha: { id: editingCampaign.id, titulo: editingCampaign.titulo },
+              })
+            }
+            accessibilityRole="button"
+            accessibilityLabel="Adicionar missão"
+            style={({ pressed }) => [styles.addMissionButton, pressed && styles.addMissionButtonPressed]}
+          >
+            <Text style={styles.addMissionButtonLabel}>Adicionar missão</Text>
+            <IconEdit width={24} height={24} />
+          </Pressable>
+        ) : null}
 
-        <Text style={styles.groupLabel}>Missões atribuídas</Text>
-        {/* Lista somente-leitura de exemplo — atribuição real de missões a
-            uma campanha, a partir deste formulário, ainda não existe nesta
-            sprint. */}
-        {MOCK_MISSOES_ATRIBUIDAS.map((missao) => (
-          <View key={missao.id} style={styles.assignedItem}>
-            <Text style={styles.assignedItemLabel} numberOfLines={1}>
-              {missao.titulo}
-            </Text>
-            <Text style={styles.assignedItemFraction}>+{missao.pontos} XP</Text>
-          </View>
-        ))}
-
-        <View
-          style={styles.seeAllLink}
-          accessible
-          accessibilityLabel="Ver todas, ainda não disponível nesta versão"
-        >
-          <Text style={styles.seeAllLinkLabel}>Ver todas ↓</Text>
-        </View>
+        {missoesAtribuidas.length > 0 ? (
+          <>
+            <Text style={styles.groupLabel}>Missões atribuídas</Text>
+            {missoesAtribuidas.map((missao) => (
+              <View key={missao.id} style={styles.assignedItem}>
+                <Text style={styles.assignedItemLabel} numberOfLines={1}>
+                  {missao.titulo}
+                </Text>
+                <Text style={styles.assignedItemFraction}>+{missao.pontos} XP</Text>
+              </View>
+            ))}
+          </>
+        ) : null}
 
         <SelectField
           label="Épico"
@@ -220,7 +226,7 @@ const styles = StyleSheet.create({
     fontSize: fontSize.base,
     color: colors.dangerText,
   },
-  inertButton: {
+  addMissionButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -231,7 +237,10 @@ const styles = StyleSheet.create({
     borderColor: colors.borderStrong,
     backgroundColor: colors.surface,
   },
-  inertButtonLabel: {
+  addMissionButtonPressed: {
+    opacity: 0.85,
+  },
+  addMissionButtonLabel: {
     fontFamily: fontFamily.semiBold,
     fontSize: fontSize.body,
     color: colors.brandLink,
@@ -252,15 +261,6 @@ const styles = StyleSheet.create({
     color: colors.textPrimaryStrong,
   },
   assignedItemFraction: {
-    fontFamily: fontFamily.semiBold,
-    fontSize: fontSize.base,
-    color: colors.brandDark,
-  },
-  seeAllLink: {
-    height: 44,
-    justifyContent: 'center',
-  },
-  seeAllLinkLabel: {
     fontFamily: fontFamily.semiBold,
     fontSize: fontSize.base,
     color: colors.brandDark,
