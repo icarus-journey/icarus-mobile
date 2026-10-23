@@ -13,12 +13,22 @@ export function indicadoresDeTeste() {
     pontosUtilizados: null,
     diasComConclusao: 2,
     quantidadeRegistros: 4,
+    recompensasResgatadas: 1,
+    distribuicaoPorArea: [{ areaDaVida: 'ESTUDOS_E_APRENDIZADO', concluidas: 1 }],
+    conclusoesSemArea: 1,
   };
 }
 export function progressoDeTeste() {
   return {
     estado: 'disponivel',
     periodo: PERIODO_ANALITICO,
+    evolucao: {
+      granularidade: 'dia',
+      pontos: [
+        { inicio: '2026-10-12', fim: '2026-10-12', concluidas: 1 },
+        { inicio: '2026-10-13', fim: '2026-10-13', concluidas: 1 },
+      ],
+    },
     indicadores: indicadoresDeTeste(),
     situacaoCenarios: 'historico_mensurado_indisponivel',
     mensagem: 'Seus registros deste período.',

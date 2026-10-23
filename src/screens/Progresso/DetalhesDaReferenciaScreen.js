@@ -39,7 +39,7 @@ export function DetalhesDaReferenciaScreen({ navigation, route }) {
       >
         <ScreenHeader title="Entender os dados" onBack={() => navigation.goBack()} />
         <Text style={estilos.rotulo}>
-          {dados.fonte} · edição {dados.edicao} · {referencia.pais}
+          {dados.fonte} · pesquisa de {dados.edicao} · {referencia.pais}
         </Text>
         <Text style={estilos.titulo} accessibilityRole="header">
           {dados.titulo}
@@ -47,21 +47,21 @@ export function DetalhesDaReferenciaScreen({ navigation, route }) {
         <ValoresDaReferencia dados={dados} />
         <Text style={estilos.texto}>{dados.populacao}</Text>
         <Text style={estilos.texto}>
-          Faixa efetiva: {recorte.faixaEfetiva} anos. {tipoDiaDaReferencia(recorte.tipoDiaEfetivo)}.
+          Grupo de {recorte.faixaEfetiva} anos. {tipoDiaDaReferencia(recorte.tipoDiaEfetivo)}.
         </Text>
         <Text style={estilos.texto}>
-          Estudo:{' '}
+          Situação de estudo:{' '}
           {recorte.filtrosEfetivos.estuda == null
-            ? 'sem filtro'
+            ? 'todos os participantes'
             : recorte.filtrosEfetivos.estuda
               ? 'matriculados'
               : 'não matriculados'}
           . Trabalho:{' '}
           {recorte.filtrosEfetivos.trabalha == null
-            ? 'sem filtro'
+            ? 'todos os participantes'
             : recorte.filtrosEfetivos.trabalha
-              ? 'ocupados'
-              : 'não ocupados'}
+              ? 'pessoas que trabalham'
+              : 'pessoas que não trabalham'}
           .
         </Text>
         {recorte.avisos.map((aviso) => (
@@ -70,11 +70,11 @@ export function DetalhesDaReferenciaScreen({ navigation, route }) {
           </Text>
         ))}
         <Text style={estilos.titulo} accessibilityRole="header">
-          Como ler
+          Quem entrou nesta conta
         </Text>
         <Text style={estilos.texto}>{dados.denominador}</Text>
         <Text style={estilos.titulo} accessibilityRole="header">
-          Limites da referência
+          O que este número não diz
         </Text>
         {dados.limitacoes.map((limite) => (
           <Text key={limite} style={estilos.texto}>
@@ -82,12 +82,12 @@ export function DetalhesDaReferenciaScreen({ navigation, route }) {
           </Text>
         ))}
         <Text style={estilos.titulo} accessibilityRole="header">
-          Origem dos dados
+          De onde vêm os números
         </Text>
         {origens.map((origem) => (
           <View key={origem.fonte} style={estilos.grupo}>
             <Text style={estilos.texto}>
-              {nomeDaOrigem(origem.fonte)} · arquivo da edição {origem.edicao}
+              {nomeDaOrigem(origem.fonte)} · arquivo de {origem.edicao}
             </Text>
             <SecondaryButton
               label={`Abrir fonte: ${nomeDaOrigem(origem.fonte)}`}

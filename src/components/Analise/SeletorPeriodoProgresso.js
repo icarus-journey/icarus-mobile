@@ -1,30 +1,50 @@
-import { useState } from 'react';
-import { SelectField } from '../SelectField';
-import { PickerModal } from '../PickerModal';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+
+import { colors } from '../../theme/colors';
+import { estilosPainel as estilos } from './estilosPainel';
+
 const PERIODOS = [
-  { id: 'semanaAnterior', titulo: 'Semana anterior completa' },
-  { id: 'mesAnterior', titulo: 'Mês anterior completo' },
-  { id: 'seisMeses', titulo: 'Últimos seis meses completos' },
+  ['semanaAnterior', 'Semana', 'Semana anterior completa'],
+  ['mesAnterior', 'Mês', 'Mês anterior completo'],
+  ['seisMeses', '6 meses', 'Últimos seis meses completos'],
 ];
+
 export function SeletorPeriodoProgresso({ periodo, onChange }) {
-  const [visivel, setVisivel] = useState(false);
   return (
-    <>
-      <SelectField
-        label="Período dos seus registros"
-        value={PERIODOS.find((item) => item.id === periodo)?.titulo}
-        onPress={() => setVisivel(true)}
-      />
-      <PickerModal
-        visible={visivel}
-        title="Período dos seus registros"
-        items={PERIODOS}
-        onClose={() => setVisivel(false)}
-        onSelect={(item) => {
-          onChange(item.id);
-          setVisivel(false);
-        }}
-      />
-    </>
+    <View
+      accessibilityRole="tablist"
+      accessibilityLabel="Período dos seus registros"
+      style={locais.controle}
+    >
+      {PERIODOS.map(([id, titulo, descricao]) => (
+        <Pressable
+          key={id}
+          accessibilityRole="tab"
+          accessibilityLabel={descricao}
+          accessibilityState={{ selected: periodo === id }}
+          onPress={() => onChange(id)}
+          style={[locais.opcao, periodo === id && locais.opcaoAtiva]}
+        >
+          <Text style={[estilos.opcaoTexto, periodo === id && locais.textoAtivo]}>{titulo}</Text>
+        </Pressable>
+      ))}
+    </View>
   );
 }
+
+const locais = StyleSheet.create({
+  controle: { flexDirection: 'row', gap: 8 },
+  opcao: {
+    flex: 1,
+    minHeight: 40,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.borderDefaultAlt,
+    backgroundColor: colors.surface,
+    padding: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  opcaoAtiva: { backgroundColor: colors.softPurple, borderColor: colors.brand },
+  textoAtivo: { color: colors.brandDark },
+});

@@ -1,20 +1,24 @@
 import { Text, View } from 'react-native';
-import { estilosAnalise as estilos } from './estilosAnalise';
-import { numeroPublico } from './formatarReferencia';
 
-export function CartaoConexaoHabitos({ valores }) {
+import { BarraReferencia } from './BarraReferencia';
+import { estilosPainel as estilos } from './estilosPainel';
+
+export function CartaoConexaoHabitos({ valores, compacto = false }) {
   return (
-    <View style={estilos.grupo}>
-      <Text style={estilos.rotulo}>Associação observada</Text>
-      <Text style={estilos.texto}>No grupo com atividade física suficiente no lazer</Text>
-      <Text style={estilos.valor}>{numeroPublico(valores.grupoExpostoPercentual)}%</Text>
-      <Text style={estilos.texto}>
-        No grupo que não atende ao indicador de atividade física no lazer
-      </Text>
-      <Text style={estilos.valor}>{numeroPublico(valores.grupoNaoExpostoPercentual)}%</Text>
-      <Text style={estilos.texto}>
-        Prevalências no mesmo recorte. A associação não demonstra que o exercício causou a diferença
-        nem prevê conquistas pessoais.
+    <View style={estilos.secao}>
+      <Text style={estilos.rotulo}>Relação encontrada na pesquisa</Text>
+      <BarraReferencia
+        rotulo="Com atividade física suficiente no lazer"
+        percentual={valores.grupoExpostoPercentual}
+      />
+      <BarraReferencia
+        rotulo="Sem atividade física suficiente no lazer"
+        percentual={valores.grupoNaoExpostoPercentual}
+      />
+      <Text style={estilos.pequeno}>
+        {compacto
+          ? 'A pesquisa encontrou essa relação, mas não prova que um hábito causou o outro.'
+          : 'Os dois grupos são da mesma pesquisa e faixa de idade. A diferença não prova que o exercício causou o resultado e não prevê o que vai acontecer com você.'}
       </Text>
     </View>
   );

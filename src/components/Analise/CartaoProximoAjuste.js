@@ -6,11 +6,11 @@ export function CartaoProximoAjuste({ dados, carregando, onVerSemana }) {
   return (
     <View style={[estilos.cartao, estilos.destaque]}>
       <Text style={estilos.rotulo}>
-        {dados?.relatorio ? 'Sua semana · síntese por IA' : 'Sua jornada'}
+        {dados?.relatorio ? 'Sua semana · reflexão com IA' : 'Sua jornada'}
       </Text>
-      <Text style={estilos.titulo}>Um próximo ajuste possível</Text>
+      <Text style={estilos.titulo}>Um passo para sua semana</Text>
       <Text style={estilos.texto} numberOfLines={2}>
-        {dados?.relatorio?.texto?.resumo ??
+        {dados?.relatorio?.texto?.proximoAjuste ??
           (carregando
             ? 'Consultando seus registros…'
             : 'Reflita sobre seus registros e conheça o contexto público em Meu progresso.')}

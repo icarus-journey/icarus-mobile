@@ -21,3 +21,13 @@ export function tipoDiaDaReferencia(tipo) {
     }[tipo] ?? tipo
   );
 }
+
+export function duracaoPublica(minutos) {
+  if (minutos == null || !Number.isFinite(Number(minutos)) || Number(minutos) < 0)
+    return 'Não disponível';
+  const total = Math.round(Number(minutos));
+  const horas = Math.floor(total / 60);
+  const restante = total % 60;
+  if (horas === 0) return `${restante} min`;
+  return restante === 0 ? `${horas} h` : `${horas} h ${restante} min`;
+}

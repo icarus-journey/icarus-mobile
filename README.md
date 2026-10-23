@@ -63,21 +63,31 @@ Contrato e limites: [`05-contrato-da-loja.md`](../icarus-context/docs/implementa
 
 ## Meu progresso e minha semana
 
-Na tela de Missões, **Meu progresso** abre registros pessoais por período e
-**Contexto para sua jornada**, com referências Gold reais da edição 2024.
-**Entender os dados** mostra recorte, denominador, limites e links das fontes.
-As quatro abas existentes são preservadas. Componentes novos usam os tokens
-Inter/roxo existentes; são implementação RN proposta, sem novos frames Figma.
+**Meu progresso** separa **Minha jornada** de **Pesquisas**. Semana, mês e seis
+meses completos mostram missões feitas, evolução em barras, números disponíveis
+e distribuição por área. **Sua meta em foco** mostra o valor atual na unidade
+original (por exemplo, 2 de 6 módulos) e abre a meta ou pesquisas da mesma área.
+Esse cartão representa o valor atual, independentemente do período do gráfico.
 
-**Ver minha semana** solicita ou recupera o relatório persistido; consultas
-seguintes reutilizam o trabalho e apenas acompanham o processamento. Nova
-geração após falha exige ação explícita. Sem registros suficientes, a tela
-informa a ausência, sem relatório simulado. Fonte pública e síntese pessoal
-ficam identificadas separadamente. Pontos não incrementam campanhas medidas
-em módulos, reais ou outra unidade.
+A API calcula a série de conclusões no fuso da conta; HTTP de progresso 1.1.0.
+Ausência de registro e falta de uma funcionalidade têm tratamentos diferentes:
+taxa/previstas e projeções ainda não disponíveis deixam de ocupar cartões de
+“histórico insuficiente”. A explicação fica em **Sobre estes números**. Não se
+estima taxa a partir de conclusões nem se convertem pontos em medidas reais.
 
-A taxa e a comparação conjunta dependem do histórico de ocorrências previstas;
-cenários dependem de medições RF-03.5. Esses dados aparecem indisponíveis nesta
-fatia. Testes cobrem navegação, HTTP, estados, sessão expirada, troca de conta,
-metadados e unidades. A validação visual das novas telas em aparelho,
-TalkBack/VoiceOver e iPhone permanece pendente.
+Pesquisas de 2024 aparecem uma por vez, com controles anterior/próxima, valores
+visuais, fonte, país e população. A linguagem é cotidiana: horas/minutos e
+“metade dos registros”, preservando o significado estatístico. Origem, grupos,
+limites e links ficam em **Entender os dados**. Perguntas editoriais foram
+adaptadas para leitura pela pessoa, sem promessas sobre resultados individuais.
+
+**Minha semana** destaca um próximo passo do relatório persistido. Resumo e
+pergunta opcional abrem sob demanda; a identificação de IA permanece visível.
+Nova geração após falha exige ação explícita. Referências públicas e síntese
+pessoal continuam separadas. Componentes usam Inter/roxo e dependências já
+instaladas, com controles acessíveis, alturas variáveis e rolagem em fonte grande.
+
+A direção visual de 23/10/2026 é proposta implementada, aguardando validação
+pelo usuário. Testes cobrem navegação, gráfico real, pesquisa por área da meta,
+metadados, linguagem, erros, sessão e ausência de dados. Consulte o
+[contrato de consumo analítico](../icarus-context/docs/implementation-design/platform/06-consumo-analitico-mobile-api.md).
