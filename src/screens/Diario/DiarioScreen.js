@@ -181,6 +181,7 @@ export function DiarioScreen({ navigation }) {
       </KeyboardAwareScrollView>
 
       <BottomNav
+        onPressLoja={() => navigation.navigate('Loja')}
         activeItem="diario"
         onPressMissoes={() => navigation.navigate('MissionList')}
         onPressPerfil={() => navigation.navigate('Conta')}

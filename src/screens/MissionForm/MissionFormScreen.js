@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -12,6 +12,7 @@ import { RadioBinary } from '../../components/RadioBinary';
 import { ReadonlyField } from '../../components/ReadonlyField';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { SelectField } from '../../components/SelectField';
+import { useCampaigns } from '../../state/CampaignsContext';
 import { useMissions } from '../../state/MissionsContext';
 import { colors } from '../../theme/colors';
 import { fontFamily, fontSize } from '../../theme/typography';
@@ -24,6 +25,16 @@ const RECORRENCIA_OPTIONS = [
   { value: 'MENSAL', label: 'Mensal' },
 ];
 
+const DIAS_SEMANA_OPTIONS = [
+  { value: 'monday', label: 'Seg' },
+  { value: 'tuesday', label: 'Ter' },
+  { value: 'wednesday', label: 'Qua' },
+  { value: 'thursday', label: 'Qui' },
+  { value: 'friday', label: 'Sex' },
+  { value: 'saturday', label: 'Sáb' },
+  { value: 'sunday', label: 'Dom' },
+];
+
 const INITIAL_VALUES = {
   titulo: '',
   descricao: '',
@@ -31,6 +42,8 @@ const INITIAL_VALUES = {
   dificuldade: null,
   recorrente: 'Não',
   tipoRecorrencia: 'DIARIA',
+  diasSemana: [],
+  dataFimRecorrencia: '',
   atribuirCampanha: 'Não',
   campanha: null,
 };
@@ -41,40 +54,62 @@ function valuesFromMission(mission) {
     descricao: mission.descricao ?? '',
     dataLimite: mission.dataLimite ?? '',
     dificuldade: mission.dificuldade,
-    recorrente: mission.recorrencia ? 'Sim' : 'Não',
-    tipoRecorrencia: mission.recorrencia ?? 'DIARIA',
+    recorrente: 'Não',
+    tipoRecorrencia: 'DIARIA',
+    diasSemana: [],
+    dataFimRecorrencia: '',
     atribuirCampanha: mission.campanha ? 'Sim' : 'Não',
     campanha: mission.campanha ?? null,
   };
 }
 
 export function MissionFormScreen({ navigation, route }) {
-  const { addMission, updateMission, getMissionById, campaigns } = useMissions();
+  const { addMission, updateMission, getMissionById } = useMissions();
+  const { campaigns } = useCampaigns();
+  // Campanha concluída não pode receber missão nova (RF-03.4) — não oferece no seletor.
+  const campanhasDisponiveis = useMemo(() => campaigns.filter((c) => c.estado !== 'concluida'), [campaigns]);
   const insets = useSafeAreaInsets();
   const editingMissionId = route.params?.missionId ?? null;
   const editingMission = editingMissionId ? getMissionById(editingMissionId) : null;
+  // Vindo do botão "Adicionar missão" da tela de campanha (route.params.campanha) — só se
+  // aplica à criação; editar uma missão existente usa o vínculo que ela já tem.
+  const campanhaPreSelecionada = !editingMission ? route.params?.campanha ?? null : null;
 
-  const [values, setValues] = useState(() =>
-    editingMission ? valuesFromMission(editingMission) : INITIAL_VALUES,
-  );
+  const [values, setValues] = useState(() => {
+    if (editingMission) return valuesFromMission(editingMission);
+    if (campanhaPreSelecionada) {
+      return { ...INITIAL_VALUES, atribuirCampanha: 'Sim', campanha: campanhaPreSelecionada };
+    }
+    return INITIAL_VALUES;
+  });
   const [errors, setErrors] = useState({});
   const [campaignModalVisible, setCampaignModalVisible] = useState(false);
+  const [enviando, setEnviando] = useState(false);
+  const [erroEnvio, setErroEnvio] = useState('');
 
   function setField(field, value) {
     setValues((current) => ({ ...current, [field]: value }));
   }
 
-  function handleSave() {
+  async function handleSave() {
     const validationErrors = validateMissionForm(values);
     setErrors(validationErrors);
 
-    if (isFormValid(validationErrors)) {
+    if (!isFormValid(validationErrors)) return;
+
+    setEnviando(true);
+    setErroEnvio('');
+    try {
       if (editingMission) {
-        updateMission(editingMission.id, values);
+        await updateMission(editingMission.id, values);
       } else {
-        addMission(values);
+        await addMission(values);
       }
       navigation.goBack();
+    } catch {
+      setErroEnvio('Não foi possível salvar a missão. Tente novamente.');
+    } finally {
+      setEnviando(false);
     }
   }
 
@@ -130,27 +165,58 @@ export function MissionFormScreen({ navigation, route }) {
           {errors.dificuldade ? <Text style={styles.errorText}>{errors.dificuldade}</Text> : null}
         </View>
 
-        <View style={styles.fieldGroup}>
-          <Text style={styles.groupLabel}>Recorrente</Text>
-          <RadioBinary
-            value={values.recorrente}
-            onChange={(value) => setField('recorrente', value)}
-          />
-        </View>
+        {!editingMission ? (
+          <>
+            <View style={styles.fieldGroup}>
+              <Text style={styles.groupLabel}>Recorrente</Text>
+              <RadioBinary
+                value={values.recorrente}
+                onChange={(value) => setField('recorrente', value)}
+              />
+            </View>
 
-        {values.recorrente === 'Sim' ? (
-          <View style={styles.fieldGroup}>
-            <Text style={styles.groupLabel}>Tipo de recorrência*</Text>
-            <ChipSelect
-              options={RECORRENCIA_OPTIONS}
-              value={values.tipoRecorrencia}
-              onSelect={(value) => setField('tipoRecorrencia', value)}
-              accessibilityLabel="Tipo de recorrência"
-            />
-            {errors.tipoRecorrencia ? (
-              <Text style={styles.errorText}>{errors.tipoRecorrencia}</Text>
+            {values.recorrente === 'Sim' ? (
+              <View style={styles.fieldGroup}>
+                <Text style={styles.groupLabel}>Tipo de recorrência*</Text>
+                <ChipSelect
+                  options={RECORRENCIA_OPTIONS}
+                  value={values.tipoRecorrencia}
+                  onSelect={(value) => setField('tipoRecorrencia', value)}
+                  accessibilityLabel="Tipo de recorrência"
+                />
+                {errors.tipoRecorrencia ? (
+                  <Text style={styles.errorText}>{errors.tipoRecorrencia}</Text>
+                ) : null}
+              </View>
             ) : null}
-          </View>
+
+            {values.recorrente === 'Sim' ? (
+              <InputField
+                label="Repetir até"
+                value={values.dataFimRecorrencia}
+                onChangeText={(text) => setField('dataFimRecorrencia', maskDateInput(text))}
+                placeholder="dd/mm/aaaa"
+                keyboardType="number-pad"
+                maxLength={10}
+                helper="Deixe em branco para repetir indefinidamente"
+                error={errors.dataFimRecorrencia}
+              />
+            ) : null}
+
+            {values.recorrente === 'Sim' && values.tipoRecorrencia === 'SEMANAL' ? (
+              <View style={styles.fieldGroup}>
+                <Text style={styles.groupLabel}>Dias da semana*</Text>
+                <ChipSelect
+                  options={DIAS_SEMANA_OPTIONS}
+                  value={values.diasSemana}
+                  onSelect={(value) => setField('diasSemana', value)}
+                  accessibilityLabel="Dias da semana"
+                  multiple
+                />
+                {errors.diasSemana ? <Text style={styles.errorText}>{errors.diasSemana}</Text> : null}
+              </View>
+            ) : null}
+          </>
         ) : null}
 
         <View style={styles.fieldGroup}>
@@ -182,16 +248,23 @@ export function MissionFormScreen({ navigation, route }) {
           </>
         ) : null}
 
+        {erroEnvio ? (
+          <Text style={styles.errorText} accessibilityRole="alert">
+            {erroEnvio}
+          </Text>
+        ) : null}
+
         <PrimaryButton
           label={editingMission ? 'Salvar alterações' : 'Salvar missão'}
           onPress={handleSave}
+          disabled={enviando}
         />
       </KeyboardAwareScrollView>
 
       <PickerModal
         visible={campaignModalVisible}
         title="Escolher campanha"
-        items={campaigns}
+        items={campanhasDisponiveis}
         onSelect={(campaign) => {
           setField('campanha', campaign);
           setCampaignModalVisible(false);

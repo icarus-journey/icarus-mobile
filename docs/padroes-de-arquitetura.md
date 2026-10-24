@@ -4,7 +4,7 @@
 
 **Responsável:** Izael
 
-**Última atualização:** 2026-09-05
+**Última atualização:** 2026-10-17
 
 ## 1. Objetivo
 
@@ -85,7 +85,7 @@ Regras gerais:
   `useState`/`useReducer` dentro do próprio componente;
 - **estado compartilhado entre telas** (sessão do usuário, token, dados de
   onboarding em andamento): Context API do React, em `src/state/`, um contexto
-  por domínio (ex.: `AuthContext.js`);
+  por domínio (ex.: `SessaoContext.js`);
 - não introduzir biblioteca externa de gerência de estado (Redux, Zustand,
   Recoil etc.) sem necessidade concreta identificada; a Sprint 1 deve ser
   resolvida com `useState`/`useReducer` e Context API;
@@ -95,7 +95,7 @@ Regras gerais:
 ## 6. Acesso a serviços
 
 - todo acesso à API passa por `src/services/`;
-- um cliente HTTP único (`services/apiClient.js`) concentra a URL base, o
+- um cliente HTTP único (`services/api.js`) concentra a URL base, o
   cabeçalho de autenticação e o tratamento padrão de erro; nenhuma tela chama
   `fetch` diretamente;
 - um módulo por domínio de produto, espelhando os módulos já nomeados na
@@ -103,9 +103,11 @@ Regras gerais:
   `services/perfil.js`); cada módulo expõe funções (`buscarMissoes`,
   `concluirMissao`) e não estruturas de request/response cruas;
 - **os contratos exatos de cada endpoint (rota, payload, códigos de erro)
-  ainda não existem** — serão definidos no OpenAPI do `icarus-platform`. Até
-  lá, os módulos de serviço podem ficar com assinatura definida e
-  implementação pendente (`TODO` explícito), sem inventar contrato;
+  ainda não existem pra todo domínio** — serão definidos no OpenAPI do
+  `icarus-platform` conforme cada fluxo for implementado. Sessão
+  (`services/sessao.js`) e onboarding por IA (`services/onboarding.js`)
+  já falam com endpoints reais; os demais módulos podem ficar com assinatura
+  definida e implementação pendente (`TODO` explícito), sem inventar contrato;
 - nenhuma regra de domínio (cálculo de sequência, validação de recorrência,
   etc.) é replicada no aplicativo; o aplicativo exibe o que a API retorna e
   envia o que o usuário informa.

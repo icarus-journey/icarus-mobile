@@ -23,6 +23,7 @@
     },
     "plugins": [
       "expo-font",
+      "expo-secure-store",
       [
         "expo-splash-screen",
         {
@@ -32,7 +33,14 @@
           "resizeMode": "contain"
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Permite escolher uma foto de perfil na sua galeria.",
+          "cameraPermission": "Permite tirar uma foto para usar como foto de perfil."
+        }
+      ]
     ]
   }
 }
