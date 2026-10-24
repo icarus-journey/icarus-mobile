@@ -12,7 +12,7 @@ export function criarApi({
   executarFetch = (...args) => fetch(...args),
   tempoLimite = 15000,
 } = {}) {
-  return async function requisitar(caminho, { metodo = 'GET', corpo, token } = {}) {
+  return async function requisitar(caminho, { metodo = 'GET', corpo, corpoFormData, token } = {}) {
     if (!urlBase) {
       throw new ErroApi(
         'Não foi possível conectar ao serviço. Verifique a configuração do aplicativo.',
@@ -25,10 +25,12 @@ export function criarApi({
         method: metodo,
         headers: {
           Accept: 'application/json',
+          // FormData define o próprio Content-Type (com boundary) — não sobrescrever aqui.
           ...(corpo ? { 'Content-Type': 'application/json' } : {}),
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         ...(corpo ? { body: JSON.stringify(corpo) } : {}),
+        ...(corpoFormData ? { body: corpoFormData } : {}),
         signal: controlador.signal,
       });
       const dados = resposta.status === 204 ? null : await resposta.json().catch(() => null);

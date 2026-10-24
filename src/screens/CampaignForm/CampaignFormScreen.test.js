@@ -74,3 +74,27 @@ describe('CampaignFormScreen — missões atribuídas', () => {
     expect(screen.queryByText('Missões atribuídas')).toBeNull();
   });
 });
+
+describe('CampaignFormScreen — épico (RF-03.8)', () => {
+  it('não oferece épico já concluído no seletor', () => {
+    render(
+      <EpicsProvider
+        initialEpics={[
+          { id: 1, titulo: 'Épico ativo', estado: 'emAndamento' },
+          { id: 2, titulo: 'Épico concluído', estado: 'concluido' },
+        ]}
+      >
+        <CampaignsProvider initialCampaigns={[]}>
+          <MissionsProvider initialMissions={[]}>
+            <CampaignFormScreen navigation={navigation} route={{ params: {} }} />
+          </MissionsProvider>
+        </CampaignsProvider>
+      </EpicsProvider>,
+    );
+
+    fireEvent.press(screen.getByLabelText('Épico'));
+
+    expect(screen.getByLabelText('Épico ativo')).toBeTruthy();
+    expect(screen.queryByLabelText('Épico concluído')).toBeNull();
+  });
+});

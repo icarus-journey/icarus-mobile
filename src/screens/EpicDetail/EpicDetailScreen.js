@@ -13,6 +13,7 @@ import IconEdit from '../../assets/icons/icon-edit.svg';
 import { useEpics } from '../../state/EpicsContext';
 import { colors } from '../../theme/colors';
 import { fontFamily, fontSize } from '../../theme/typography';
+import { vibrarConclusao } from '../../utils/haptics';
 
 const DIFICULDADE_LABELS = {
   TRIVIAL: 'Trivial',
@@ -52,6 +53,7 @@ export function EpicDetailScreen({ route, navigation }) {
     setErro('');
     try {
       await concluirEpico(epic.id);
+      vibrarConclusao();
     } catch {
       setErro('Não foi possível concluir o épico. Tente novamente.');
     } finally {
@@ -125,11 +127,13 @@ export function EpicDetailScreen({ route, navigation }) {
           onPress={handleConcluir}
           disabled={concluido || concluindo}
         />
-        <SecondaryButton
-          label="Editar épico"
-          onPress={() => navigation.navigate('EpicForm', { epicId: epic.id })}
-          icon={<IconEdit width={24} height={24} />}
-        />
+        {!concluido ? (
+          <SecondaryButton
+            label="Editar épico"
+            onPress={() => navigation.navigate('EpicForm', { epicId: epic.id })}
+            icon={<IconEdit width={24} height={24} />}
+          />
+        ) : null}
       </ScrollView>
 
       <BottomNav onPressMissoes={() => navigation.popToTop()} />

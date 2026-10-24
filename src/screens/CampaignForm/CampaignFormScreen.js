@@ -40,6 +40,8 @@ function valuesFromCampaign(campaign) {
 export function CampaignFormScreen({ navigation, route }) {
   const { addCampaign, updateCampaign, getCampaignById } = useCampaigns();
   const { epics } = useEpics();
+  // Épico concluído não pode receber campanha nova (RF-03.8) — não oferece no seletor.
+  const epicosDisponiveis = useMemo(() => epics.filter((e) => e.estado !== 'concluido'), [epics]);
   const { missions } = useMissions();
   const insets = useSafeAreaInsets();
   const editingCampaignId = route.params?.campaignId ?? null;
@@ -191,7 +193,7 @@ export function CampaignFormScreen({ navigation, route }) {
       <PickerModal
         visible={epicModalVisible}
         title="Escolher épico"
-        items={epics}
+        items={epicosDisponiveis}
         onSelect={(epic) => {
           setField('epico', epic);
           setEpicModalVisible(false);

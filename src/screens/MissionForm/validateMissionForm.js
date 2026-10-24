@@ -1,4 +1,4 @@
-import { isValidDateString } from '../../utils/dateInput';
+import { isDataLimiteVencida, isValidDateString } from '../../utils/dateInput';
 
 const TITULO_MAX_LENGTH = 120;
 const DESCRICAO_MAX_LENGTH = 1000;
@@ -29,6 +29,18 @@ export function validateMissionForm(values) {
 
   if (values.recorrente === 'Sim' && !values.tipoRecorrencia) {
     errors.tipoRecorrencia = 'Escolha o tipo de recorrência.';
+  }
+
+  if (values.recorrente === 'Sim' && values.tipoRecorrencia === 'SEMANAL' && !values.diasSemana?.length) {
+    errors.diasSemana = 'Escolha ao menos um dia da semana.';
+  }
+
+  if (values.recorrente === 'Sim' && values.dataFimRecorrencia) {
+    if (!isValidDateString(values.dataFimRecorrencia)) {
+      errors.dataFimRecorrencia = 'Informe uma data válida no formato dd/mm/aaaa.';
+    } else if (isDataLimiteVencida(values.dataFimRecorrencia)) {
+      errors.dataFimRecorrencia = 'A data não pode estar no passado.';
+    }
   }
 
   if (values.atribuirCampanha === 'Sim' && !values.campanha) {

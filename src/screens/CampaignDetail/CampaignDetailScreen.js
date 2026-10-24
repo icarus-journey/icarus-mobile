@@ -13,6 +13,7 @@ import IconEdit from '../../assets/icons/icon-edit.svg';
 import { useCampaigns } from '../../state/CampaignsContext';
 import { colors } from '../../theme/colors';
 import { fontFamily, fontSize } from '../../theme/typography';
+import { vibrarConclusao } from '../../utils/haptics';
 
 const DIFICULDADE_LABELS = {
   TRIVIAL: 'Trivial',
@@ -53,6 +54,7 @@ export function CampaignDetailScreen({ route, navigation }) {
     setErro('');
     try {
       await concluirCampanha(campaign.id);
+      vibrarConclusao();
     } catch {
       setErro('Não foi possível concluir a campanha. Tente novamente.');
     } finally {
@@ -137,11 +139,13 @@ export function CampaignDetailScreen({ route, navigation }) {
           onPress={handleConcluir}
           disabled={concluida || concluindo}
         />
-        <SecondaryButton
-          label="Editar campanha"
-          onPress={() => navigation.navigate('CampaignForm', { campaignId: campaign.id })}
-          icon={<IconEdit width={24} height={24} />}
-        />
+        {!concluida ? (
+          <SecondaryButton
+            label="Editar campanha"
+            onPress={() => navigation.navigate('CampaignForm', { campaignId: campaign.id })}
+            icon={<IconEdit width={24} height={24} />}
+          />
+        ) : null}
       </ScrollView>
 
       <BottomNav onPressMissoes={() => navigation.popToTop()} />

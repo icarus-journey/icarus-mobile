@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BottomNav } from '../../components/BottomNav';
@@ -14,6 +14,7 @@ import { useCampaigns } from '../../state/CampaignsContext';
 import { useMissions } from '../../state/MissionsContext';
 import { colors } from '../../theme/colors';
 import { fontFamily, fontSize } from '../../theme/typography';
+import { vibrarConclusao } from '../../utils/haptics';
 
 const DIFICULDADE_LABELS = {
   TRIVIAL: 'Trivial',
@@ -22,19 +23,14 @@ const DIFICULDADE_LABELS = {
   DIFICIL: 'Difícil',
 };
 
-const RECORRENCIA_LABELS = {
-  DIARIA: 'Diária',
-  SEMANAL: 'Semanal',
-  MENSAL: 'Mensal',
-};
-
 export function MissionDetailScreen({ route, navigation }) {
   const { missionId } = route.params;
-  const { getMissionById, concluirMissao } = useMissions();
+  const { getMissionById, concluirMissao, pararMissao } = useMissions();
   const { incrementarValorAtual } = useCampaigns();
   const insets = useSafeAreaInsets();
   const mission = getMissionById(missionId);
   const [concluindo, setConcluindo] = useState(false);
+  const [parando, setParando] = useState(false);
   const [erro, setErro] = useState('');
 
   if (!mission) {
@@ -47,12 +43,14 @@ export function MissionDetailScreen({ route, navigation }) {
   }
 
   const concluida = Boolean(mission.concluidaEm);
+  const inativa = Boolean(mission.inativa);
 
   async function handleConcluir() {
     setConcluindo(true);
     setErro('');
     try {
       const resultado = await concluirMissao(mission.id);
+      vibrarConclusao();
       // Missão e campanha vivem em Contexts separados — reflete aqui, sem round-trip à API,
       // o mesmo crédito que ConcluirMissaoUseCase já aplicou ao valor_atual no backend.
       if (mission.campanha) {
@@ -63,6 +61,31 @@ export function MissionDetailScreen({ route, navigation }) {
     } finally {
       setConcluindo(false);
     }
+  }
+
+  function handleParar() {
+    Alert.alert(
+      'Parar esta missão?',
+      'Ela deixa de gerar novos dias. Dias futuros ainda não vencidos são cancelados; os atrasados ficam no histórico.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Parar',
+          style: 'destructive',
+          onPress: async () => {
+            setParando(true);
+            setErro('');
+            try {
+              await pararMissao(mission.id);
+            } catch {
+              setErro('Não foi possível parar a missão. Tente novamente.');
+            } finally {
+              setParando(false);
+            }
+          },
+        },
+      ],
+    );
   }
 
   return (
@@ -82,9 +105,11 @@ export function MissionDetailScreen({ route, navigation }) {
           description={mission.descricao}
           chips={[
             { label: 'Missão', backgroundColor: colors.dangerSoft, textColor: colors.dangerText },
-            concluida
-              ? { label: 'Concluída', backgroundColor: colors.successSoft, textColor: colors.success }
-              : { label: 'Em andamento', backgroundColor: colors.softPurpleAlt, textColor: colors.brandDark },
+            inativa
+              ? { label: 'Parada', backgroundColor: colors.dangerSoft, textColor: colors.dangerText }
+              : concluida
+                ? { label: 'Concluída', backgroundColor: colors.successSoft, textColor: colors.success }
+                : { label: 'Em andamento', backgroundColor: colors.softPurpleAlt, textColor: colors.brandDark },
             {
               label: `+${mission.pontos} pts`,
               backgroundColor: colors.softPurpleAlt,
@@ -97,7 +122,7 @@ export function MissionDetailScreen({ route, navigation }) {
           rows={[
             { label: 'Prazo', value: mission.prazoCompleto },
             { label: 'Dificuldade', value: DIFICULDADE_LABELS[mission.dificuldade] },
-            { label: 'Recorrência', value: RECORRENCIA_LABELS[mission.recorrencia] },
+            { label: 'Recorrente', value: mission.recorrente ? 'Sim' : 'Não' },
             { label: 'Campanha', value: mission.campanha?.titulo },
           ]}
         />
@@ -127,15 +152,27 @@ export function MissionDetailScreen({ route, navigation }) {
         ) : null}
 
         <PrimaryButton
-          label={concluida ? 'Missão concluída' : concluindo ? 'Concluindo...' : 'Concluir missão'}
+          label={
+            inativa ? 'Missão parada'
+            : concluida ? 'Missão concluída'
+            : concluindo ? 'Concluindo...'
+            : 'Concluir missão'
+          }
           onPress={handleConcluir}
-          disabled={concluida || concluindo}
+          disabled={inativa || concluida || concluindo}
         />
-        {!concluida ? (
+        {!concluida && !inativa && !mission.recorrente ? (
           <SecondaryButton
             label="Editar missão"
             onPress={() => navigation.navigate('MissionForm', { missionId: mission.id })}
             icon={<IconEdit width={24} height={24} />}
+          />
+        ) : null}
+        {mission.recorrente && !inativa ? (
+          <SecondaryButton
+            label={parando ? 'Parando...' : 'Parar missão'}
+            onPress={handleParar}
+            disabled={parando}
           />
         ) : null}
       </ScrollView>

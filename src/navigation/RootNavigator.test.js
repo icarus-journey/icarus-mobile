@@ -38,7 +38,7 @@ jest.mock('../services/missoes', () => ({
   concluirMissao: (...args) => mockConcluirMissao(...args),
 }));
 
-function renderApp(initialRouteName = 'Login') {
+function renderApp(initialRouteName = 'Login', { initialMissions } = {}) {
   useSessao.mockReturnValue({
     sessao: initialRouteName === 'Login' ? null : { usuarioId: 'usuario' },
     novaConta: false,
@@ -46,7 +46,7 @@ function renderApp(initialRouteName = 'Login') {
   });
   return render(
     <OnboardingProvider>
-      <MissionsProvider>
+      <MissionsProvider {...(initialMissions ? { initialMissions } : {})}>
         <EpicsProvider>
           <CampaignsProvider>
             <DiariosProvider>
@@ -134,8 +134,8 @@ describe('fluxo de autenticação e missões', () => {
 
   it('edita uma missão existente a partir do detalhe e reflete a mudança ao voltar', async () => {
     mockAtualizarMissao.mockResolvedValue({
-      id: 'missao-1',
-      campanhaId: 'campanha-1',
+      id: 'missao-editavel',
+      campanhaId: null,
       titulo: 'Fazer exercício de dados avançado',
       descricao: null,
       beneficio: null,
@@ -145,7 +145,27 @@ describe('fluxo de autenticação e missões', () => {
       horario: '2026-01-01T18:00:00+00:00',
       status: 'ativa',
     });
-    renderApp('MissionList');
+    // Missão recorrente nunca é editável (RF-04.3) — usa uma não recorrente pra este fluxo.
+    renderApp('MissionList', {
+      initialMissions: [
+        {
+          id: 'missao-editavel',
+          titulo: 'Fazer exercício de dados',
+          descricao: null,
+          status: 'PENDENTE',
+          dataLimite: '31/12/2026',
+          prazoLabel: '31/12/2026',
+          prazoCompleto: '31/12/2026, 18:00',
+          dificuldade: 'MEDIA',
+          pontos: 20,
+          recorrente: false,
+          campanha: null,
+          corDestaque: '#7048d6',
+          progresso: null,
+          recompensaLabel: '20 pontos',
+        },
+      ],
+    });
 
     fireEvent.press(screen.getAllByLabelText(/Fazer exercício de dados/)[0]);
     fireEvent.press(screen.getByLabelText('Editar missão'));

@@ -13,3 +13,7 @@ export async function atualizarMissao({ usuarioId, missaoId, dados, requisitarAu
 export async function concluirMissao({ usuarioId, missaoId, requisitarAutenticado }) {
   return requisitarAutenticado(`/api/usuarios/${usuarioId}/missoes/${missaoId}/concluir`, { metodo: 'POST' });
 }
+
+export async function inativarMissao({ usuarioId, missaoId, requisitarAutenticado }) {
+  return requisitarAutenticado(`/api/usuarios/${usuarioId}/missoes/${missaoId}/inativar`, { metodo: 'POST' });
+}

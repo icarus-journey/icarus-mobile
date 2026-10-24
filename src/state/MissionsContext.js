@@ -1,6 +1,11 @@
 import { createContext, useCallback, useContext, useMemo, useState } from 'react';
 
-import { criarMissao, atualizarMissao, concluirMissao as concluirMissaoNaApi } from '../services/missoes';
+import {
+  criarMissao,
+  atualizarMissao,
+  concluirMissao as concluirMissaoNaApi,
+  inativarMissao as inativarMissaoNaApi,
+} from '../services/missoes';
 import { colors } from '../theme';
 import { deDataIso, paraDataIso } from '../utils/dateInput';
 import { useSessao } from './SessaoContext';
@@ -27,7 +32,8 @@ function mapearMissaoDaApi(missao, campanha) {
     pontos: missao.pontuacao,
     horarioIso: missao.horario,
     concluidaEm: missao.concluidaEm ?? null,
-    recorrencia: null,
+    recorrente: missao.recorrente ?? false,
+    inativa: missao.status === 'inativa',
     campanha,
     corDestaque: colors.typeAccentB,
     progresso: null,
@@ -52,6 +58,13 @@ export function MissionsProvider({ children, initialMissions = MOCK_MISSIONS }) 
           dificuldade: formValues.dificuldade.toLowerCase(),
           dataLimite: formValues.dataLimite ? paraDataIso(formValues.dataLimite) : null,
           horario: null,
+          recorrencia: formValues.recorrente === 'Sim' ? formValues.tipoRecorrencia.toLowerCase() : null,
+          diasSemana: formValues.recorrente === 'Sim' && formValues.tipoRecorrencia === 'SEMANAL'
+            ? formValues.diasSemana
+            : null,
+          dataFimRecorrencia: formValues.recorrente === 'Sim' && formValues.dataFimRecorrencia
+            ? paraDataIso(formValues.dataFimRecorrencia)
+            : null,
         },
       });
       const mission = mapearMissaoDaApi(resposta, formValues.atribuirCampanha === 'Sim' ? formValues.campanha : null);
@@ -119,6 +132,19 @@ export function MissionsProvider({ children, initialMissions = MOCK_MISSIONS }) 
     [sessao, requisitarAutenticado],
   );
 
+  // Para uma missão recorrente (RF-04.6) — ela deixa de gerar novas ocorrências. Ocorrências
+  // pendentes futuras são canceladas no backend; as atrasadas ficam preservadas como histórico.
+  const pararMissao = useCallback(
+    async (missionId) => {
+      const resposta = await inativarMissaoNaApi({ usuarioId: sessao.usuarioId, missaoId: missionId, requisitarAutenticado });
+      setMissions((current) =>
+        current.map((mission) => (mission.id === missionId ? { ...mission, inativa: true } : mission)),
+      );
+      return resposta;
+    },
+    [sessao, requisitarAutenticado],
+  );
+
   // Substitui a lista inteira pelas missões reais do usuário — chamado uma vez ao abrir o app.
   // epicosDoServidor traz as vinculadas (aninhadas em GET /usuarios/{id}/epicos);
   // missoesAvulsasDoServidor traz as sem campanha (GET /usuarios/{id}/missoes), que não
@@ -137,8 +163,8 @@ export function MissionsProvider({ children, initialMissions = MOCK_MISSIONS }) 
   }, []);
 
   const value = useMemo(
-    () => ({ missions, addMission, updateMission, getMissionById, hidratarDoOnboarding, carregarLista, concluirMissao }),
-    [missions, addMission, updateMission, getMissionById, hidratarDoOnboarding, carregarLista, concluirMissao],
+    () => ({ missions, addMission, updateMission, getMissionById, hidratarDoOnboarding, carregarLista, concluirMissao, pararMissao }),
+    [missions, addMission, updateMission, getMissionById, hidratarDoOnboarding, carregarLista, concluirMissao, pararMissao],
   );
 
   return <MissionsContext.Provider value={value}>{children}</MissionsContext.Provider>;
