@@ -177,7 +177,10 @@ export function MissionDetailScreen({ route, navigation }) {
         ) : null}
       </ScrollView>
 
-      <BottomNav onPressMissoes={() => navigation.popToTop()} />
+      <BottomNav
+        onPressLoja={() => navigation.navigate('Loja')}
+        onPressMissoes={() => navigation.popToTop()}
+      />
     </View>
   );
 }

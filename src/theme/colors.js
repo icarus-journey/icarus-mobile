@@ -1,4 +1,7 @@
 export const colors = {
+  loja: '#ebc145',
+  lojaSuave: '#fff7d6',
+  lojaTexto: '#785900',
   brand: '#5b2dbb',
   brandStrong: '#591fc7',
   brandDark: '#4c1d95',

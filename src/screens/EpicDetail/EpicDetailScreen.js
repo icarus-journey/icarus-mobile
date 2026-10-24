@@ -81,8 +81,16 @@ export function EpicDetailScreen({ route, navigation }) {
           chips={[
             { label: 'Épico', backgroundColor: colors.dangerSoft, textColor: colors.dangerText },
             concluido
-              ? { label: estadoLabel, backgroundColor: colors.successSoft, textColor: colors.success }
-              : { label: estadoLabel, backgroundColor: colors.softPurpleAlt, textColor: colors.brandDark },
+              ? {
+                  label: estadoLabel,
+                  backgroundColor: colors.successSoft,
+                  textColor: colors.success,
+                }
+              : {
+                  label: estadoLabel,
+                  backgroundColor: colors.softPurpleAlt,
+                  textColor: colors.brandDark,
+                },
             epic.pontos
               ? {
                   label: `+${epic.pontos} pts`,
@@ -136,7 +144,10 @@ export function EpicDetailScreen({ route, navigation }) {
         ) : null}
       </ScrollView>
 
-      <BottomNav onPressMissoes={() => navigation.popToTop()} />
+      <BottomNav
+        onPressLoja={() => navigation.navigate('Loja')}
+        onPressMissoes={() => navigation.popToTop()}
+      />
     </View>
   );
 }

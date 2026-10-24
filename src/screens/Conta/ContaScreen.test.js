@@ -1,67 +1,214 @@
+import { NavigationContainer } from '@react-navigation/native';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { Alert } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 
 import { ContaScreen } from './ContaScreen';
 
-jest.mock('../../state/SessaoContext', () => ({
-  useSessao: () => mockUseSessao(),
-}));
-
+const mockRequisitar = jest.fn();
 const mockSair = jest.fn();
-const mockRequisitarAutenticado = jest.fn();
-function mockUseSessao() {
-  return {
-    sessao: { usuarioId: 'usuario-teste', accessToken: 'token-teste' },
+let mockUsuarioId = 'pessoa-a';
+jest.mock('../../state/SessaoContext', () => ({
+  useSessao: () => ({
+    sessao: { usuarioId: mockUsuarioId },
+    requisitarAutenticado: mockRequisitar,
     sair: mockSair,
-    requisitarAutenticado: mockRequisitarAutenticado,
-  };
-}
-
-const mockObterPerfil = jest.fn();
-const mockAtualizarFotoPerfil = jest.fn();
-jest.mock('../../services/perfil', () => ({
-  obterPerfil: (...args) => mockObterPerfil(...args),
-  atualizarFotoPerfil: (...args) => mockAtualizarFotoPerfil(...args),
-  urlFotoPerfil: (usuarioId) => `http://api.teste/foto/${usuarioId}`,
+  }),
 }));
-
-const navigation = { navigate: jest.fn() };
-
+let perfil;
+function tela() {
+  return (
+    <NavigationContainer>
+      <ContaScreen navigation={{ navigate: jest.fn() }} />
+    </NavigationContainer>
+  );
+}
+async function abrir() {
+  const resultado = render(tela());
+  await screen.findByLabelText('Nome: Ana Silva');
+  return resultado;
+}
+async function selecionar(label, opcao) {
+  fireEvent.press(screen.getByLabelText(label));
+  fireEvent.press(screen.getByLabelText(opcao));
+}
 beforeEach(() => {
-  mockSair.mockReset();
-  mockRequisitarAutenticado.mockReset();
-  mockObterPerfil.mockReset().mockResolvedValue({ nome: 'Ana Teste', temFoto: false });
-  mockAtualizarFotoPerfil.mockReset().mockResolvedValue(undefined);
-  jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+  mockUsuarioId = 'pessoa-a';
+  perfil = {
+    id: mockUsuarioId,
+    nome: 'Ana Silva',
+    email: 'ana@exemplo.com',
+    dataNascimento: '2000-12-31',
+    estuda: null,
+    cargaHorariaEstudoSemanal: null,
+    trabalha: null,
+    cargaHorariaTrabalhoSemanal: null,
+  };
+  mockSair.mockReset().mockResolvedValue();
+  mockRequisitar.mockReset().mockImplementation(async (_caminho, opcoes) => {
+    if (opcoes) perfil = { ...perfil, ...opcoes.corpo };
+    return { ...perfil };
+  });
 });
 
-afterEach(() => {
-  Alert.alert.mockRestore?.();
+it('consulta dados reais e mantém o cadastro somente para leitura', async () => {
+  await abrir();
+  expect(mockRequisitar).toHaveBeenCalledWith('/api/usuarios/pessoa-a');
+  expect(screen.getByLabelText('Nome: Ana Silva')).toBeTruthy();
+  expect(screen.getByLabelText('E-mail: ana@exemplo.com')).toBeTruthy();
+  expect(screen.getByLabelText('Data de nascimento: 31/12/2000')).toBeTruthy();
+  expect(screen.queryByLabelText('Nome')).toBeNull();
+  expect(screen.queryByLabelText('Telefone')).toBeNull();
+  expect(screen.getAllByText('Não informado')).toHaveLength(2);
 });
 
-describe('ContaScreen', () => {
-  it('busca o perfil real e mostra o nome do usuário', async () => {
-    render(<ContaScreen navigation={navigation} />);
+it('salva somente os campos analíticos e aceita horas com vírgula', async () => {
+  await abrir();
+  await selecionar('Você estuda?', 'Sim');
+  fireEvent.changeText(screen.getByLabelText('Horas de estudo por semana'), '20,25');
+  await selecionar('Você trabalha?', 'Não');
+  await act(async () => {
+    fireEvent.press(screen.getByLabelText('Salvar alterações'));
+  });
+  expect(mockRequisitar).toHaveBeenCalledWith('/api/usuarios/pessoa-a/perfil', {
+    metodo: 'PUT',
+    corpo: {
+      estuda: true,
+      cargaHorariaEstudoSemanal: 20.25,
+      trabalha: false,
+      cargaHorariaTrabalhoSemanal: null,
+    },
+  });
+  expect(await screen.findByText('Alterações salvas.')).toBeTruthy();
+});
 
-    expect(await screen.findByText('Ana Teste')).toBeTruthy();
-    expect(mockObterPerfil).toHaveBeenCalledWith(
-      expect.objectContaining({ usuarioId: 'usuario-teste' }),
-    );
+it('permite retirar informações existentes sem converter ausência em não', async () => {
+  perfil.estuda = true;
+  perfil.cargaHorariaEstudoSemanal = 20;
+  await abrir();
+  await selecionar('Você estuda?', 'Não informado');
+  expect(screen.queryByLabelText('Horas de estudo por semana')).toBeNull();
+  await act(async () => {
+    fireEvent.press(screen.getByLabelText('Salvar alterações'));
+  });
+  expect(mockRequisitar).toHaveBeenLastCalledWith('/api/usuarios/pessoa-a/perfil', {
+    metodo: 'PUT',
+    corpo: {
+      estuda: null,
+      cargaHorariaEstudoSemanal: null,
+      trabalha: null,
+      cargaHorariaTrabalhoSemanal: null,
+    },
+  });
+});
+
+it('valida horas antes de enviar e preserva o formulário quando a API falha', async () => {
+  await abrir();
+  await selecionar('Você estuda?', 'Sim');
+  fireEvent.changeText(screen.getByLabelText('Horas de estudo por semana'), '169');
+  fireEvent.press(screen.getByLabelText('Salvar alterações'));
+  expect(screen.getByText('Informe de 0 a 168 horas, com até duas casas decimais.')).toBeTruthy();
+  expect(mockRequisitar).toHaveBeenCalledTimes(1);
+  fireEvent.changeText(screen.getByLabelText('Horas de estudo por semana'), '10');
+  mockRequisitar.mockRejectedValueOnce(new Error('Sem rede'));
+  await act(async () => {
+    fireEvent.press(screen.getByLabelText('Salvar alterações'));
+  });
+  expect(await screen.findByText(/Não foi possível salvar seu perfil/)).toBeTruthy();
+  expect(screen.getByLabelText('Horas de estudo por semana').props.value).toBe('10');
+  expect(screen.queryByText('Alterações salvas.')).toBeNull();
+  await act(async () => {
+    fireEvent.press(screen.getByLabelText('Salvar alterações'));
+  });
+  expect(await screen.findByText('Alterações salvas.')).toBeTruthy();
+});
+
+it('aguarda a confirmação da API e bloqueia envio duplicado', async () => {
+  await abrir();
+  let concluir;
+  mockRequisitar.mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        concluir = resolve;
+      }),
+  );
+  fireEvent.press(screen.getByLabelText('Salvar alterações'));
+  fireEvent.press(screen.getByLabelText('Salvando…'));
+  expect(mockRequisitar).toHaveBeenCalledTimes(2);
+  expect(screen.queryByText('Alterações salvas.')).toBeNull();
+  await act(async () => {
+    concluir(perfil);
+  });
+  expect(await screen.findByText('Alterações salvas.')).toBeTruthy();
+});
+
+it('trata erro na consulta e permite tentar novamente', async () => {
+  mockRequisitar.mockRejectedValueOnce(new Error('Sem rede'));
+  render(tela());
+  await screen.findByText(/Não foi possível carregar seu perfil/);
+  expect(screen.queryByLabelText('Salvar alterações')).toBeNull();
+  fireEvent.press(screen.getByLabelText('Tentar novamente'));
+  expect(await screen.findByLabelText('Nome: Ana Silva')).toBeTruthy();
+});
+
+it('exige confirmação para sair e cancelar mantém a sessão', async () => {
+  await abrir();
+  fireEvent.press(screen.getByLabelText('Sair da conta'));
+  expect(screen.getByText('Sair da conta?')).toBeTruthy();
+  expect(mockSair).not.toHaveBeenCalled();
+  fireEvent.press(screen.getByLabelText('Cancelar'));
+  expect(screen.queryByText('Sair da conta?')).toBeNull();
+  expect(mockSair).not.toHaveBeenCalled();
+  fireEvent.press(screen.getByLabelText('Sair da conta'));
+  await act(async () => {
+    fireEvent.press(screen.getByLabelText('Sim, sair da conta'));
+  });
+  expect(mockSair).toHaveBeenCalledTimes(1);
+});
+
+it('ignora uma consulta antiga depois da troca de conta', async () => {
+  let concluir;
+  mockRequisitar.mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        concluir = resolve;
+      }),
+  );
+  const resultado = render(tela());
+  mockUsuarioId = 'pessoa-b';
+  perfil = { ...perfil, id: 'pessoa-b', nome: 'Beatriz Souza' };
+  resultado.rerender(tela());
+  expect(await screen.findByLabelText('Nome: Beatriz Souza')).toBeTruthy();
+  await act(async () => {
+    concluir({ ...perfil, nome: 'Ana Silva' });
+  });
+  await waitFor(() => expect(screen.queryByText('Ana Silva')).toBeNull());
+});
+
+describe('foto de perfil', () => {
+  beforeEach(() => {
+    jest.spyOn(Alert, 'alert').mockImplementation(() => {});
+  });
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
-  it('mostra a inicial do nome no avatar quando o usuário não tem foto', async () => {
-    render(<ContaScreen navigation={navigation} />);
-
-    expect(await screen.findByText('A')).toBeTruthy();
-  });
-
-  it('ao tocar no ícone de câmera, oferece tirar foto ou escolher da galeria', async () => {
-    render(<ContaScreen navigation={navigation} />);
-    await screen.findByText('Ana Teste');
-
+  async function escolherOpcao(texto) {
     fireEvent.press(screen.getByLabelText('Trocar foto de perfil'));
+    const [, , botoes] = Alert.alert.mock.calls[0];
+    await act(async () => {
+      await botoes.find((b) => b.text === texto).onPress();
+    });
+  }
 
+  it('mostra as iniciais quando o usuário não tem foto', async () => {
+    await abrir();
+    expect(screen.getByText('AS')).toBeTruthy();
+  });
+
+  it('oferece tirar foto ou escolher da galeria ao tocar na câmera', async () => {
+    await abrir();
+    fireEvent.press(screen.getByLabelText('Trocar foto de perfil'));
     expect(Alert.alert).toHaveBeenCalledWith(
       'Foto de perfil',
       'Escolha uma opção',
@@ -73,52 +220,26 @@ describe('ContaScreen', () => {
     );
   });
 
-  it('envia a foto escolhida da galeria e atualiza o avatar', async () => {
+  it('envia a foto escolhida da galeria e troca as iniciais pela imagem', async () => {
     jest.spyOn(ImagePicker, 'requestMediaLibraryPermissionsAsync').mockResolvedValue({ granted: true });
     jest.spyOn(ImagePicker, 'launchImageLibraryAsync').mockResolvedValue({
       canceled: false,
       assets: [{ uri: 'file://foto-local.jpg' }],
     });
-
-    render(<ContaScreen navigation={navigation} />);
-    await screen.findByText('Ana Teste');
-
-    fireEvent.press(screen.getByLabelText('Trocar foto de perfil'));
-    const [, , botoes] = Alert.alert.mock.calls[0];
-    await act(async () => {
-      await botoes.find((b) => b.text === 'Escolher da galeria').onPress();
-    });
-
-    expect(mockAtualizarFotoPerfil).toHaveBeenCalledWith(
-      expect.objectContaining({ usuarioId: 'usuario-teste', uri: 'file://foto-local.jpg' }),
+    await abrir();
+    await escolherOpcao('Escolher da galeria');
+    expect(mockRequisitar).toHaveBeenCalledWith(
+      '/api/usuarios/pessoa-a/foto',
+      expect.objectContaining({ metodo: 'PUT', corpoFormData: expect.any(FormData) }),
     );
-    await waitFor(() => expect(screen.queryByText('A')).toBeNull()); // deixou de mostrar a inicial
+    await waitFor(() => expect(screen.queryByText('AS')).toBeNull());
   });
 
   it('não envia nada quando a permissão da galeria é negada', async () => {
     jest.spyOn(ImagePicker, 'requestMediaLibraryPermissionsAsync').mockResolvedValue({ granted: false });
-
-    render(<ContaScreen navigation={navigation} />);
-    await screen.findByText('Ana Teste');
-
-    fireEvent.press(screen.getByLabelText('Trocar foto de perfil'));
-    const [, , botoes] = Alert.alert.mock.calls[0];
-    await act(async () => {
-      await botoes.find((b) => b.text === 'Escolher da galeria').onPress();
-    });
-
-    expect(mockAtualizarFotoPerfil).not.toHaveBeenCalled();
+    await abrir();
+    await escolherOpcao('Escolher da galeria');
+    expect(mockRequisitar).not.toHaveBeenCalledWith('/api/usuarios/pessoa-a/foto', expect.anything());
     expect(await screen.findByText('Permita o acesso à galeria para escolher uma foto.')).toBeTruthy();
-  });
-
-  it('sai da conta ao tocar em "Sair da conta"', async () => {
-    render(<ContaScreen navigation={navigation} />);
-    await screen.findByText('Ana Teste');
-
-    await act(async () => {
-      fireEvent.press(screen.getByLabelText('Sair da conta'));
-    });
-
-    expect(mockSair).toHaveBeenCalledTimes(1);
   });
 });

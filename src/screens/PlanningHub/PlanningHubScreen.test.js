@@ -1,3 +1,4 @@
+import { NavigationContainer } from '@react-navigation/native';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 
 import { CampaignsProvider } from '../../state/CampaignsContext';
@@ -8,8 +9,19 @@ import { MissionsProvider } from '../../state/MissionsContext';
 import { MOCK_MISSIONS } from '../../state/mockData';
 import { PlanningHubScreen } from './PlanningHubScreen';
 
+jest.mock('../../hooks/useRelatorioSemanal', () => ({
+  useRelatorioSemanal: () => ({ dados: null, carregando: false }),
+}));
+
+const mockRequisitarAnalise = jest.fn(async () => ({
+  estado: 'historico_insuficiente',
+  mensagem: 'Sem registros suficientes.',
+}));
 jest.mock('../../state/SessaoContext', () => ({
-  useSessao: () => ({ sessao: { usuarioId: 'usuario-teste' }, requisitarAutenticado: jest.fn() }),
+  useSessao: () => ({
+    sessao: { usuarioId: 'usuario-teste' },
+    requisitarAutenticado: mockRequisitarAnalise,
+  }),
 }));
 
 const navigation = { navigate: jest.fn(), popToTop: jest.fn() };
@@ -21,13 +33,15 @@ function renderScreen({
   params = {},
 } = {}) {
   return render(
-    <MissionsProvider initialMissions={initialMissions}>
-      <EpicsProvider initialEpics={initialEpics}>
-        <CampaignsProvider initialCampaigns={initialCampaigns}>
-          <PlanningHubScreen navigation={navigation} route={{ params }} />
-        </CampaignsProvider>
-      </EpicsProvider>
-    </MissionsProvider>,
+    <NavigationContainer>
+      <MissionsProvider initialMissions={initialMissions}>
+        <EpicsProvider initialEpics={initialEpics}>
+          <CampaignsProvider initialCampaigns={initialCampaigns}>
+            <PlanningHubScreen navigation={navigation} route={{ params }} />
+          </CampaignsProvider>
+        </EpicsProvider>
+      </MissionsProvider>
+    </NavigationContainer>,
   );
 }
 
@@ -73,9 +87,7 @@ describe('PlanningHubScreen — aba Missão', () => {
 
     expect(screen.getByText('Concluídos')).toBeTruthy();
     expect(screen.getByText('Missão já feita')).toBeTruthy();
-    expect(
-      screen.getByLabelText('Missão já feita, Ontem, concluída, mais 20 pontos'),
-    ).toBeTruthy();
+    expect(screen.getByLabelText('Missão já feita, Ontem, concluída, mais 20 pontos')).toBeTruthy();
   });
 
   it('separa missões com prazo vencido numa seção "Atrasados", mesmo sem status explícito', () => {
@@ -195,7 +207,7 @@ describe('PlanningHubScreen — aba Campanha', () => {
 
     expect(screen.getByText('Campanhas')).toBeTruthy();
     expect(screen.getByText('Capacitação em Python')).toBeTruthy();
-    expect(screen.getByText('4 de 5 missões • 320/500 XP')).toBeTruthy();
+    expect(screen.getByText('4 de 5 missões concluídas')).toBeTruthy();
     expect(screen.getByText('Recompensa final: 300 pontos')).toBeTruthy();
     expect(screen.getByText('Leitura de 12 livros')).toBeTruthy();
   });
@@ -240,7 +252,7 @@ describe('PlanningHubScreen — aba Campanha', () => {
           id: 'campanha-concluida',
           titulo: 'Campanha já feita',
           progresso: null,
-          pontosAtuais: 0,
+          valorAtual: 0,
           pontos: 45,
           recompensaCurta: null,
           estado: 'concluida',
@@ -262,7 +274,7 @@ describe('PlanningHubScreen — aba Campanha', () => {
           titulo: 'Campanha vencida',
           dataLimite: '01/01/2020',
           progresso: null,
-          pontosAtuais: 0,
+          valorAtual: 0,
           pontos: 30,
           recompensaCurta: null,
           estado: 'emAndamento',

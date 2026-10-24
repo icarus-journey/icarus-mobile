@@ -20,6 +20,8 @@ import { EpicsProvider, useEpics } from './src/state/EpicsContext';
 import { MissionsProvider, useMissions } from './src/state/MissionsContext';
 import { OnboardingProvider } from './src/state/OnboardingContext';
 import { SessaoProvider, useSessao } from './src/state/SessaoContext';
+import { SincronizadorDeFuso } from './src/state/SincronizadorDeFuso';
+import { LojaProvider } from './src/state/LojaContext';
 import { SessaoGate } from './src/navigation/SessaoGate';
 
 SplashScreen.preventAutoHideAsync();
@@ -63,9 +65,12 @@ export function ConteudoDaSessao() {
           <CampaignsProvider initialCampaigns={[]}>
             <DiariosProvider initialEntries={[]}>
               <CarregadorDeDados />
-              <NavigationContainer>
-                <RootNavigator />
-              </NavigationContainer>
+              <SincronizadorDeFuso />
+              <LojaProvider>
+                <NavigationContainer>
+                  <RootNavigator />
+                </NavigationContainer>
+              </LojaProvider>
             </DiariosProvider>
           </CampaignsProvider>
         </EpicsProvider>
@@ -105,7 +110,13 @@ function CarregadorDeDados() {
     return () => {
       ativo = false;
     };
-  }, [sessao?.usuarioId, requisitarAutenticado, carregarEpicos, carregarCampanhas, carregarMissoes]);
+  }, [
+    sessao?.usuarioId,
+    requisitarAutenticado,
+    carregarEpicos,
+    carregarCampanhas,
+    carregarMissoes,
+  ]);
 
   return null;
 }

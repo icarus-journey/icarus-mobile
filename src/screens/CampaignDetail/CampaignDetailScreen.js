@@ -86,8 +86,16 @@ export function CampaignDetailScreen({ route, navigation }) {
               textColor: colors.dangerText,
             },
             concluida
-              ? { label: estadoLabel, backgroundColor: colors.successSoft, textColor: colors.success }
-              : { label: estadoLabel, backgroundColor: colors.softPurpleAlt, textColor: colors.brandDark },
+              ? {
+                  label: estadoLabel,
+                  backgroundColor: colors.successSoft,
+                  textColor: colors.success,
+                }
+              : {
+                  label: estadoLabel,
+                  backgroundColor: colors.softPurpleAlt,
+                  textColor: colors.brandDark,
+                },
             campaign.recompensaCurta
               ? {
                   label: `+${campaign.recompensaCurta}`,
@@ -113,8 +121,8 @@ export function CampaignDetailScreen({ route, navigation }) {
         {campaign.valorMensurado != null ? (
           <DetailProgressCard
             title="Progresso desta campanha"
-            subtitle={`${campaign.pontosAtuais} de ${campaign.valorMensurado} ${campaign.unidade ?? 'pontos'}`}
-            current={campaign.pontosAtuais}
+            subtitle={`${campaign.valorAtual ?? 'Não informado'} de ${campaign.valorMensurado} ${campaign.unidade ?? 'unidade não informada'}`}
+            current={campaign.valorAtual}
             total={campaign.valorMensurado}
           />
         ) : campaign.progresso ? (
@@ -135,7 +143,9 @@ export function CampaignDetailScreen({ route, navigation }) {
         ) : null}
 
         <PrimaryButton
-          label={concluida ? 'Campanha concluída' : concluindo ? 'Concluindo...' : 'Concluir campanha'}
+          label={
+            concluida ? 'Campanha concluída' : concluindo ? 'Concluindo...' : 'Concluir campanha'
+          }
           onPress={handleConcluir}
           disabled={concluida || concluindo}
         />
@@ -148,7 +158,10 @@ export function CampaignDetailScreen({ route, navigation }) {
         ) : null}
       </ScrollView>
 
-      <BottomNav onPressMissoes={() => navigation.popToTop()} />
+      <BottomNav
+        onPressLoja={() => navigation.navigate('Loja')}
+        onPressMissoes={() => navigation.popToTop()}
+      />
     </View>
   );
 }

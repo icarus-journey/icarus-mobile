@@ -24,7 +24,7 @@ const CAMPANHA_MENSURAVEL = {
   prazoLabel: '31 dez.',
   dificuldade: 'MEDIA',
   pontos: 45,
-  pontosAtuais: 10,
+  valorAtual: 10,
   valorMensurado: 100,
   unidade: 'pontos',
   recompensaCurta: null,
@@ -97,7 +97,9 @@ it('não altera o valor atual quando a campanha não é mensurável (valorMensur
   });
 
   render(
-    <CampaignsProvider initialCampaigns={[{ ...CAMPANHA_MENSURAVEL, valorMensurado: null, pontosAtuais: 0 }]}>
+    <CampaignsProvider
+      initialCampaigns={[{ ...CAMPANHA_MENSURAVEL, valorMensurado: null, valorAtual: 0 }]}
+    >
       <MissionsProvider initialMissions={[MISSAO_VINCULADA]}>
         <MissionDetailScreen navigation={navigation} route={{ params: { missionId: 5 } }} />
         <CampaignDetailScreen navigation={navigation} route={{ params: { campaignId: 1 } }} />
@@ -111,3 +113,29 @@ it('não altera o valor atual quando a campanha não é mensurável (valorMensur
 
   expect(screen.queryByText(/de .* pontos$/)).toBeNull();
 });
+
+it.each(['módulos', 'reais', 'minutos', null, 'pontos '])(
+  'não transforma pontos em resultado na unidade %s',
+  async (unidade) => {
+    mockConcluirMissao.mockResolvedValue({
+      id: 5,
+      concluidaEm: '2026-01-01T09:00:00+00:00',
+      concluidaComAtraso: false,
+      pontuacaoCreditada: 30,
+      saldoPontosAtual: 30,
+    });
+    render(
+      <CampaignsProvider initialCampaigns={[{ ...CAMPANHA_MENSURAVEL, valorAtual: 10, unidade }]}>
+        <MissionsProvider initialMissions={[MISSAO_VINCULADA]}>
+          <MissionDetailScreen navigation={navigation} route={{ params: { missionId: 5 } }} />
+          <CampaignDetailScreen navigation={navigation} route={{ params: { campaignId: 1 } }} />
+        </MissionsProvider>
+      </CampaignsProvider>,
+    );
+    await act(async () => {
+      fireEvent.press(screen.getByLabelText('Concluir missão'));
+    });
+    expect(screen.getByText(`10 de 100 ${unidade ?? 'unidade não informada'}`)).toBeTruthy();
+    expect(screen.queryByText(/^40 de 100/)).toBeNull();
+  },
+);

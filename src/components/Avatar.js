@@ -2,15 +2,18 @@ import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View } from 'rea
 
 import IconCamera from '../assets/icons/icon-camera.svg';
 import { colors } from '../theme/colors';
-import { fontFamily, fontSize } from '../theme/typography';
+import { fontFamily } from '../theme/typography';
 
-function inicial(nome) {
-  return nome?.trim()?.charAt(0)?.toUpperCase() || '?';
+function iniciais(nome) {
+  const partes = nome?.trim().split(/\s+/).filter(Boolean) ?? [];
+  if (!partes.length) return '?';
+  const ultima = partes.length > 1 ? partes[partes.length - 1][0] : '';
+  return `${partes[0][0]}${ultima}`.toUpperCase();
 }
 
 /**
  * Avatar circular com um pequeno botão de câmera sobreposto (como em outros apps) pra trocar
- * a foto de perfil. Sem foto, mostra a inicial do nome num círculo colorido.
+ * a foto de perfil. Sem foto, mostra as iniciais do nome num círculo colorido.
  */
 export function Avatar({ nome, uriFoto, headersFoto, enviando, onPressCamera }) {
   return (
@@ -19,7 +22,7 @@ export function Avatar({ nome, uriFoto, headersFoto, enviando, onPressCamera }) 
         {uriFoto ? (
           <Image source={{ uri: uriFoto, headers: headersFoto }} style={styles.imagem} />
         ) : (
-          <Text style={styles.inicial}>{inicial(nome)}</Text>
+          <Text style={styles.inicial}>{iniciais(nome)}</Text>
         )}
         {enviando ? (
           <View style={styles.sobreposicaoCarregando}>
@@ -40,7 +43,7 @@ export function Avatar({ nome, uriFoto, headersFoto, enviando, onPressCamera }) 
   );
 }
 
-const TAMANHO = 96;
+const TAMANHO = 72;
 
 const styles = StyleSheet.create({
   container: {
@@ -51,7 +54,7 @@ const styles = StyleSheet.create({
     width: TAMANHO,
     height: TAMANHO,
     borderRadius: TAMANHO / 2,
-    backgroundColor: colors.brand,
+    backgroundColor: '#ede5fa',
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
@@ -61,9 +64,9 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   inicial: {
-    fontFamily: fontFamily.bold,
-    fontSize: fontSize.screenTitle,
-    color: colors.white,
+    fontFamily: fontFamily.semiBold,
+    fontSize: 24,
+    color: '#47219c',
   },
   sobreposicaoCarregando: {
     position: 'absolute',

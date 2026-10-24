@@ -49,7 +49,8 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   item: {
-    height: 48,
+    minHeight: 48,
+    paddingVertical: 12,
     justifyContent: 'center',
     borderBottomWidth: 1,
     borderBottomColor: colors.borderDefaultAlt,

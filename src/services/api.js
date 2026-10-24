@@ -41,12 +41,14 @@ export function criarApi({
           409: 'Já existe uma conta associada a este e-mail.',
           429: 'Muitas tentativas de acesso. Aguarde alguns minutos e tente novamente.',
         };
-        throw new ErroApi(
+        const erro = new ErroApi(
           mensagens[resposta.status] ??
             'O serviço está indisponível. Tente novamente em instantes.',
           resposta.status,
           resposta.status === 400 ? (dados?.errors ?? {}) : {},
         );
+        erro.codigo = typeof dados?.codigo === 'string' ? dados.codigo : undefined;
+        throw erro;
       }
       return dados;
     } catch (erro) {

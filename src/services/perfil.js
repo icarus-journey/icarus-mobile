@@ -1,5 +1,19 @@
-export async function obterPerfil({ usuarioId, requisitarAutenticado }) {
-  return requisitarAutenticado(`/api/usuarios/${usuarioId}`);
+export function criarServicoPerfil({ usuarioId, requisitarAutenticado }) {
+  const base = `/api/usuarios/${usuarioId}`;
+  return {
+    consultar: () => requisitarAutenticado(base),
+    salvar: (dados) => requisitarAutenticado(`${base}/perfil`, { metodo: 'PUT', corpo: dados }),
+    atualizarFuso: (fusoHorario) =>
+      requisitarAutenticado(`${base}/fuso`, { metodo: 'PUT', corpo: { fusoHorario } }),
+  };
+}
+
+export function obterFusoDoDispositivo() {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || null;
+  } catch {
+    return null;
+  }
 }
 
 export async function atualizarFotoPerfil({ usuarioId, uri, nomeArquivo, contentType, requisitarAutenticado }) {
