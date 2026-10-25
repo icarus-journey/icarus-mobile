@@ -385,6 +385,8 @@ describe('fluxo de campanhas', () => {
     expect(screen.getByDisplayValue('Capacitação em Python')).toBeTruthy();
 
     fireEvent.changeText(screen.getByLabelText('Título'), 'Capacitação em Python avançado');
+    fireEvent.changeText(screen.getByLabelText('Quanto você quer alcançar?'), '12');
+    fireEvent.changeText(screen.getByLabelText('Unidade da meta'), 'módulos');
     await act(async () => {
       fireEvent.press(screen.getByLabelText('Salvar alterações'));
     });
@@ -417,6 +419,8 @@ describe('fluxo de campanhas', () => {
     fireEvent.press(screen.getByLabelText('Adicionar campanha'));
 
     fireEvent.changeText(screen.getByLabelText('Título'), 'Correr uma meia maratona');
+    fireEvent.changeText(screen.getByLabelText('Quanto você quer alcançar?'), '21');
+    fireEvent.changeText(screen.getByLabelText('Unidade da meta'), 'quilômetros');
     fireEvent.changeText(screen.getByLabelText('Data limite'), '15032027');
     fireEvent.press(screen.getByLabelText('Difícil'));
 

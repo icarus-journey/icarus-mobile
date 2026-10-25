@@ -25,6 +25,8 @@ const INITIAL_VALUES = {
   dataLimite: '',
   dificuldade: null,
   epico: null,
+  valorMensurado: '',
+  unidade: '',
 };
 
 function valuesFromCampaign(campaign) {
@@ -34,6 +36,9 @@ function valuesFromCampaign(campaign) {
     dataLimite: campaign.dataLimite ?? '',
     dificuldade: campaign.dificuldade,
     epico: campaign.epico ?? null,
+    valorMensurado:
+      campaign.valorMensurado == null ? '' : String(campaign.valorMensurado).replace('.', ','),
+    unidade: campaign.unidade ?? '',
   };
 }
 
@@ -119,6 +124,26 @@ export function CampaignFormScreen({ navigation, route }) {
         <ReadonlyField label="Tipo" value="Campanha" />
 
         <InputField
+          label="Quanto você quer alcançar?"
+          required
+          value={values.valorMensurado}
+          onChangeText={(valor) => setField('valorMensurado', valor)}
+          placeholder="Ex.: 12"
+          keyboardType="decimal-pad"
+          maxLength={13}
+          error={errors.valorMensurado}
+        />
+        <InputField
+          label="Unidade da meta"
+          required
+          value={values.unidade}
+          onChangeText={(valor) => setField('unidade', valor)}
+          placeholder="Ex.: módulos, quilômetros ou reais"
+          maxLength={30}
+          error={errors.unidade}
+        />
+
+        <InputField
           label="Data limite"
           required
           value={values.dataLimite}
@@ -147,7 +172,10 @@ export function CampaignFormScreen({ navigation, route }) {
             }
             accessibilityRole="button"
             accessibilityLabel="Adicionar missão"
-            style={({ pressed }) => [styles.addMissionButton, pressed && styles.addMissionButtonPressed]}
+            style={({ pressed }) => [
+              styles.addMissionButton,
+              pressed && styles.addMissionButtonPressed,
+            ]}
           >
             <Text style={styles.addMissionButtonLabel}>Adicionar missão</Text>
             <IconEdit width={24} height={24} />

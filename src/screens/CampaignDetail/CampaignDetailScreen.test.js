@@ -3,8 +3,15 @@ import { render, screen } from '@testing-library/react-native';
 import { CampaignsProvider } from '../../state/CampaignsContext';
 import { CampaignDetailScreen } from './CampaignDetailScreen';
 
+const mockRequisitar = jest.fn(async () => {
+  throw new Error('Sem conexão');
+});
+
 jest.mock('../../state/SessaoContext', () => ({
-  useSessao: () => ({ sessao: { usuarioId: 'usuario-teste' }, requisitarAutenticado: jest.fn() }),
+  useSessao: () => ({
+    sessao: { usuarioId: 'usuario-teste' },
+    requisitarAutenticado: mockRequisitar,
+  }),
 }));
 
 const navigation = { goBack: jest.fn(), popToTop: jest.fn() };

@@ -88,6 +88,21 @@ o reconhecimento de voz continua no dispositivo.
 - Missões, campanhas, épicos, onboarding e diário usam a API autenticada; os
   contextos mantêm o estado de apresentação e são limpos ao trocar de conta.
 
+## Progresso das campanhas
+
+O formulário permite definir quantidade e unidade da meta. Nos detalhes,
+**Registrar progresso** salva o total alcançado, inclusive zero ou uma redução,
+e recupera o histórico ao reabrir. Digite o total acumulado, não apenas o avanço
+do dia. A barra para em 100%, mas o texto preserva o valor acima da meta;
+concluir a campanha continua exigindo uma ação explícita.
+
+Falhas preservam o valor digitado; repetir a tentativa não duplica a medição.
+Troca de conta descarta o estado e respostas antigas. Registrar progresso não
+altera saldo nem cria pontos. Campanhas antigas mantêm seus valores, sem
+inventar medições retroativas. Cenários de conclusão ainda não são exibidos.
+Contrato: [progresso mensurado](../icarus-context/docs/implementation-design/platform/09-progresso-mensurado-campanhas.md).
+Esta mudança é JavaScript/API e não exige recompilar o cliente instalado.
+
 ## Histórico do diário
 
 Reflexões e deslizes são carregados ao abrir o Diário e por **Atualizar histórico**.

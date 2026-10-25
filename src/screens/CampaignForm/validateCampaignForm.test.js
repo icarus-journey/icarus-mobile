@@ -2,6 +2,8 @@ import { isFormValid, validateCampaignForm } from './validateCampaignForm';
 
 const VALID_VALUES = {
   titulo: 'Capacitação em Python',
+  valorMensurado: '12',
+  unidade: 'módulos',
   descricao: '',
   dataLimite: '30/09/2026',
   dificuldade: 'MEDIA',

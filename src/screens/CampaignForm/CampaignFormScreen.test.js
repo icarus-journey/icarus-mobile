@@ -20,8 +20,18 @@ const CAMPANHA = {
   epico: { id: 1, titulo: 'Épico X' },
 };
 
-const MISSAO_VINCULADA = { id: 10, titulo: 'Missão vinculada', pontos: 30, campanha: { id: 1, titulo: 'Campanha X' } };
-const MISSAO_DE_OUTRA_CAMPANHA = { id: 11, titulo: 'Outra missão', pontos: 15, campanha: { id: 2, titulo: 'Outra campanha' } };
+const MISSAO_VINCULADA = {
+  id: 10,
+  titulo: 'Missão vinculada',
+  pontos: 30,
+  campanha: { id: 1, titulo: 'Campanha X' },
+};
+const MISSAO_DE_OUTRA_CAMPANHA = {
+  id: 11,
+  titulo: 'Outra missão',
+  pontos: 15,
+  campanha: { id: 2, titulo: 'Outra campanha' },
+};
 
 function renderScreen({
   campaignId = 1,
