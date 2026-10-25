@@ -7,6 +7,7 @@ import { InputField } from '../../components/InputField';
 import { KeyboardAwareScrollView } from '../../components/KeyboardAwareScrollView';
 import { PrimaryButton, SecondaryButton } from '../../components/Button';
 import { SeletorTipoDiario } from '../../components/SeletorTipoDiario';
+import { DitadoPorVoz } from './DitadoPorVoz';
 import { useDiarios } from '../../state/DiariosContext';
 import { colors } from '../../theme/colors';
 import { fontFamily, fontSize } from '../../theme/typography';
@@ -115,6 +116,15 @@ export function DiarioScreen({ navigation }) {
           placeholder={conteudo.placeholder}
           maxLength={10000}
           multiline
+          acaoNoCampo={
+            <DitadoPorVoz
+              textoAtual={texto}
+              onTextoChange={(valor) => {
+                setTexto(valor);
+                setErro('');
+              }}
+            />
+          }
           error={erro}
         />
 

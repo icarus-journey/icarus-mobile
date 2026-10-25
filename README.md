@@ -7,8 +7,10 @@ missões, utiliza recompensas e consulta seu progresso.
 
 Esta branch usa Expo SDK 57 e `expo-secure-store`, compatíveis com o
 [Expo Go da App Store no iPhone](https://expo.dev/changelog/expo-go-57-login).
-O diário aceita texto; o ditado por voz está na branch
-`feature/recursos-nativos`, que exige uma build própria.
+O diário aceita texto no Expo Go; o ditado local também está nesta branch e
+exige o cliente de desenvolvimento compilado. `feature/recursos-nativos`
+preserva a linha anterior com `react-native-keychain`; a sessão atual continua
+usando `expo-secure-store` nos dois modos.
 Mudanças comuns entram em `development` e depois são incorporadas à branch
 nativa, mantendo a mesma base de telas e fluxos.
 
@@ -29,6 +31,41 @@ rede. Para teste fora da rede, configure o endereço HTTPS público da API. O
 túnel do Expo publica o Metro, mas não a API. Reinicie o Metro ao mudar a
 variável. Para testar cadastro e login, inicie PostgreSQL, configure os User
 Secrets e aplique as migrations conforme a seção 6 de `icarus-platform/PROJETO.md`.
+
+## Ditado no cliente Android
+
+Com Java e Android SDK instalados e o aparelho autorizado no USB:
+
+```bash
+npm ci
+npm run android -- --no-bundler
+```
+
+A primeira execução compila e instala o Icarus com `expo-dev-client` e
+`expo-speech-recognition`.
+
+Em Linux com pouca memória, prefira `npm run android:leve`: compila somente
+ARM64 com uma tarefa Gradle e uma compilação C++ por vez. Quando há sessão
+systemd do usuário, limita o processo a 6 GB de RAM e 1,5 núcleo de CPU.
+Esse comando gera o APK sem instalar; use
+`adb install -r android/app/build/outputs/apk/debug/app-debug.apk` para instalá-lo
+preservando os dados. Para emulador x86_64, defina
+`ICARUS_ARQUITETURA_ANDROID=x86_64`. Depois, da raiz do workspace:
+
+```bash
+./icarus-infrastructure/scripts/iniciar-projeto.sh --nativo
+```
+
+O iniciador usa API 5138 e Metro 8082, abre o cliente instalado e o espelhamento.
+Para iniciar somente o Metro: `npm run start:nativo -- --port 8082`.
+Mudanças em JavaScript usam recarga; mudanças em módulos/configuração nativa
+exigem recompilar. Sem `--nativo`, o iniciador continua abrindo o Expo Go.
+
+Em Diário, **Ditar texto** pede permissão do microfone e usa reconhecimento
+`pt-BR` no dispositivo, exigindo suporte e modelo local. O áudio não é persistido
+nem enviado ao backend/IA; o texto preenche o campo e só vira entrada após a
+confirmação. Sair da tela interrompe a escuta. No Expo Go o botão fica oculto e
+a digitação continua disponível. A persistência do diário na API segue pendente.
 
 ## Autenticação
 

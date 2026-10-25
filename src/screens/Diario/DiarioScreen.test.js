@@ -1,3 +1,4 @@
+import { NavigationContainer } from '@react-navigation/native';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 
 import { DiariosProvider } from '../../state/DiariosContext';
@@ -7,9 +8,11 @@ const navigation = { navigate: jest.fn() };
 
 function renderScreen(initialEntries = []) {
   return render(
-    <DiariosProvider initialEntries={initialEntries}>
-      <DiarioScreen navigation={navigation} />
-    </DiariosProvider>,
+    <NavigationContainer>
+      <DiariosProvider initialEntries={initialEntries}>
+        <DiarioScreen navigation={navigation} />
+      </DiariosProvider>
+    </NavigationContainer>,
   );
 }
 
