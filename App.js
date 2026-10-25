@@ -63,7 +63,7 @@ export function ConteudoDaSessao() {
       <MissionsProvider initialMissions={[]}>
         <EpicsProvider initialEpics={[]}>
           <CampaignsProvider initialCampaigns={[]}>
-            <DiariosProvider initialEntries={[]}>
+            <DiariosProvider>
               <CarregadorDeDados />
               <SincronizadorDeFuso />
               <LojaProvider>

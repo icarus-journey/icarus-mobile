@@ -65,7 +65,8 @@ Em Diário, **Ditar texto** pede permissão do microfone e usa reconhecimento
 `pt-BR` no dispositivo, exigindo suporte e modelo local. O áudio não é persistido
 nem enviado ao backend/IA; o texto preenche o campo e só vira entrada após a
 confirmação. Sair da tela interrompe a escuta. No Expo Go o botão fica oculto e
-a digitação continua disponível. A persistência do diário na API segue pendente.
+a digitação continua disponível. O texto confirmado é salvo pela API autenticada;
+o reconhecimento de voz continua no dispositivo.
 
 ## Autenticação
 
@@ -84,9 +85,21 @@ a digitação continua disponível. A persistência do diário na API segue pend
   trocar a imagem atualiza o avatar sem reutilizar a foto anterior em cache.
 - Sair da conta exige confirmação. Confirmar remove a sessão local e tenta
   revogar a renovação no servidor; a saída local funciona inclusive sem rede.
-- Missões, campanhas, épicos e onboarding usam a API autenticada; os contextos
-  mantêm o estado de apresentação e são limpos ao trocar de conta. O diário
-  permanece local, sem endpoint de persistência nesta entrega.
+- Missões, campanhas, épicos, onboarding e diário usam a API autenticada; os
+  contextos mantêm o estado de apresentação e são limpos ao trocar de conta.
+
+## Histórico do diário
+
+Reflexões e deslizes são carregados ao abrir o Diário e por **Atualizar histórico**.
+Criar, editar e excluir aguardam a API; falhas preservam o texto ou a entrada,
+sem confirmar sucesso. Editar mantém a data original; excluir exige confirmação
+e retira a entrada do histórico por exclusão lógica no servidor. O histórico
+aceita várias entradas no mesmo dia e sobrevive à reabertura do app.
+
+Somente tipo, data e texto são enviados. Diário não gera pontos e não participa
+do relatório de IA. Módulo e estados são isolados por conta; respostas antigas
+não reaparecem após logout/troca de sessão. Contrato:
+[`08-contrato-do-diario.md`](../icarus-context/docs/implementation-design/platform/08-contrato-do-diario.md).
 
 Validação: `npm test -- --runInBand --watch=false` e `npm run lint`.
 

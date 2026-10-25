@@ -9,6 +9,7 @@ import { SessaoGate } from './SessaoGate';
 function iniciar({ salva = null, semConexao = false } = {}) {
   let armazenada = salva;
   let conta = 'a';
+  const diarios = { a: [], b: [] };
   let analiseExpirada = false;
   const armazenamento = {
     ler: async () => armazenada,
@@ -39,6 +40,19 @@ function iniciar({ salva = null, semConexao = false } = {}) {
       return { ok: false, status: 401, json: async () => ({}) };
     if (url.includes('/relatorios/semanais'))
       return { ok: true, status: 200, json: async () => ({ estado: 'historico_insuficiente' }) };
+    if (url.endsWith('/diario')) {
+      if (opcoes.method === 'POST') {
+        const entrada = {
+          ...JSON.parse(opcoes.body),
+          id: diarios[conta].length + 1,
+          criadaEm: '2026-10-24T12:00:00Z',
+          atualizadaEm: '2026-10-24T12:00:00Z',
+        };
+        diarios[conta].push(entrada);
+        return { ok: true, status: 201, json: async () => entrada };
+      }
+      return { ok: true, status: 200, json: async () => [...diarios[conta]] };
+    }
     if (url.endsWith('/logout')) return { ok: true, status: 204 };
     if (url.endsWith(`/api/usuarios/usuario-${conta}`))
       return {
@@ -103,12 +117,13 @@ it('limpa o diário e a navegação ao sair e entrar com outra conta', async () 
   await entrar();
   await screen.findByText('Seus próximos passos.');
   fireEvent.press(screen.getByLabelText('Diário'));
+  await screen.findByLabelText('Atualizar histórico');
   fireEvent.changeText(
     screen.getByLabelText('Reflexão de hoje'),
     'Reflexão privada da primeira conta',
   );
   fireEvent.press(screen.getByLabelText('Registrar reflexão'));
-  expect(screen.getByText('Reflexão privada da primeira conta')).toBeTruthy();
+  expect(await screen.findByText('Reflexão privada da primeira conta')).toBeTruthy();
   fireEvent.press(screen.getByLabelText('Perfil'));
   await screen.findByLabelText('Nome: Pessoa a');
   fireEvent.press(screen.getByLabelText('Sair da conta'));
@@ -121,6 +136,7 @@ it('limpa o diário e a navegação ao sair e entrar com outra conta', async () 
   await entrar();
   await screen.findByText('Seus próximos passos.');
   fireEvent.press(screen.getByLabelText('Diário'));
+  await screen.findByLabelText('Atualizar histórico');
   expect(screen.queryByText('Reflexão privada da primeira conta')).toBeNull();
   fireEvent.press(screen.getByLabelText('Perfil'));
   expect(await screen.findByLabelText('Nome: Pessoa b')).toBeTruthy();

@@ -43,10 +43,21 @@ jest.mock('../services/missoes', () => ({
 }));
 
 function renderApp(initialRouteName = 'Login', { initialMissions } = {}) {
+  const entradas = [];
   useSessao.mockReturnValue({
     sessao: initialRouteName === 'Login' ? null : { usuarioId: 'usuario' },
     novaConta: false,
-    requisitarAutenticado: jest.fn(),
+    requisitarAutenticado: jest.fn(async (_caminho, opcoes) => {
+      if (!opcoes) return [...entradas];
+      const entrada = {
+        ...opcoes.corpo,
+        id: entradas.length + 1,
+        criadaEm: '2026-10-24T12:00:00Z',
+        atualizadaEm: '2026-10-24T12:00:00Z',
+      };
+      entradas.push(entrada);
+      return entrada;
+    }),
   });
   return render(
     <OnboardingProvider>
@@ -78,7 +89,7 @@ beforeEach(() => {
 });
 
 describe('fluxo de autenticação e missões', () => {
-  it('ignora toques em Missões na tela atual e permite voltar do Diário', () => {
+  it('ignora toques em Missões na tela atual e permite voltar do Diário', async () => {
     const registrarErro = jest.spyOn(console, 'error').mockImplementation(() => {});
     try {
       renderApp('MissionList');
@@ -90,6 +101,7 @@ describe('fluxo de autenticação e missões', () => {
 
       fireEvent.press(screen.getByLabelText('Diário'));
       expect(screen.getByText('Diário de crescimento')).toBeTruthy();
+      await screen.findByLabelText('Atualizar histórico');
       fireEvent.press(screen.getByLabelText('Missões'));
       expect(screen.getByText('Seus próximos passos.')).toBeTruthy();
       fireEvent.press(screen.getByLabelText('Missões'));
@@ -244,16 +256,17 @@ describe('fluxo de autenticação e missões', () => {
 });
 
 describe('fluxo do diário', () => {
-  it('abre o diário pela navegação inferior e registra uma reflexão', () => {
+  it('abre o diário pela navegação inferior e registra uma reflexão', async () => {
     renderApp('MissionList');
 
     fireEvent.press(screen.getByLabelText('Diário'));
     expect(screen.getByText('Diário de crescimento')).toBeTruthy();
 
+    await screen.findByLabelText('Atualizar histórico');
     fireEvent.changeText(screen.getByLabelText('Reflexão de hoje'), 'Hoje consegui avançar.');
     fireEvent.press(screen.getByLabelText('Registrar reflexão'));
 
-    expect(screen.getByText('Hoje consegui avançar.')).toBeTruthy();
+    expect(await screen.findByText('Hoje consegui avançar.')).toBeTruthy();
   });
 });
 
