@@ -1,3 +1,4 @@
+import { NavigationContainer } from '@react-navigation/native';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 
 import { CampaignsProvider } from '../../state/CampaignsContext';
@@ -8,6 +9,21 @@ import { MissionsProvider } from '../../state/MissionsContext';
 import { MOCK_MISSIONS } from '../../state/mockData';
 import { PlanningHubScreen } from './PlanningHubScreen';
 
+jest.mock('../../hooks/useRelatorioSemanal', () => ({
+  useRelatorioSemanal: () => ({ dados: null, carregando: false }),
+}));
+
+const mockRequisitarAnalise = jest.fn(async () => ({
+  estado: 'historico_insuficiente',
+  mensagem: 'Sem registros suficientes.',
+}));
+jest.mock('../../state/SessaoContext', () => ({
+  useSessao: () => ({
+    sessao: { usuarioId: 'usuario-teste' },
+    requisitarAutenticado: mockRequisitarAnalise,
+  }),
+}));
+
 const navigation = { navigate: jest.fn(), popToTop: jest.fn() };
 
 function renderScreen({
@@ -17,13 +33,15 @@ function renderScreen({
   params = {},
 } = {}) {
   return render(
-    <MissionsProvider initialMissions={initialMissions}>
-      <EpicsProvider initialEpics={initialEpics}>
-        <CampaignsProvider initialCampaigns={initialCampaigns}>
-          <PlanningHubScreen navigation={navigation} route={{ params }} />
-        </CampaignsProvider>
-      </EpicsProvider>
-    </MissionsProvider>,
+    <NavigationContainer>
+      <MissionsProvider initialMissions={initialMissions}>
+        <EpicsProvider initialEpics={initialEpics}>
+          <CampaignsProvider initialCampaigns={initialCampaigns}>
+            <PlanningHubScreen navigation={navigation} route={{ params }} />
+          </CampaignsProvider>
+        </EpicsProvider>
+      </MissionsProvider>
+    </NavigationContainer>,
   );
 }
 
@@ -49,6 +67,51 @@ describe('PlanningHubScreen — aba Missão', () => {
     fireEvent.press(screen.getByLabelText('Adicionar missão'));
 
     expect(navigation.navigate).toHaveBeenCalledWith('MissionForm');
+  });
+
+  it('separa missões concluídas numa seção própria, abaixo da lista ativa', () => {
+    renderScreen({
+      initialMissions: [
+        ...MOCK_MISSIONS,
+        {
+          id: 'missao-concluida',
+          titulo: 'Missão já feita',
+          status: 'PENDENTE',
+          prazoLabel: 'Ontem',
+          pontos: 20,
+          corDestaque: '#7048d6',
+          concluidaEm: '2026-01-01T09:00:00+00:00',
+        },
+      ],
+    });
+
+    expect(screen.getByText('Concluídos')).toBeTruthy();
+    expect(screen.getByText('Missão já feita')).toBeTruthy();
+    expect(screen.getByLabelText('Missão já feita, Ontem, concluída, mais 20 pontos')).toBeTruthy();
+  });
+
+  it('separa missões com prazo vencido numa seção "Atrasados", mesmo sem status explícito', () => {
+    renderScreen({
+      initialMissions: [
+        ...MOCK_MISSIONS,
+        {
+          id: 'missao-atrasada-por-data',
+          titulo: 'Missão vencida',
+          status: 'PENDENTE',
+          prazoLabel: '01/01/2020',
+          dataLimite: '01/01/2020',
+          pontos: 15,
+          corDestaque: '#7048d6',
+          concluidaEm: null,
+        },
+      ],
+    });
+
+    expect(screen.getByText('Atrasados')).toBeTruthy();
+    expect(screen.getByText('Missão vencida')).toBeTruthy();
+    expect(
+      screen.getByLabelText('Missão vencida, 01/01/2020, atrasada, mais 15 pontos'),
+    ).toBeTruthy();
   });
 });
 
@@ -98,6 +161,44 @@ describe('PlanningHubScreen — aba Épico', () => {
 
     expect(navigation.navigate).toHaveBeenCalledWith('EpicDetail', { epicId: 'epico-1' });
   });
+
+  it('separa épicos concluídos numa seção própria, abaixo da lista ativa', () => {
+    renderScreen({
+      initialEpics: [
+        ...MOCK_EPICS,
+        {
+          id: 'epico-concluido',
+          titulo: 'Épico já feito',
+          dataLimite: '31/12/2026',
+          campanhasAtribuidas: [],
+          estado: 'concluido',
+        },
+      ],
+      params: { initialSegment: 'EPICO' },
+    });
+
+    expect(screen.getByText('Concluídos')).toBeTruthy();
+    expect(screen.getByText('Épico já feito')).toBeTruthy();
+  });
+
+  it('separa épicos com prazo vencido numa seção "Atrasados"', () => {
+    renderScreen({
+      initialEpics: [
+        ...MOCK_EPICS,
+        {
+          id: 'epico-atrasado',
+          titulo: 'Épico vencido',
+          dataLimite: '01/01/2020',
+          campanhasAtribuidas: [],
+          estado: 'emAndamento',
+        },
+      ],
+      params: { initialSegment: 'EPICO' },
+    });
+
+    expect(screen.getByText('Atrasados')).toBeTruthy();
+    expect(screen.getByText('Épico vencido')).toBeTruthy();
+  });
 });
 
 describe('PlanningHubScreen — aba Campanha', () => {
@@ -106,7 +207,7 @@ describe('PlanningHubScreen — aba Campanha', () => {
 
     expect(screen.getByText('Campanhas')).toBeTruthy();
     expect(screen.getByText('Capacitação em Python')).toBeTruthy();
-    expect(screen.getByText('4 de 5 missões • 320/500 XP')).toBeTruthy();
+    expect(screen.getByText('4 de 5 missões concluídas')).toBeTruthy();
     expect(screen.getByText('Recompensa final: 300 pontos')).toBeTruthy();
     expect(screen.getByText('Leitura de 12 livros')).toBeTruthy();
   });
@@ -141,5 +242,48 @@ describe('PlanningHubScreen — aba Campanha', () => {
     expect(navigation.navigate).toHaveBeenCalledWith('CampaignDetail', {
       campaignId: 'campanha-1',
     });
+  });
+
+  it('separa campanhas concluídas numa seção própria, abaixo da lista ativa', () => {
+    renderScreen({
+      initialCampaigns: [
+        ...MOCK_CAMPAIGNS,
+        {
+          id: 'campanha-concluida',
+          titulo: 'Campanha já feita',
+          progresso: null,
+          valorAtual: 0,
+          pontos: 45,
+          recompensaCurta: null,
+          estado: 'concluida',
+        },
+      ],
+      params: { initialSegment: 'CAMPANHA' },
+    });
+
+    expect(screen.getByText('Concluídos')).toBeTruthy();
+    expect(screen.getByText('Campanha já feita')).toBeTruthy();
+  });
+
+  it('separa campanhas com prazo vencido numa seção "Atrasados"', () => {
+    renderScreen({
+      initialCampaigns: [
+        ...MOCK_CAMPAIGNS,
+        {
+          id: 'campanha-atrasada',
+          titulo: 'Campanha vencida',
+          dataLimite: '01/01/2020',
+          progresso: null,
+          valorAtual: 0,
+          pontos: 30,
+          recompensaCurta: null,
+          estado: 'emAndamento',
+        },
+      ],
+      params: { initialSegment: 'CAMPANHA' },
+    });
+
+    expect(screen.getByText('Atrasados')).toBeTruthy();
+    expect(screen.getByText('Campanha vencida')).toBeTruthy();
   });
 });

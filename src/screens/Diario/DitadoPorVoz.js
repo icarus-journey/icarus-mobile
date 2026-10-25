@@ -1,16 +1,12 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
+import { requireOptionalNativeModule } from 'expo';
 import { Alert, Pressable, StyleSheet } from 'react-native';
 
 import IconMicrofone from '../../assets/icons/icon-microfone.svg';
 import { colors } from '../../theme/colors';
 
-let moduloReconhecimentoVoz = null;
-
-try {
-  moduloReconhecimentoVoz = require('expo-speech-recognition').ExpoSpeechRecognitionModule;
-} catch {
-  moduloReconhecimentoVoz = null;
-}
+const moduloReconhecimentoVoz = requireOptionalNativeModule('ExpoSpeechRecognition');
 
 const MENSAGENS_ERRO = {
   'language-not-supported':
@@ -21,10 +17,11 @@ const MENSAGENS_ERRO = {
 };
 
 function juntarTexto(textoAtual, transcricao) {
-  return [textoAtual.trim(), transcricao.trim()].filter(Boolean).join(' ');
+  return [textoAtual.trim(), transcricao.trim()].filter(Boolean).join(' ').slice(0, 10000);
 }
 
 export function DitadoPorVoz({ textoAtual, onTextoChange }) {
+  const emFoco = useRef(false);
   const textoAntesDoDitado = useRef('');
   const onTextoChangeRef = useRef(onTextoChange);
   const [isEscutando, setIsEscutando] = useState(false);
@@ -33,40 +30,45 @@ export function DitadoPorVoz({ textoAtual, onTextoChange }) {
     onTextoChangeRef.current = onTextoChange;
   }, [onTextoChange]);
 
-  useEffect(() => {
-    if (!moduloReconhecimentoVoz) {
-      return undefined;
-    }
+  useFocusEffect(
+    useCallback(() => {
+      emFoco.current = true;
+      if (!moduloReconhecimentoVoz) {
+        return undefined;
+      }
 
-    const ouvintes = [
-      moduloReconhecimentoVoz.addListener('start', () => {
-        setIsEscutando(true);
-      }),
-      moduloReconhecimentoVoz.addListener('end', () => setIsEscutando(false)),
-      moduloReconhecimentoVoz.addListener('result', (evento) => {
-        const transcricao = evento.results[0]?.transcript;
+      const ouvintes = [
+        moduloReconhecimentoVoz.addListener('start', () => {
+          setIsEscutando(true);
+        }),
+        moduloReconhecimentoVoz.addListener('end', () => setIsEscutando(false)),
+        moduloReconhecimentoVoz.addListener('result', (evento) => {
+          const transcricao = evento.results[0]?.transcript;
 
-        if (transcricao) {
-          onTextoChangeRef.current(juntarTexto(textoAntesDoDitado.current, transcricao));
-        }
-      }),
-      moduloReconhecimentoVoz.addListener('error', (evento) => {
+          if (transcricao) {
+            onTextoChangeRef.current(juntarTexto(textoAntesDoDitado.current, transcricao));
+          }
+        }),
+        moduloReconhecimentoVoz.addListener('error', (evento) => {
+          setIsEscutando(false);
+
+          if (evento.error !== 'aborted') {
+            exibirErro(
+              MENSAGENS_ERRO[evento.error] ||
+                'Não foi possível transcrever sua fala. Tente novamente.',
+            );
+          }
+        }),
+      ];
+
+      return () => {
+        emFoco.current = false;
+        ouvintes.forEach((ouvinte) => ouvinte.remove());
+        moduloReconhecimentoVoz.abort();
         setIsEscutando(false);
-
-        if (evento.error !== 'aborted') {
-          exibirErro(
-            MENSAGENS_ERRO[evento.error] ||
-              'Não foi possível transcrever sua fala. Tente novamente.',
-          );
-        }
-      }),
-    ];
-
-    return () => {
-      ouvintes.forEach((ouvinte) => ouvinte.remove());
-      moduloReconhecimentoVoz.abort();
-    };
-  }, []);
+      };
+    }, []),
+  );
 
   function exibirErro(mensagem) {
     Alert.alert('Não foi possível usar o ditado', mensagem);
@@ -74,7 +76,7 @@ export function DitadoPorVoz({ textoAtual, onTextoChange }) {
 
   async function iniciarDitado() {
     if (!moduloReconhecimentoVoz) {
-      exibirErro('O ditado não funciona no Expo Go. Execute o aplicativo pelo development build.');
+      exibirErro('O ditado não está disponível nesta versão. Você pode escrever normalmente.');
       return;
     }
 
@@ -88,6 +90,7 @@ export function DitadoPorVoz({ textoAtual, onTextoChange }) {
       }
 
       const permissao = await moduloReconhecimentoVoz.requestMicrophonePermissionsAsync();
+      if (!emFoco.current) return;
 
       if (!permissao.granted) {
         exibirErro('Permita o acesso ao microfone para usar o ditado.');
@@ -110,6 +113,8 @@ export function DitadoPorVoz({ textoAtual, onTextoChange }) {
   function finalizarDitado() {
     moduloReconhecimentoVoz?.stop();
   }
+
+  if (!moduloReconhecimentoVoz) return null;
 
   return (
     <Pressable
@@ -136,8 +141,8 @@ export function DitadoPorVoz({ textoAtual, onTextoChange }) {
 
 const styles = StyleSheet.create({
   botaoMicrofone: {
-    width: 36,
-    height: 36,
+    width: 44,
+    height: 44,
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',

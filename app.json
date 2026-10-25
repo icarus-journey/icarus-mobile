@@ -2,23 +2,20 @@
   "expo": {
     "name": "Icarus",
     "slug": "icarus-mobile",
-    "scheme": "icarus",
     "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
-      "bundleIdentifier": "com.fabiam.icarusmobile",
-      "buildNumber": "1",
       "supportsTablet": true,
+      "bundleIdentifier": "com.fabiam.icarusmobile",
       "infoPlist": {
         "NSAppTransportSecurity": {
           "NSAllowsLocalNetworking": true
         },
-        "NSLocalNetworkUsageDescription": "Permita que o Icarus acesse a API e o servidor de desenvolvimento na rede local.",
-        "NSSpeechRecognitionUsageDescription": "Permita que o Icarus reconheça sua fala para preencher o diário.",
-        "NSMicrophoneUsageDescription": "Permita que o Icarus acesse seu microfone para transcrever sua fala no diário."
-      }
+        "NSLocalNetworkUsageDescription": "Permita que o Icarus acesse a API e o servidor de desenvolvimento na rede local."
+      },
+      "buildNumber": "1"
     },
     "android": {
       "versionCode": 2,
@@ -27,16 +24,15 @@
         "backgroundColor": "#11091F",
         "foregroundImage": "./assets/android-icon-foreground.png"
       },
-      "permissions": [
-        "android.permission.RECORD_AUDIO"
-      ],
-      "package": "com.fabiam.icarusmobile"
+      "package": "com.fabiam.icarusmobile",
+      "permissions": ["android.permission.RECORD_AUDIO"]
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
       "expo-font",
+      "expo-secure-store",
       [
         "expo-splash-screen",
         {
@@ -47,15 +43,21 @@
         }
       ],
       [
+        "expo-image-picker",
+        {
+          "photosPermission": "Permite escolher uma foto de perfil na sua galeria.",
+          "cameraPermission": "Permite tirar uma foto para usar como foto de perfil."
+        }
+      ],
+      [
         "expo-speech-recognition",
         {
-          "microphonePermission": "Permita que o Icarus acesse seu microfone para transcrever sua fala no diário.",
+          "microphonePermission": "Permita que o Icarus acesse seu microfone para preencher o diário por voz.",
           "speechRecognitionPermission": "Permita que o Icarus reconheça sua fala para preencher o diário.",
-          "androidSpeechServicePackages": [
-            "com.google.android.as"
-          ]
+          "androidSpeechServicePackages": ["com.google.android.as", "com.google.android.tts"]
         }
       ]
-    ]
+    ],
+    "scheme": "icarus"
   }
 }

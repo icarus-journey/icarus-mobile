@@ -27,7 +27,7 @@ export function validateCampaignForm(values) {
     errors.dificuldade = 'Escolha uma dificuldade.';
   }
 
-  if (values.atribuirEpico === 'Sim' && !values.epico) {
+  if (!values.epico) {
     errors.epico = 'Escolha um épico.';
   }
 

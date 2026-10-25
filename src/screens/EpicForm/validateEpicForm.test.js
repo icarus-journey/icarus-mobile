@@ -5,6 +5,7 @@ const VALID_VALUES = {
   descricao: '',
   dataLimite: '31/12/2027',
   dificuldade: 'DIFICIL',
+  areaDaVida: 'trabalhoECarreira',
 };
 
 describe('validateEpicForm', () => {
@@ -31,5 +32,10 @@ describe('validateEpicForm', () => {
   it('exige dificuldade selecionada', () => {
     const errors = validateEpicForm({ ...VALID_VALUES, dificuldade: null });
     expect(errors.dificuldade).toBeDefined();
+  });
+
+  it('exige área da vida selecionada', () => {
+    const errors = validateEpicForm({ ...VALID_VALUES, areaDaVida: null });
+    expect(errors.areaDaVida).toBeDefined();
   });
 });

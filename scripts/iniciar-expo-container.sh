@@ -17,7 +17,7 @@ while kill -0 "$PROCESSO_EXPO" 2>/dev/null; do
   URL_TUNEL="$(node -e "fetch('http://127.0.0.1:4040/api/tunnels').then((resposta) => resposta.json()).then((dados) => { const tunel = dados.tunnels.find((item) => item.proto === 'https'); if (tunel) process.stdout.write(tunel.public_url); }).catch(() => {})" 2>/dev/null || true)"
 
   if [ -n "$URL_TUNEL" ]; then
-    echo "URL do Metro para inserir no cliente de desenvolvimento: exp://${URL_TUNEL#https://}"
+    echo "Expo Go: exp://${URL_TUNEL#https://}"
     break
   fi
 

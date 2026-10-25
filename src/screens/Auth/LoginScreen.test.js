@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
 import { LoginScreen } from './LoginScreen';
 import { useSessao } from '../../state/SessaoContext';
@@ -31,7 +31,9 @@ describe('LoginScreen', () => {
 
     fireEvent.changeText(screen.getByLabelText('E-mail'), 'paloma@email.com');
     fireEvent.changeText(screen.getByLabelText('Senha'), 'Senha123!');
-    fireEvent.press(screen.getByLabelText('Entrar na minha jornada'));
+    await act(async () => {
+      fireEvent.press(screen.getByLabelText('Entrar na minha jornada'));
+    });
 
     await waitFor(() =>
       expect(entrar).toHaveBeenCalledWith('paloma@email.com', 'Senha123!', false),

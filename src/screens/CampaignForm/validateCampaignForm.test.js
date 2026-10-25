@@ -5,7 +5,7 @@ const VALID_VALUES = {
   descricao: '',
   dataLimite: '30/09/2026',
   dificuldade: 'MEDIA',
-  atribuirEpico: 'Não',
+  epico: { id: 1, titulo: 'Ser promovido' },
 };
 
 describe('validateCampaignForm', () => {
@@ -34,12 +34,8 @@ describe('validateCampaignForm', () => {
     expect(errors.dificuldade).toBeDefined();
   });
 
-  it('exige épico quando atribuir a um épico é Sim', () => {
-    const errors = validateCampaignForm({
-      ...VALID_VALUES,
-      atribuirEpico: 'Sim',
-      epico: null,
-    });
+  it('exige um épico (campanha precisa estar atrelada a um épico)', () => {
+    const errors = validateCampaignForm({ ...VALID_VALUES, epico: null });
     expect(errors.epico).toBeDefined();
   });
 });

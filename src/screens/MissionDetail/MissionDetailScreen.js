@@ -1,4 +1,5 @@
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BottomNav } from '../../components/BottomNav';
@@ -9,9 +10,11 @@ import { DetailRewardCard } from '../../components/DetailRewardCard';
 import { DetailSummaryCard } from '../../components/DetailSummaryCard';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import IconEdit from '../../assets/icons/icon-edit.svg';
+import { useCampaigns } from '../../state/CampaignsContext';
 import { useMissions } from '../../state/MissionsContext';
 import { colors } from '../../theme/colors';
 import { fontFamily, fontSize } from '../../theme/typography';
+import { vibrarConclusao } from '../../utils/haptics';
 
 const DIFICULDADE_LABELS = {
   TRIVIAL: 'Trivial',
@@ -20,17 +23,15 @@ const DIFICULDADE_LABELS = {
   DIFICIL: 'Difícil',
 };
 
-const RECORRENCIA_LABELS = {
-  DIARIA: 'Diária',
-  SEMANAL: 'Semanal',
-  MENSAL: 'Mensal',
-};
-
 export function MissionDetailScreen({ route, navigation }) {
   const { missionId } = route.params;
-  const { getMissionById } = useMissions();
+  const { getMissionById, concluirMissao, pararMissao } = useMissions();
+  const { incrementarValorAtual } = useCampaigns();
   const insets = useSafeAreaInsets();
   const mission = getMissionById(missionId);
+  const [concluindo, setConcluindo] = useState(false);
+  const [parando, setParando] = useState(false);
+  const [erro, setErro] = useState('');
 
   if (!mission) {
     return (
@@ -38,6 +39,52 @@ export function MissionDetailScreen({ route, navigation }) {
         <ScreenHeader title="Detalhe da missão" onBack={() => navigation.goBack()} />
         <Text style={styles.notFound}>Esta missão não está mais disponível.</Text>
       </View>
+    );
+  }
+
+  const concluida = Boolean(mission.concluidaEm);
+  const inativa = Boolean(mission.inativa);
+
+  async function handleConcluir() {
+    setConcluindo(true);
+    setErro('');
+    try {
+      const resultado = await concluirMissao(mission.id);
+      vibrarConclusao();
+      // Missão e campanha vivem em Contexts separados — reflete aqui, sem round-trip à API,
+      // o mesmo crédito que ConcluirMissaoUseCase já aplicou ao valor_atual no backend.
+      if (mission.campanha) {
+        incrementarValorAtual(mission.campanha.id, resultado.pontuacaoCreditada);
+      }
+    } catch {
+      setErro('Não foi possível concluir a missão. Tente novamente.');
+    } finally {
+      setConcluindo(false);
+    }
+  }
+
+  function handleParar() {
+    Alert.alert(
+      'Parar esta missão?',
+      'Ela deixa de gerar novos dias. Dias futuros ainda não vencidos são cancelados; os atrasados ficam no histórico.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Parar',
+          style: 'destructive',
+          onPress: async () => {
+            setParando(true);
+            setErro('');
+            try {
+              await pararMissao(mission.id);
+            } catch {
+              setErro('Não foi possível parar a missão. Tente novamente.');
+            } finally {
+              setParando(false);
+            }
+          },
+        },
+      ],
     );
   }
 
@@ -58,11 +105,11 @@ export function MissionDetailScreen({ route, navigation }) {
           description={mission.descricao}
           chips={[
             { label: 'Missão', backgroundColor: colors.dangerSoft, textColor: colors.dangerText },
-            {
-              label: 'Em andamento',
-              backgroundColor: colors.softPurpleAlt,
-              textColor: colors.brandDark,
-            },
+            inativa
+              ? { label: 'Parada', backgroundColor: colors.dangerSoft, textColor: colors.dangerText }
+              : concluida
+                ? { label: 'Concluída', backgroundColor: colors.successSoft, textColor: colors.success }
+                : { label: 'Em andamento', backgroundColor: colors.softPurpleAlt, textColor: colors.brandDark },
             {
               label: `+${mission.pontos} pts`,
               backgroundColor: colors.softPurpleAlt,
@@ -75,7 +122,7 @@ export function MissionDetailScreen({ route, navigation }) {
           rows={[
             { label: 'Prazo', value: mission.prazoCompleto },
             { label: 'Dificuldade', value: DIFICULDADE_LABELS[mission.dificuldade] },
-            { label: 'Recorrência', value: RECORRENCIA_LABELS[mission.recorrencia] },
+            { label: 'Recorrente', value: mission.recorrente ? 'Sim' : 'Não' },
             { label: 'Campanha', value: mission.campanha?.titulo },
           ]}
         />
@@ -98,19 +145,42 @@ export function MissionDetailScreen({ route, navigation }) {
 
         <DetailRewardCard value={mission.recompensaLabel} />
 
+        {erro ? (
+          <Text style={styles.errorText} accessibilityRole="alert">
+            {erro}
+          </Text>
+        ) : null}
+
         <PrimaryButton
-          label="Concluir missão"
-          onPress={() => {}}
-          accessibilityHint="Ainda não disponível nesta versão"
+          label={
+            inativa ? 'Missão parada'
+            : concluida ? 'Missão concluída'
+            : concluindo ? 'Concluindo...'
+            : 'Concluir missão'
+          }
+          onPress={handleConcluir}
+          disabled={inativa || concluida || concluindo}
         />
-        <SecondaryButton
-          label="Editar missão"
-          onPress={() => navigation.navigate('MissionForm', { missionId: mission.id })}
-          icon={<IconEdit width={24} height={24} />}
-        />
+        {!concluida && !inativa && !mission.recorrente ? (
+          <SecondaryButton
+            label="Editar missão"
+            onPress={() => navigation.navigate('MissionForm', { missionId: mission.id })}
+            icon={<IconEdit width={24} height={24} />}
+          />
+        ) : null}
+        {mission.recorrente && !inativa ? (
+          <SecondaryButton
+            label={parando ? 'Parando...' : 'Parar missão'}
+            onPress={handleParar}
+            disabled={parando}
+          />
+        ) : null}
       </ScrollView>
 
-      <BottomNav onPressMissoes={() => navigation.popToTop()} />
+      <BottomNav
+        onPressLoja={() => navigation.navigate('Loja')}
+        onPressMissoes={() => navigation.popToTop()}
+      />
     </View>
   );
 }
@@ -133,6 +203,11 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.regular,
     fontSize: fontSize.label,
     color: colors.textSecondary,
+  },
+  errorText: {
+    fontFamily: fontFamily.regular,
+    fontSize: fontSize.base,
+    color: colors.dangerText,
   },
   card: {
     width: '100%',

@@ -4,7 +4,7 @@
 
 **Responsável:** Izael
 
-**Última atualização:** 2026-09-05
+**Última atualização:** 2026-10-17
 
 ## 1. Objetivo
 
@@ -26,14 +26,16 @@ validada no `icarus-context`:
 - o aplicativo fala **somente** com a API, por HTTP, através do proxy Nginx;
 - é proibido o aplicativo acessar PostgreSQL, RabbitMQ, MinIO, DuckDB, o
   trabalhador Python, o ETL ou o provedor de IA diretamente;
-- o token JWT deve ficar em armazenamento seguro do dispositivo, hoje previsto
-  como `react-native-keychain`;
+- o token JWT deve ficar em armazenamento seguro do dispositivo, via
+  `react-native-keychain` nesta branch;
 - alvo de compatibilidade: Android 16/API 36 e iPhone com iOS 16.4 ou superior;
 - acessibilidade mínima: WCAG 2.2 nível A, operável com TalkBack e VoiceOver.
 
-Execução e teste local do aplicativo ocorrem via **Expo** e *development build*
-em ambas as plataformas. O Expo Go não inclui os módulos nativos necessários
-para a sessão no Keychain/Keystore e para o reconhecimento de voz do diário.
+Esta branch `feature/recursos-nativos` recebe as mudanças comuns de
+`development`, preservando Keychain/Keystore e ditado no cliente compilado.
+A linha `development` continua com `expo-secure-store` e digitação no Expo Go.
+A integração segue de `development` para esta branch; não incorporar esta
+branch inteira em `development`.
 
 ## 3. Estrutura de pastas
 
@@ -85,7 +87,7 @@ Regras gerais:
   `useState`/`useReducer` dentro do próprio componente;
 - **estado compartilhado entre telas** (sessão do usuário, token, dados de
   onboarding em andamento): Context API do React, em `src/state/`, um contexto
-  por domínio (ex.: `AuthContext.js`);
+  por domínio (ex.: `SessaoContext.js`);
 - não introduzir biblioteca externa de gerência de estado (Redux, Zustand,
   Recoil etc.) sem necessidade concreta identificada; a Sprint 1 deve ser
   resolvida com `useState`/`useReducer` e Context API;
@@ -95,7 +97,7 @@ Regras gerais:
 ## 6. Acesso a serviços
 
 - todo acesso à API passa por `src/services/`;
-- um cliente HTTP único (`services/apiClient.js`) concentra a URL base, o
+- um cliente HTTP único (`services/api.js`) concentra a URL base, o
   cabeçalho de autenticação e o tratamento padrão de erro; nenhuma tela chama
   `fetch` diretamente;
 - um módulo por domínio de produto, espelhando os módulos já nomeados na
@@ -103,9 +105,11 @@ Regras gerais:
   `services/perfil.js`); cada módulo expõe funções (`buscarMissoes`,
   `concluirMissao`) e não estruturas de request/response cruas;
 - **os contratos exatos de cada endpoint (rota, payload, códigos de erro)
-  ainda não existem** — serão definidos no OpenAPI do `icarus-platform`. Até
-  lá, os módulos de serviço podem ficar com assinatura definida e
-  implementação pendente (`TODO` explícito), sem inventar contrato;
+  ainda não existem pra todo domínio** — serão definidos no OpenAPI do
+  `icarus-platform` conforme cada fluxo for implementado. Sessão
+  (`services/sessao.js`) e onboarding por IA (`services/onboarding.js`)
+  já falam com endpoints reais; os demais módulos podem ficar com assinatura
+  definida e implementação pendente (`TODO` explícito), sem inventar contrato;
 - nenhuma regra de domínio (cálculo de sequência, validação de recorrência,
   etc.) é replicada no aplicativo; o aplicativo exibe o que a API retorna e
   envia o que o usuário informa.
@@ -164,11 +168,11 @@ Proibidas:
 
 ## 11. Rastreabilidade
 
-| Origem | Uso neste documento |
-|---|---|
-| `icarus-context/docs/implementation-design/platform/01-arquitetura-da-solucao.md` | Restrições de dependência, armazenamento seguro do token, acessibilidade e alvos Android e iPhone. |
-| `icarus-context/docs/product-specification/04-requisitos.md` (RNF-06, RNF-07) | Critérios de acessibilidade e compatibilidade. |
-| `icarus-mobile/README.md` | Descrição geral do aplicativo. |
+| Origem                                                                            | Uso neste documento                                                                      |
+| --------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `icarus-context/docs/implementation-design/platform/01-arquitetura-da-solucao.md` | Restrições de dependência, armazenamento seguro do token, acessibilidade e alvo Android. |
+| `icarus-context/docs/product-specification/04-requisitos.md` (RNF-06, RNF-07)     | Critérios de acessibilidade e compatibilidade.                                           |
+| `icarus-mobile/README.md`                                                         | Descrição geral do aplicativo.                                                           |
 
 ## 12. Próxima revisão
 

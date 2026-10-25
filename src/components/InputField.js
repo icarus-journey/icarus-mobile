@@ -18,6 +18,7 @@ export function InputField({
   textContentType,
   autoCapitalize,
   acaoNoCampo,
+  editable = true,
 }) {
   return (
     <View style={styles.container}>
@@ -33,6 +34,7 @@ export function InputField({
         ]}
       >
         <TextInput
+          editable={editable}
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}

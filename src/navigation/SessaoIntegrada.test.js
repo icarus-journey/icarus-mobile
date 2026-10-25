@@ -9,6 +9,8 @@ import { SessaoGate } from './SessaoGate';
 function iniciar({ salva = null, semConexao = false } = {}) {
   let armazenada = salva;
   let conta = 'a';
+  const diarios = { a: [], b: [] };
+  let analiseExpirada = false;
   const armazenamento = {
     ler: async () => armazenada,
     salvar: async (sessao) => {
@@ -34,7 +36,37 @@ function iniciar({ salva = null, semConexao = false } = {}) {
         }),
       };
     }
+    if (analiseExpirada && (url.includes('/progresso') || url.includes('/refresh')))
+      return { ok: false, status: 401, json: async () => ({}) };
+    if (url.includes('/relatorios/semanais'))
+      return { ok: true, status: 200, json: async () => ({ estado: 'historico_insuficiente' }) };
+    if (url.endsWith('/diario')) {
+      if (opcoes.method === 'POST') {
+        const entrada = {
+          ...JSON.parse(opcoes.body),
+          id: diarios[conta].length + 1,
+          criadaEm: '2026-10-24T12:00:00Z',
+          atualizadaEm: '2026-10-24T12:00:00Z',
+        };
+        diarios[conta].push(entrada);
+        return { ok: true, status: 201, json: async () => entrada };
+      }
+      return { ok: true, status: 200, json: async () => [...diarios[conta]] };
+    }
     if (url.endsWith('/logout')) return { ok: true, status: 204 };
+    if (url.endsWith(`/api/usuarios/usuario-${conta}`))
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          id: `usuario-${conta}`,
+          nome: `Pessoa ${conta}`,
+          email: `${conta}@exemplo.com`,
+          dataNascimento: '2000-01-01',
+          estuda: null,
+          trabalha: null,
+        }),
+      };
     return { ok: true, status: 200, json: async () => ({ usuarioId: `usuario-${conta}` }) };
   });
   const servico = criarServicoSessao({
@@ -51,6 +83,12 @@ function iniciar({ salva = null, semConexao = false } = {}) {
   return {
     ...resultado,
     executarFetch,
+    expirarAnalise: () => {
+      analiseExpirada = true;
+    },
+    ficarSemConexao: () => {
+      semConexao = true;
+    },
     outraConta: () => {
       conta = 'b';
     },
@@ -79,20 +117,30 @@ it('limpa o diário e a navegação ao sair e entrar com outra conta', async () 
   await entrar();
   await screen.findByText('Seus próximos passos.');
   fireEvent.press(screen.getByLabelText('Diário'));
+  await screen.findByLabelText('Atualizar histórico');
   fireEvent.changeText(
     screen.getByLabelText('Reflexão de hoje'),
     'Reflexão privada da primeira conta',
   );
   fireEvent.press(screen.getByLabelText('Registrar reflexão'));
-  expect(screen.getByText('Reflexão privada da primeira conta')).toBeTruthy();
+  expect(await screen.findByText('Reflexão privada da primeira conta')).toBeTruthy();
   fireEvent.press(screen.getByLabelText('Perfil'));
+  await screen.findByLabelText('Nome: Pessoa a');
   fireEvent.press(screen.getByLabelText('Sair da conta'));
+  fireEvent.press(screen.getByLabelText('Cancelar'));
+  expect(screen.getByLabelText('Nome: Pessoa a')).toBeTruthy();
+  fireEvent.press(screen.getByLabelText('Sair da conta'));
+  fireEvent.press(screen.getByLabelText('Sim, sair da conta'));
   await screen.findByLabelText('E-mail');
   outraConta();
   await entrar();
   await screen.findByText('Seus próximos passos.');
   fireEvent.press(screen.getByLabelText('Diário'));
+  await screen.findByLabelText('Atualizar histórico');
   expect(screen.queryByText('Reflexão privada da primeira conta')).toBeNull();
+  fireEvent.press(screen.getByLabelText('Perfil'));
+  expect(await screen.findByLabelText('Nome: Pessoa b')).toBeTruthy();
+  expect(screen.queryByText('Pessoa a')).toBeNull();
 });
 
 it('permite tentar novamente sem liberar telas privadas se a restauração estiver sem rede', async () => {
@@ -108,4 +156,28 @@ it('permite tentar novamente sem liberar telas privadas se a restauração estiv
   });
   await waitFor(() => expect(screen.getByLabelText('Tentar novamente')).toBeTruthy());
   expect(screen.queryByText('Seus próximos passos.')).toBeNull();
+});
+
+it('confirma a saída e volta ao login mesmo sem rede', async () => {
+  const { ficarSemConexao } = iniciar();
+  await entrar();
+  await screen.findByText('Seus próximos passos.');
+  ficarSemConexao();
+  fireEvent.press(screen.getByLabelText('Perfil'));
+  await screen.findByText(/Não foi possível carregar seu perfil/);
+  fireEvent.press(screen.getByLabelText('Sair da conta'));
+  fireEvent.press(screen.getByLabelText('Sim, sair da conta'));
+  expect(await screen.findByLabelText('Entrar na minha jornada')).toBeTruthy();
+  expect(screen.queryByText('Perfil e configurações')).toBeNull();
+});
+
+it('encerra a sessão se a análise recusar o acesso e a renovação também expirar', async () => {
+  const { expirarAnalise, executarFetch } = iniciar();
+  await entrar();
+  await screen.findByText('Seus próximos passos.');
+  expirarAnalise();
+  fireEvent.press(screen.getByLabelText('Meu progresso'));
+  expect(await screen.findByLabelText('Entrar na minha jornada')).toBeTruthy();
+  expect(screen.queryByText('Contexto para sua jornada')).toBeNull();
+  expect(executarFetch.mock.calls.some(([url]) => url.endsWith('/refresh'))).toBe(true);
 });

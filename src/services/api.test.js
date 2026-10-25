@@ -42,6 +42,28 @@ describe('cliente HTTP', () => {
     ).toEqual({ name: 'Informe o nome', birthDate: 'Informe a data' });
   });
 
+  it('envia FormData sem forçar Content-Type (o fetch define o boundary sozinho)', async () => {
+    const executarFetch = jest.fn(async () => ({
+      ok: true,
+      status: 204,
+      json: async () => null,
+    }));
+    const api = criarApi({ urlBase: 'https://api.exemplo.com', executarFetch });
+    const formData = new FormData();
+    formData.append('arquivo', 'conteudo-fake');
+
+    await api('/api/usuarios/usuario/foto', { metodo: 'PUT', corpoFormData: formData, token: 'acesso' });
+
+    expect(executarFetch).toHaveBeenCalledWith(
+      'https://api.exemplo.com/api/usuarios/usuario/foto',
+      expect.objectContaining({
+        method: 'PUT',
+        body: formData,
+        headers: { Accept: 'application/json', Authorization: 'Bearer acesso' },
+      }),
+    );
+  });
+
   it('interrompe uma conexão que ultrapassa o limite', async () => {
     jest.useFakeTimers();
     const executarFetch = (_, { signal }) =>
