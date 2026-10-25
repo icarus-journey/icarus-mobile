@@ -99,7 +99,11 @@ concluir a campanha continua exigindo uma ação explícita.
 Falhas preservam o valor digitado; repetir a tentativa não duplica a medição.
 Troca de conta descarta o estado e respostas antigas. Registrar progresso não
 altera saldo nem cria pontos. Campanhas antigas mantêm seus valores, sem
-inventar medições retroativas. Cenários de conclusão ainda não são exibidos.
+inventar medições retroativas. A leitura 1.1.0 mostra avanço, quanto falta e
+um gráfico dos registros, também em **Sua meta em foco**. Com cinco registros
+semanais comparáveis, exibe **Se mantiver esse ritmo…** e o tempo aproximado.
+Sem base elegível, não cria previsão. Explicações e registros completos abrem
+sob demanda em **Entender meu ritmo**; pontos e XP ficam fora do cálculo.
 Contrato: [progresso mensurado](../icarus-context/docs/implementation-design/platform/09-progresso-mensurado-campanhas.md).
 Esta mudança é JavaScript/API e não exige recompilar o cliente instalado.
 
@@ -142,7 +146,7 @@ Esse cartão representa o valor atual, independentemente do período do gráfico
 
 A API calcula a série de conclusões no fuso da conta; HTTP de progresso 1.1.0.
 Ausência de registro e falta de uma funcionalidade têm tratamentos diferentes:
-taxa/previstas e projeções ainda não disponíveis deixam de ocupar cartões de
+taxa/previstas ainda não disponíveis deixam de ocupar cartões de
 “histórico insuficiente”. A explicação fica em **Sobre estes números**. Não se
 estima taxa a partir de conclusões nem se convertem pontos em medidas reais.
 

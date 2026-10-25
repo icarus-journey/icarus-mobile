@@ -1,8 +1,10 @@
 function validarResposta(dados) {
   if (
-    dados?.versaoContrato !== '1.0.0' ||
+    !['1.0.0', '1.1.0'].includes(dados?.versaoContrato) ||
     !Array.isArray(dados.medicoes) ||
-    typeof dados.versao !== 'string'
+    typeof dados.versao !== 'string' ||
+    (dados.versaoContrato === '1.1.0' &&
+      (!Array.isArray(dados.evolucao?.pontos) || typeof dados.cenario?.disponivel !== 'boolean'))
   ) {
     throw new Error('Resposta de progresso indisponível.');
   }

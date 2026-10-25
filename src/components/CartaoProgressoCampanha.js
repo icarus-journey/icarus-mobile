@@ -4,6 +4,7 @@ import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { PrimaryButton, SecondaryButton } from './Button';
 import { DetailProgressCard } from './DetailProgressCard';
 import { InputField } from './InputField';
+import { EvolucaoDaMeta } from './Analise/EvolucaoDaMeta';
 import { colors } from '../theme/colors';
 import { fontFamily, fontSize } from '../theme/typography';
 import { formatarValorProgresso } from '../utils/valorProgresso';
@@ -72,6 +73,15 @@ export function CartaoProgressoCampanha({
         </Text>
       ) : null}
 
+      {dados?.evolucao &&
+      !['meta_nao_definida', 'unidade_sem_resultado_mensurado'].includes(dados.evolucao.estado) &&
+      !carregando &&
+      !erro ? (
+        <View style={styles.card}>
+          <EvolucaoDaMeta dados={dados} />
+        </View>
+      ) : null}
+
       {dados?.podeRegistrar && !carregando ? (
         editando ? (
           <View style={styles.card}>
@@ -126,7 +136,7 @@ export function CartaoProgressoCampanha({
               Seu histórico começa no primeiro registro de progresso.
             </Text>
           ) : (
-            (mostrarTodos ? medicoes : medicoes.slice(0, 5)).map((registro) => (
+            (mostrarTodos ? medicoes : []).map((registro) => (
               <View key={registro.id} style={styles.registro}>
                 <Text style={styles.data}>{dataDoRegistro(registro)}</Text>
                 <Text style={styles.valor}>
@@ -139,9 +149,9 @@ export function CartaoProgressoCampanha({
               </View>
             ))
           )}
-          {medicoes.length > 5 ? (
+          {medicoes.length ? (
             <SecondaryButton
-              label={mostrarTodos ? 'Mostrar menos registros' : 'Ver todos os registros'}
+              label={mostrarTodos ? 'Ocultar registros' : 'Ver registros da meta'}
               onPress={() => setMostrarTodos(!mostrarTodos)}
             />
           ) : null}

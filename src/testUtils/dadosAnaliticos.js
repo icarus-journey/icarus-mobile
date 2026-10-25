@@ -1,4 +1,35 @@
 // Dados exclusivos dos testes de contrato e navegação.
+export function evolucaoDaMetaDeTeste(alteracoes = {}) {
+  return {
+    versaoContrato: '1.1.0',
+    campanhaId: 12,
+    valorAtual: 8,
+    valorMensurado: 16,
+    unidade: 'módulos',
+    estado: 'emAndamento',
+    podeRegistrar: true,
+    metaAlcancada: false,
+    versao: 'v1',
+    medicoes: [],
+    evolucao: {
+      estado: 'disponivel',
+      avancoRegistrado: 8,
+      faltante: 8,
+      fusoHorario: 'America/Sao_Paulo',
+      pontos: ['2026-09-26', '2026-10-03', '2026-10-10', '2026-10-17', '2026-10-24'].map(
+        (data, i) => ({ data, valor: 2 * i, revisado: false }),
+      ),
+    },
+    cenario: {
+      disponivel: true,
+      motivo: 'cenario_condicional_se_mantiver_o_ritmo',
+      ritmoSemanal: 2,
+      faltante: 8,
+      semanasAproximadas: 4,
+    },
+    ...alteracoes,
+  };
+}
 export const PERIODO_ANALITICO = {
   inicio: '2026-10-12',
   fim: '2026-10-18',

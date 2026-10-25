@@ -1,4 +1,20 @@
 import { criarServicoProgressoCampanha, mensagemProgressoCampanha } from './progressoCampanha';
+import { evolucaoDaMetaDeTeste } from '../testUtils/dadosAnaliticos';
+
+it('consome evolução 1.1.0 calculada na API e rejeita extensão incompleta', async () => {
+  const dados = evolucaoDaMetaDeTeste();
+  const requisitarAutenticado = jest
+    .fn()
+    .mockResolvedValueOnce(dados)
+    .mockResolvedValueOnce({ ...dados, cenario: null });
+  const servico = criarServicoProgressoCampanha({
+    usuarioId: 'titular',
+    campanhaId: 12,
+    requisitarAutenticado,
+  });
+  expect(await servico.consultar()).toEqual(dados);
+  await expect(servico.consultar()).rejects.toThrow('Resposta de progresso indisponível.');
+});
 
 it('usa o cliente autenticado e envia somente os campos do registro', async () => {
   const requisitarAutenticado = jest.fn(async () => ({

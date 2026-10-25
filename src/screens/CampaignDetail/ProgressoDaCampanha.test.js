@@ -106,6 +106,8 @@ it('aceita redução e pede confirmação explícita para concluir ao ultrapassa
   await abrirRegistro();
   fireEvent.changeText(screen.getByLabelText('Quanto você já alcançou?'), '1');
   fireEvent.press(screen.getByLabelText('Salvar progresso'));
+  await screen.findByLabelText('Ver registros da meta');
+  fireEvent.press(screen.getByLabelText('Ver registros da meta'));
   await screen.findByText('Valor revisado');
   await abrirRegistro();
   fireEvent.changeText(screen.getByLabelText('Quanto você já alcançou?'), '14');

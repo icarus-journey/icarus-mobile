@@ -30,6 +30,7 @@ import { periodoCurto } from '../../utils/formatarProgresso';
 import { AREA_DA_VIDA_OPTIONS } from '../EpicForm/areaDaVidaOptions';
 import { estilosProgresso } from './estilosProgresso';
 import { ProximoPassoDaSemana } from './ProximoPassoDaSemana';
+import { EvolucaoDaMetaEmFoco } from './EvolucaoDaMetaEmFoco';
 
 const codigoDaArea = (area) => area?.replace(/([A-Z])/g, '_$1').toUpperCase();
 const areas = AREA_DA_VIDA_OPTIONS.map((area) => ({ ...area, id: codigoDaArea(area.id) }));
@@ -99,6 +100,7 @@ export function ProgressoScreen({ navigation, route }) {
             {pessoal.dados ? <ResumoEvolucaoPessoal dados={pessoal.dados} /> : null}
             <MetaEmFoco
               campanhas={campaigns}
+              renderEvolucao={(campanhaId) => <EvolucaoDaMetaEmFoco campanhaId={campanhaId} />}
               onAbrir={(campaignId) => navigation.navigate('CampaignDetail', { campaignId })}
               onVerPesquisas={(codigo) => {
                 setArea(codigoDaArea(codigo));

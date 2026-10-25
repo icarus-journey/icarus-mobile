@@ -11,6 +11,7 @@ import {
   referenciasDeTeste,
   relatorioDeTeste,
   PERIODO_ANALITICO,
+  evolucaoDaMetaDeTeste,
 } from '../../testUtils/dadosAnaliticos';
 
 const mockRequisitar = jest.fn();
@@ -25,6 +26,7 @@ jest.mock('../../state/SessaoContext', () => ({
 let falhaGold;
 let areaSemMapa;
 let respostaRelatorio;
+let respostaMeta;
 function aplicativo(rota = 'ProgressoScreen', campanhas = []) {
   return (
     <MissionsProvider initialMissions={[]}>
@@ -43,6 +45,7 @@ beforeEach(() => {
   falhaGold = false;
   areaSemMapa = false;
   respostaRelatorio = relatorioDeTeste();
+  respostaMeta = evolucaoDaMetaDeTeste();
   mockRequisitar.mockReset().mockImplementation(async (caminho) => {
     if (caminho.includes('/referencias-publicas')) {
       if (falhaGold) throw new Error('Sem conexão');
@@ -55,6 +58,7 @@ beforeEach(() => {
           }
         : referenciasDeTeste();
     }
+    if (/\/campanhas\/\d+\/progresso/.test(caminho)) return respostaMeta;
     if (caminho.includes('/progresso')) return progressoDeTeste();
     return respostaRelatorio;
   });
@@ -125,21 +129,25 @@ it('liga o avanço da meta às pesquisas da mesma área sem transformar pontos e
         id: 12,
         titulo: 'Aprender mensageria',
         estado: 'emAndamento',
-        valorAtual: 2,
-        valorMensurado: 6,
+        valorAtual: 8,
+        valorMensurado: 16,
         unidade: 'módulos',
         areaDaVida: 'estudosEAprendizado',
       },
     ]),
   );
-  await screen.findByLabelText('Aprender mensageria: 2 de 6 módulos');
+  await screen.findByLabelText('Aprender mensageria: 8 de 16 módulos');
+  await screen.findByText('Cerca de 4 semanas para chegar lá');
   fireEvent.press(screen.getByLabelText('Últimos seis meses completos'));
   await waitFor(() =>
     expect(mockRequisitar).toHaveBeenCalledWith(
       '/api/usuarios/pessoa-a/progresso?periodo=seisMeses',
     ),
   );
-  expect(screen.getByLabelText('Aprender mensageria: 2 de 6 módulos')).toBeTruthy();
+  expect(screen.getByLabelText('Aprender mensageria: 8 de 16 módulos')).toBeTruthy();
+  expect(
+    mockRequisitar.mock.calls.filter(([c]) => /\/campanhas\/12\/progresso/.test(c)),
+  ).toHaveLength(1);
   fireEvent.press(screen.getByLabelText('Ver pesquisas desta área'));
   await waitFor(() =>
     expect(mockRequisitar).toHaveBeenCalledWith(
@@ -166,6 +174,74 @@ it('mostra recorte ampliado, denominador e limites nos detalhes e trata falha de
   fireEvent.press(screen.getByLabelText('Abrir fonte: Vigitel'));
   expect(await screen.findByText('Não foi possível abrir a fonte. Tente novamente.')).toBeTruthy();
   abrir.mockRestore();
+});
+
+const metaComHistorico = {
+  id: 12,
+  titulo: 'Aprender mensageria',
+  estado: 'emAndamento',
+  valorAtual: 8,
+  valorMensurado: 16,
+  unidade: 'módulos',
+  areaDaVida: 'estudosEAprendizado',
+};
+
+it('abre a meta pelo painel e atualiza o cenário ao voltar, sem recalcular no aplicativo', async () => {
+  render(aplicativo('ProgressoScreen', [metaComHistorico]));
+  await screen.findByText('Cerca de 4 semanas para chegar lá');
+  fireEvent.press(screen.getByLabelText('Ver minha meta'));
+  await screen.findByText('Detalhe da campanha');
+  respostaMeta = {
+    ...respostaMeta,
+    cenario: { disponivel: false, motivo: 'historico_desatualizado_ou_futuro' },
+  };
+  fireEvent.press(screen.getByLabelText('Voltar'));
+  await waitFor(() => expect(screen.queryByText('Cerca de 4 semanas para chegar lá')).toBeNull());
+  await screen.findByLabelText('Entender meu ritmo');
+  expect(
+    mockRequisitar.mock.calls.filter(([c]) => /\/campanhas\/12\/progresso/.test(c)),
+  ).toHaveLength(3);
+});
+
+it('falha na leitura da meta preserva o acesso e permite repetir sem mostrar estimativa antiga', async () => {
+  const normal = mockRequisitar.getMockImplementation();
+  let falhar = true;
+  mockRequisitar.mockImplementation((caminho, opcoes) =>
+    /\/campanhas\/12\/progresso/.test(caminho) && falhar
+      ? Promise.reject(new Error('Sem conexão'))
+      : normal(caminho, opcoes),
+  );
+  render(aplicativo('ProgressoScreen', [metaComHistorico]));
+  await screen.findByText('Não foi possível atualizar o avanço da meta.');
+  expect(screen.getByLabelText('Ver minha meta')).toBeTruthy();
+  expect(screen.queryByText(/para chegar lá/)).toBeNull();
+  falhar = false;
+  fireEvent.press(screen.getByLabelText('Atualizar avanço da meta'));
+  await screen.findByText('Cerca de 4 semanas para chegar lá');
+});
+
+it('troca de conta descarta o cenário atrasado da conta anterior', async () => {
+  const normal = mockRequisitar.getMockImplementation();
+  let terminar;
+  mockRequisitar.mockImplementation((caminho, opcoes) => {
+    if (/\/campanhas\/12\/progresso/.test(caminho)) {
+      if (caminho.includes('pessoa-a'))
+        return new Promise((resolve) => {
+          terminar = resolve;
+        });
+      return Promise.resolve(
+        evolucaoDaMetaDeTeste({ cenario: { disponivel: false, motivo: 'historico_insuficiente' } }),
+      );
+    }
+    return normal(caminho, opcoes);
+  });
+  const tela = render(aplicativo('ProgressoScreen', [metaComHistorico]));
+  await waitFor(() => expect(terminar).toEqual(expect.any(Function)));
+  mockUsuarioId = 'pessoa-b';
+  tela.rerender(aplicativo('ProgressoScreen', [metaComHistorico]));
+  await screen.findByLabelText('Entender meu ritmo');
+  await act(async () => terminar(evolucaoDaMetaDeTeste()));
+  expect(screen.queryByText(/para chegar lá/)).toBeNull();
 });
 
 it('recupera falha da API e distingue área sem mapeamento', async () => {
@@ -319,6 +395,18 @@ it('mostra pontos e recompensas sob demanda sem tomar o lugar da evolução e da
 });
 
 it('distingue a meta real dos pontos e avisa quando o prazo da meta passou', async () => {
+  respostaMeta = evolucaoDaMetaDeTeste({
+    valorAtual: 860,
+    valorMensurado: 1200,
+    unidade: 'reais',
+    cenario: { disponivel: false, motivo: 'historico_insuficiente' },
+    evolucao: {
+      estado: 'historico_insuficiente',
+      faltante: 340,
+      avancoRegistrado: null,
+      pontos: [],
+    },
+  });
   render(
     aplicativo('ProgressoScreen', [
       {
