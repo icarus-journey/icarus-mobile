@@ -1,74 +1,132 @@
-import { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 
-import { generateId } from '../utils/generateId';
+import { criarServicoDiario, mensagemDiario } from '../services/diario';
+import { useSessao } from './SessaoContext';
 
 const DiariosContext = createContext(null);
+const ordenar = (entradas) =>
+  [...entradas].sort(
+    (a, b) =>
+      b.dataRegistro.localeCompare(a.dataRegistro) ||
+      b.criadaEm.localeCompare(a.criadaEm) ||
+      b.id - a.id,
+  );
 
-export function DiariosProvider({ children, initialEntries = [] }) {
-  const [entradas, setEntradas] = useState(initialEntries);
+export function DiariosProvider({ children }) {
+  const { sessao, requisitarAutenticado } = useSessao();
+  const usuarioId = sessao?.usuarioId;
+  return (
+    <DadosDoDiario
+      key={usuarioId ?? 'visitante'}
+      usuarioId={usuarioId}
+      requisitarAutenticado={requisitarAutenticado}
+    >
+      {children}
+    </DadosDoDiario>
+  );
+}
 
-  const adicionarEntrada = useCallback((valores) => {
-    const entrada = {
-      id: generateId('diario'),
-      tipo: valores.tipo,
-      texto: valores.texto.trim(),
-      dataRegistro: valores.dataRegistro,
-      criadaEm: new Date().toISOString(),
-      atualizadaEm: null,
-      excluidaEm: null,
+function DadosDoDiario({ children, usuarioId, requisitarAutenticado }) {
+  const servico = useMemo(
+    () => criarServicoDiario({ usuarioId, requisitarAutenticado }),
+    [usuarioId, requisitarAutenticado],
+  );
+  const [entradas, setEntradas] = useState([]);
+  const [carregando, setCarregando] = useState(true);
+  const [enviando, setEnviando] = useState(false);
+  const [erro, setErro] = useState('');
+  const requisicao = useRef(0);
+  const ocupado = useRef(false);
+  const montado = useRef(true);
+
+  useEffect(() => {
+    montado.current = true;
+    return () => {
+      montado.current = false;
     };
-
-    setEntradas((atuais) => [entrada, ...atuais]);
-    return entrada;
   }, []);
 
-  const atualizarEntrada = useCallback((entradaId, valores) => {
-    setEntradas((atuais) =>
-      atuais.map((entrada) =>
-        entrada.id === entradaId
-          ? {
-              ...entrada,
-              tipo: valores.tipo,
-              texto: valores.texto.trim(),
-              atualizadaEm: new Date().toISOString(),
-            }
-          : entrada,
-      ),
-    );
-  }, []);
+  const recarregar = useCallback(async () => {
+    if (!usuarioId || ocupado.current) return;
+    const numero = ++requisicao.current;
+    const atual = () => montado.current && numero === requisicao.current;
+    setCarregando(true);
+    setErro('');
+    try {
+      const resultado = await servico.listar();
+      if (atual()) setEntradas(resultado);
+    } catch {
+      if (atual())
+        setErro('Não foi possível carregar seu diário. Confira a conexão e tente novamente.');
+    } finally {
+      if (atual()) setCarregando(false);
+    }
+  }, [servico, usuarioId]);
 
-  const excluirEntrada = useCallback((entradaId) => {
-    setEntradas((atuais) =>
-      atuais.map((entrada) =>
-        entrada.id === entradaId ? { ...entrada, excluidaEm: new Date().toISOString() } : entrada,
-      ),
-    );
-  }, []);
+  async function executar(operacao, aplicar) {
+    if (!usuarioId || ocupado.current) return false;
+    ocupado.current = true;
+    const numero = ++requisicao.current;
+    const atual = () => montado.current && numero === requisicao.current;
+    setEnviando(true);
+    setCarregando(false);
+    setErro('');
+    try {
+      const resultado = await operacao();
+      if (!atual()) return false;
+      setEntradas((anteriores) => ordenar(aplicar(anteriores, resultado)));
+      return true;
+    } catch (falha) {
+      if (atual()) setErro(mensagemDiario(falha));
+      return false;
+    } finally {
+      if (atual()) {
+        ocupado.current = false;
+        setEnviando(false);
+      }
+    }
+  }
 
-  const entradasAtivas = useMemo(
-    () => entradas.filter((entrada) => !entrada.excluidaEm),
-    [entradas],
+  return (
+    <DiariosContext.Provider
+      value={{
+        entradas,
+        carregando,
+        enviando,
+        erro,
+        recarregar,
+        adicionarEntrada: (dados) =>
+          executar(
+            () => servico.criar(dados),
+            (anteriores, entrada) => [entrada, ...anteriores],
+          ),
+        atualizarEntrada: (id, dados) =>
+          executar(
+            () => servico.atualizar(id, dados),
+            (anteriores, entrada) => anteriores.map((item) => (item.id === id ? entrada : item)),
+          ),
+        excluirEntrada: (id) =>
+          executar(
+            () => servico.excluir(id),
+            (anteriores) => anteriores.filter((item) => item.id !== id),
+          ),
+      }}
+    >
+      {children}
+    </DiariosContext.Provider>
   );
-
-  const value = useMemo(
-    () => ({
-      entradas: entradasAtivas,
-      adicionarEntrada,
-      atualizarEntrada,
-      excluirEntrada,
-    }),
-    [entradasAtivas, adicionarEntrada, atualizarEntrada, excluirEntrada],
-  );
-
-  return <DiariosContext.Provider value={value}>{children}</DiariosContext.Provider>;
 }
 
 export function useDiarios() {
-  const context = useContext(DiariosContext);
-
-  if (!context) {
-    throw new Error('useDiarios deve ser usado dentro de um DiariosProvider');
-  }
-
-  return context;
+  const contexto = useContext(DiariosContext);
+  if (!contexto) throw new Error('useDiarios deve ser usado dentro de um DiariosProvider');
+  return contexto;
 }

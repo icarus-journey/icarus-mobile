@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
 import { RegisterScreen } from './RegisterScreen';
 import { useSessao } from '../../state/SessaoContext';
@@ -18,6 +18,15 @@ function preencherCadastro() {
 }
 
 const navigation = { goBack: jest.fn(), navigate: jest.fn(), replace: jest.fn() };
+
+function preencherFormularioValido() {
+  fireEvent.changeText(screen.getByLabelText('Como podemos chamar você?'), 'Paloma');
+  fireEvent.changeText(screen.getByLabelText('E-mail'), 'paloma@email.com');
+  fireEvent.changeText(screen.getByLabelText('Data de nascimento'), '01012000');
+  fireEvent.changeText(screen.getByLabelText('Senha'), 'Senha123!');
+  fireEvent.changeText(screen.getByLabelText('Confirmar senha'), 'Senha123!');
+  fireEvent.press(screen.getByLabelText('Li e aceito os Termos e a Política de Privacidade'));
+}
 
 describe('RegisterScreen', () => {
   beforeEach(() => {
@@ -46,13 +55,10 @@ describe('RegisterScreen', () => {
   it('só autentica para iniciar o onboarding depois de criar a conta na API', async () => {
     render(<RegisterScreen navigation={navigation} />);
 
-    fireEvent.changeText(screen.getByLabelText('Como podemos chamar você?'), 'Paloma');
-    fireEvent.changeText(screen.getByLabelText('E-mail'), 'paloma@email.com');
-    fireEvent.changeText(screen.getByLabelText('Data de nascimento'), '01012000');
-    fireEvent.changeText(screen.getByLabelText('Senha'), 'Senha123!');
-    fireEvent.changeText(screen.getByLabelText('Confirmar senha'), 'Senha123!');
-    fireEvent.press(screen.getByLabelText('Li e aceito os Termos e a Política de Privacidade'));
-    fireEvent.press(screen.getByLabelText('Criar conta'));
+    preencherFormularioValido();
+    await act(async () => {
+      fireEvent.press(screen.getByLabelText('Criar conta'));
+    });
 
     await waitFor(() => expect(entrar).toHaveBeenCalledWith('paloma@email.com', 'Senha123!', true));
     expect(cadastrar).toHaveBeenCalledTimes(1);

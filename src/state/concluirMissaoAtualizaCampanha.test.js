@@ -1,0 +1,184 @@
+import { act, fireEvent, render, screen } from '@testing-library/react-native';
+
+import { CampaignDetailScreen } from '../screens/CampaignDetail/CampaignDetailScreen';
+import { MissionDetailScreen } from '../screens/MissionDetail/MissionDetailScreen';
+import { vibrarConclusao } from '../utils/haptics';
+import { CampaignsProvider } from './CampaignsContext';
+import { MissionsProvider } from './MissionsContext';
+
+jest.mock('./SessaoContext', () => ({
+  useSessao: () => ({ sessao: { usuarioId: 'usuario-teste' }, requisitarAutenticado: jest.fn() }),
+}));
+
+const mockConcluirMissao = jest.fn();
+jest.mock('../services/missoes', () => ({
+  concluirMissao: (...args) => mockConcluirMissao(...args),
+}));
+
+jest.mock('../utils/haptics', () => ({ vibrarConclusao: jest.fn() }));
+
+beforeEach(() => {
+  mockConcluirMissao.mockReset();
+  vibrarConclusao.mockClear();
+});
+
+const navigation = { goBack: jest.fn(), popToTop: jest.fn(), navigate: jest.fn() };
+
+const CAMPANHA_MENSURAVEL = {
+  id: 1,
+  titulo: 'Campanha mensurável',
+  descricao: null,
+  dataLimite: '31/12/2026',
+  prazoLabel: '31 dez.',
+  dificuldade: 'MEDIA',
+  pontos: 45,
+  valorAtual: 10,
+  valorMensurado: 100,
+  unidade: 'pontos',
+  recompensaCurta: null,
+  recompensaLabel: '45 pontos',
+  estado: 'emAndamento',
+  missoesAtribuidas: [],
+  progresso: null,
+  epico: null,
+  corDestaque: '#000000',
+};
+
+const MISSAO_VINCULADA = {
+  id: 5,
+  titulo: 'Missão vinculada',
+  descricao: null,
+  status: 'PENDENTE',
+  dataLimite: null,
+  prazoLabel: null,
+  prazoCompleto: null,
+  dificuldade: 'FACIL',
+  pontos: 30,
+  horarioIso: null,
+  concluidaEm: null,
+  recorrencia: null,
+  campanha: { id: 1, titulo: 'Campanha mensurável' },
+  corDestaque: '#000000',
+  progresso: null,
+  recompensaLabel: '30 pontos',
+};
+
+function renderAmbasAsTelas() {
+  return render(
+    <CampaignsProvider initialCampaigns={[CAMPANHA_MENSURAVEL]}>
+      <MissionsProvider initialMissions={[MISSAO_VINCULADA]}>
+        <MissionDetailScreen navigation={navigation} route={{ params: { missionId: 5 } }} />
+        <CampaignDetailScreen navigation={navigation} route={{ params: { campaignId: 1 } }} />
+      </MissionsProvider>
+    </CampaignsProvider>,
+  );
+}
+
+it('ao concluir uma missão vinculada, a campanha reflete o novo valor atual sem round-trip à API', async () => {
+  mockConcluirMissao.mockResolvedValue({
+    id: 5,
+    concluidaEm: '2026-01-01T09:00:00+00:00',
+    concluidaComAtraso: false,
+    pontuacaoCreditada: 30,
+    saldoPontosAtual: 30,
+  });
+
+  renderAmbasAsTelas();
+
+  expect(screen.getByText('10 de 100 pontos')).toBeTruthy();
+
+  await act(async () => {
+    fireEvent.press(screen.getByLabelText('Concluir missão'));
+  });
+
+  expect(mockConcluirMissao).toHaveBeenCalledTimes(1);
+  expect(screen.getByText('40 de 100 pontos')).toBeTruthy();
+});
+
+it('não altera o valor atual quando a campanha não é mensurável (valorMensurado nulo)', async () => {
+  mockConcluirMissao.mockResolvedValue({
+    id: 5,
+    concluidaEm: '2026-01-01T09:00:00+00:00',
+    concluidaComAtraso: false,
+    pontuacaoCreditada: 30,
+    saldoPontosAtual: 30,
+  });
+
+  render(
+    <CampaignsProvider
+      initialCampaigns={[{ ...CAMPANHA_MENSURAVEL, valorMensurado: null, valorAtual: 0 }]}
+    >
+      <MissionsProvider initialMissions={[MISSAO_VINCULADA]}>
+        <MissionDetailScreen navigation={navigation} route={{ params: { missionId: 5 } }} />
+        <CampaignDetailScreen navigation={navigation} route={{ params: { campaignId: 1 } }} />
+      </MissionsProvider>
+    </CampaignsProvider>,
+  );
+
+  await act(async () => {
+    fireEvent.press(screen.getByLabelText('Concluir missão'));
+  });
+
+  expect(screen.queryByText(/de .* pontos$/)).toBeNull();
+});
+
+it.each(['módulos', 'reais', 'minutos', null, 'pontos '])(
+  'não transforma pontos em resultado na unidade %s',
+  async (unidade) => {
+    mockConcluirMissao.mockResolvedValue({
+      id: 5,
+      concluidaEm: '2026-01-01T09:00:00+00:00',
+      concluidaComAtraso: false,
+      pontuacaoCreditada: 30,
+      saldoPontosAtual: 30,
+    });
+    render(
+      <CampaignsProvider initialCampaigns={[{ ...CAMPANHA_MENSURAVEL, valorAtual: 10, unidade }]}>
+        <MissionsProvider initialMissions={[MISSAO_VINCULADA]}>
+          <MissionDetailScreen navigation={navigation} route={{ params: { missionId: 5 } }} />
+          <CampaignDetailScreen navigation={navigation} route={{ params: { campaignId: 1 } }} />
+        </MissionsProvider>
+      </CampaignsProvider>,
+    );
+    await act(async () => {
+      fireEvent.press(screen.getByLabelText('Concluir missão'));
+    });
+    expect(screen.getByText(`10 de 100 ${unidade ?? 'unidade não informada'}`)).toBeTruthy();
+    expect(screen.queryByText(/^40 de 100/)).toBeNull();
+  },
+);
+
+it('vibra uma vez somente depois de a API confirmar a conclusão', async () => {
+  let confirmar;
+  mockConcluirMissao.mockReturnValueOnce(
+    new Promise((resolve) => {
+      confirmar = resolve;
+    }),
+  );
+  renderAmbasAsTelas();
+  fireEvent.press(screen.getByLabelText('Concluir missão'));
+  expect(vibrarConclusao).not.toHaveBeenCalled();
+
+  await act(async () => {
+    confirmar({
+      id: 5,
+      concluidaEm: '2026-10-23T21:00:00+00:00',
+      pontuacaoCreditada: 30,
+    });
+  });
+
+  expect(screen.getByLabelText('Missão concluída')).toBeTruthy();
+  expect(vibrarConclusao).toHaveBeenCalledTimes(1);
+  fireEvent.press(screen.getByLabelText('Missão concluída'));
+  expect(vibrarConclusao).toHaveBeenCalledTimes(1);
+});
+
+it('não vibra quando a API recusa a conclusão', async () => {
+  mockConcluirMissao.mockRejectedValueOnce(new Error('Sem conexão'));
+  renderAmbasAsTelas();
+  await act(async () => {
+    fireEvent.press(screen.getByLabelText('Concluir missão'));
+  });
+  expect(screen.getByText('Não foi possível concluir a missão. Tente novamente.')).toBeTruthy();
+  expect(vibrarConclusao).not.toHaveBeenCalled();
+});

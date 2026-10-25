@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
+import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BottomNav } from '../../components/BottomNav';
@@ -7,6 +8,7 @@ import { InputField } from '../../components/InputField';
 import { KeyboardAwareScrollView } from '../../components/KeyboardAwareScrollView';
 import { PrimaryButton, SecondaryButton } from '../../components/Button';
 import { SeletorTipoDiario } from '../../components/SeletorTipoDiario';
+import { DitadoPorVoz } from './DitadoPorVoz';
 import { useDiarios } from '../../state/DiariosContext';
 import { colors } from '../../theme/colors';
 import { fontFamily, fontSize } from '../../theme/typography';
@@ -31,11 +33,26 @@ const CONTEUDO_POR_TIPO = {
 
 export function DiarioScreen({ navigation }) {
   const insets = useSafeAreaInsets();
-  const { entradas, adicionarEntrada, atualizarEntrada, excluirEntrada } = useDiarios();
+  const {
+    entradas,
+    adicionarEntrada,
+    atualizarEntrada,
+    excluirEntrada,
+    carregando,
+    enviando,
+    erro: erroServico,
+    recarregar,
+  } = useDiarios();
   const [tipo, setTipo] = useState('REFLEXAO');
   const [texto, setTexto] = useState('');
   const [entradaEmEdicao, setEntradaEmEdicao] = useState(null);
   const [erro, setErro] = useState('');
+  const [sucesso, setSucesso] = useState('');
+  useFocusEffect(
+    useCallback(() => {
+      recarregar();
+    }, [recarregar]),
+  );
   const conteudo = CONTEUDO_POR_TIPO[tipo];
 
   function limparFormulario() {
@@ -45,35 +62,42 @@ export function DiarioScreen({ navigation }) {
   }
 
   function handleTipoChange(novoTipo) {
+    if (enviando) return;
+    setSucesso('');
     setTipo(novoTipo);
     setErro('');
   }
 
-  function handleSave() {
-    if (!texto.trim()) {
-      setErro('Escreva uma mensagem para continuar.');
+  async function handleSave() {
+    if (enviando) return;
+    setSucesso('');
+    if (!texto.trim() || texto.length > 10000) {
+      setErro(
+        texto.trim() ? 'O limite é de 10.000 caracteres.' : 'Escreva uma mensagem para continuar.',
+      );
       return;
     }
 
     const valores = {
       tipo,
       texto,
-      dataRegistro: obterDataLocal(),
+      dataRegistro: entradaEmEdicao?.dataRegistro ?? obterDataLocal(),
     };
 
-    if (entradaEmEdicao) {
-      atualizarEntrada(entradaEmEdicao, valores);
-    } else {
-      adicionarEntrada(valores);
+    const salvo = entradaEmEdicao
+      ? await atualizarEntrada(entradaEmEdicao.id, valores)
+      : await adicionarEntrada(valores);
+    if (salvo) {
+      limparFormulario();
+      setSucesso('Entrada salva no seu diário.');
     }
-
-    limparFormulario();
   }
 
   function handleEdit(entrada) {
     setTipo(entrada.tipo);
     setTexto(entrada.texto);
-    setEntradaEmEdicao(entrada.id);
+    setEntradaEmEdicao(entrada);
+    setSucesso('');
     setErro('');
   }
 
@@ -83,10 +107,11 @@ export function DiarioScreen({ navigation }) {
       {
         text: 'Excluir',
         style: 'destructive',
-        onPress: () => {
-          excluirEntrada(entrada.id);
-          if (entradaEmEdicao === entrada.id) {
-            limparFormulario();
+        onPress: async () => {
+          setSucesso('');
+          if (await excluirEntrada(entrada.id)) {
+            if (entradaEmEdicao?.id === entrada.id) limparFormulario();
+            setSucesso('Entrada excluída.');
           }
         },
       },
@@ -109,33 +134,86 @@ export function DiarioScreen({ navigation }) {
           label={conteudo.label}
           value={texto}
           onChangeText={(value) => {
+            if (enviando) return;
             setTexto(value);
+            setSucesso('');
             setErro('');
           }}
           placeholder={conteudo.placeholder}
+          editable={!enviando}
           maxLength={10000}
           multiline
+          acaoNoCampo={
+            !enviando && (
+              <DitadoPorVoz
+                textoAtual={texto}
+                onTextoChange={(valor) => {
+                  setTexto(valor);
+                  setErro('');
+                }}
+              />
+            )
+          }
           error={erro}
         />
 
         <View style={styles.actions}>
           <View style={styles.primaryAction}>
             <PrimaryButton
-              label={entradaEmEdicao ? 'Salvar alterações' : conteudo.button}
+              label={
+                enviando ? 'Salvando…' : entradaEmEdicao ? 'Salvar alterações' : conteudo.button
+              }
+              disabled={enviando || carregando}
               onPress={handleSave}
               showIcon={!entradaEmEdicao}
             />
           </View>
           {entradaEmEdicao ? (
             <View style={styles.secondaryAction}>
-              <SecondaryButton label="Cancelar edição" onPress={limparFormulario} />
+              <SecondaryButton
+                label="Cancelar edição"
+                disabled={enviando}
+                onPress={limparFormulario}
+              />
             </View>
           ) : null}
         </View>
 
+        {sucesso ? (
+          <Text accessibilityLiveRegion="polite" style={styles.successText}>
+            {sucesso}
+          </Text>
+        ) : null}
         <View style={styles.history}>
           <Text style={styles.historyTitle}>Histórico</Text>
-          {entradas.length === 0 ? (
+          {erroServico ? (
+            <View accessibilityLiveRegion="polite">
+              <Text style={styles.deleteText}>{erroServico}</Text>
+              <SecondaryButton
+                label="Tentar novamente"
+                disabled={enviando || carregando}
+                onPress={recarregar}
+              />
+            </View>
+          ) : null}
+          {carregando ? (
+            <View accessibilityLiveRegion="polite">
+              <ActivityIndicator color={colors.brand} />
+              <Text style={styles.emptyText}>Carregando histórico…</Text>
+            </View>
+          ) : null}
+          {!erroServico && !carregando ? (
+            <Pressable
+              onPress={recarregar}
+              disabled={enviando}
+              accessibilityRole="button"
+              accessibilityLabel="Atualizar histórico"
+              style={styles.textButton}
+            >
+              <Text style={styles.editText}>Atualizar histórico</Text>
+            </Pressable>
+          ) : null}
+          {entradas.length === 0 && !carregando && !erroServico ? (
             <View style={styles.emptyState}>
               <Text style={styles.emptyTitle}>Seu diário começa aqui</Text>
               <Text style={styles.emptyText}>
@@ -156,6 +234,7 @@ export function DiarioScreen({ navigation }) {
                   </View>
                   <View style={styles.historyActions}>
                     <Pressable
+                      disabled={enviando}
                       onPress={() => handleEdit(entrada)}
                       accessibilityRole="button"
                       accessibilityLabel={`Editar entrada de ${formatarDataCurta(entrada.dataRegistro)}`}
@@ -164,6 +243,7 @@ export function DiarioScreen({ navigation }) {
                       <Text style={styles.editText}>Editar</Text>
                     </Pressable>
                     <Pressable
+                      disabled={enviando}
                       onPress={() => handleDelete(entrada)}
                       accessibilityRole="button"
                       accessibilityLabel={`Excluir entrada de ${formatarDataCurta(entrada.dataRegistro)}`}
@@ -181,6 +261,7 @@ export function DiarioScreen({ navigation }) {
       </KeyboardAwareScrollView>
 
       <BottomNav
+        onPressLoja={() => navigation.navigate('Loja')}
         activeItem="diario"
         onPressMissoes={() => navigation.navigate('MissionList')}
         onPressPerfil={() => navigation.navigate('Conta')}
@@ -223,6 +304,7 @@ const styles = StyleSheet.create({
   secondaryAction: {
     flex: 1,
   },
+  successText: { fontFamily: fontFamily.regular, color: colors.success, fontSize: fontSize.body },
   history: {
     gap: 12,
     marginTop: 4,

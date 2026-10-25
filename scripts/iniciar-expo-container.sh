@@ -3,7 +3,7 @@
 set -eu
 
 npm ci
-npx expo start --tunnel --port 8081 &
+npx expo start --go --tunnel --port 8081 &
 PROCESSO_EXPO="$!"
 
 encerrar_expo() {

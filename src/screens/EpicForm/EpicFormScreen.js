@@ -6,14 +6,15 @@ import { PrimaryButton } from '../../components/Button';
 import { DifficultySelector } from '../../components/DifficultySelector';
 import { InputField } from '../../components/InputField';
 import { KeyboardAwareScrollView } from '../../components/KeyboardAwareScrollView';
+import { PickerModal } from '../../components/PickerModal';
 import { ReadonlyField } from '../../components/ReadonlyField';
 import { ScreenHeader } from '../../components/ScreenHeader';
-import IconEdit from '../../assets/icons/icon-edit.svg';
+import { SelectField } from '../../components/SelectField';
 import { useEpics } from '../../state/EpicsContext';
-import { MOCK_CAMPANHAS_ATRIBUIDAS } from '../../state/epicMockData';
 import { colors } from '../../theme/colors';
 import { fontFamily, fontSize } from '../../theme/typography';
 import { maskDateInput } from '../../utils/dateInput';
+import { AREA_DA_VIDA_OPTIONS, labelDaAreaDaVida } from './areaDaVidaOptions';
 import { isFormValid, validateEpicForm } from './validateEpicForm';
 
 const INITIAL_VALUES = {
@@ -21,6 +22,7 @@ const INITIAL_VALUES = {
   descricao: '',
   dataLimite: '',
   dificuldade: null,
+  areaDaVida: null,
 };
 
 function valuesFromEpic(epic) {
@@ -29,6 +31,7 @@ function valuesFromEpic(epic) {
     descricao: epic.descricao ?? '',
     dataLimite: epic.dataLimite ?? '',
     dificuldade: epic.dificuldade,
+    areaDaVida: epic.areaDaVida,
   };
 }
 
@@ -42,22 +45,34 @@ export function EpicFormScreen({ navigation, route }) {
     editingEpic ? valuesFromEpic(editingEpic) : INITIAL_VALUES,
   );
   const [errors, setErrors] = useState({});
+  const [areaModalVisible, setAreaModalVisible] = useState(false);
+  const [enviando, setEnviando] = useState(false);
+  const [erroEnvio, setErroEnvio] = useState('');
+  const campanhasAtribuidas = editingEpic?.campanhasAtribuidas ?? [];
 
   function setField(field, value) {
     setValues((current) => ({ ...current, [field]: value }));
   }
 
-  function handleSave() {
+  async function handleSave() {
     const validationErrors = validateEpicForm(values);
     setErrors(validationErrors);
 
-    if (isFormValid(validationErrors)) {
+    if (!isFormValid(validationErrors)) return;
+
+    setEnviando(true);
+    setErroEnvio('');
+    try {
       if (editingEpic) {
-        updateEpic(editingEpic.id, values);
+        await updateEpic(editingEpic.id, values);
       } else {
-        addEpic(values);
+        await addEpic(values);
       }
       navigation.goBack();
+    } catch {
+      setErroEnvio('Não foi possível salvar o épico. Tente novamente.');
+    } finally {
+      setEnviando(false);
     }
   }
 
@@ -93,6 +108,19 @@ export function EpicFormScreen({ navigation, route }) {
 
         <ReadonlyField label="Tipo" value="Épico" />
 
+        {editingEpic ? (
+          <ReadonlyField label="Área da vida" value={labelDaAreaDaVida(values.areaDaVida)} />
+        ) : (
+          <SelectField
+            label="Área da vida"
+            required
+            value={labelDaAreaDaVida(values.areaDaVida)}
+            placeholder="Selecionar área da vida"
+            onPress={() => setAreaModalVisible(true)}
+            error={errors.areaDaVida}
+          />
+        )}
+
         <InputField
           label="Data limite"
           required
@@ -113,42 +141,47 @@ export function EpicFormScreen({ navigation, route }) {
           {errors.dificuldade ? <Text style={styles.errorText}>{errors.dificuldade}</Text> : null}
         </View>
 
-        <View
-          style={styles.inertButton}
-          accessible
-          accessibilityLabel="Adicionar campanha, ainda não disponível nesta versão"
-        >
-          <Text style={styles.inertButtonLabel}>Adicionar campanha</Text>
-          <IconEdit width={24} height={24} />
-        </View>
+        {campanhasAtribuidas.length > 0 ? (
+          <>
+            <Text style={styles.groupLabel}>Campanhas atribuídas</Text>
+            {campanhasAtribuidas.map((campanha) => (
+              <View key={campanha.id} style={styles.assignedItem}>
+                <Text style={styles.assignedItemLabel} numberOfLines={1}>
+                  {campanha.titulo}
+                </Text>
+                {campanha.progresso ? (
+                  <Text style={styles.assignedItemFraction}>
+                    {campanha.progresso.concluidas}/{campanha.progresso.total}
+                  </Text>
+                ) : null}
+              </View>
+            ))}
+          </>
+        ) : null}
 
-        <Text style={styles.groupLabel}>Campanhas atribuídas</Text>
-        {/* Lista somente-leitura de exemplo — telas de Campanha (lista,
-            criação, detalhe) ainda não existem nesta sprint. */}
-        {MOCK_CAMPANHAS_ATRIBUIDAS.map((campanha) => (
-          <View key={campanha.id} style={styles.assignedItem}>
-            <Text style={styles.assignedItemLabel} numberOfLines={1}>
-              {campanha.titulo}
-            </Text>
-            <Text style={styles.assignedItemFraction}>
-              {campanha.progresso.concluidas}/{campanha.progresso.total}
-            </Text>
-          </View>
-        ))}
-
-        <View
-          style={styles.seeAllLink}
-          accessible
-          accessibilityLabel="Ver todas, ainda não disponível nesta versão"
-        >
-          <Text style={styles.seeAllLinkLabel}>Ver todas ↓</Text>
-        </View>
+        {erroEnvio ? (
+          <Text style={styles.errorText} accessibilityRole="alert">
+            {erroEnvio}
+          </Text>
+        ) : null}
 
         <PrimaryButton
           label={editingEpic ? 'Salvar alterações' : 'Salvar épico'}
           onPress={handleSave}
+          disabled={enviando}
         />
       </KeyboardAwareScrollView>
+
+      <PickerModal
+        visible={areaModalVisible}
+        title="Escolher área da vida"
+        items={AREA_DA_VIDA_OPTIONS}
+        onSelect={(area) => {
+          setField('areaDaVida', area.id);
+          setAreaModalVisible(false);
+        }}
+        onClose={() => setAreaModalVisible(false)}
+      />
     </View>
   );
 }
@@ -177,22 +210,6 @@ const styles = StyleSheet.create({
     fontSize: fontSize.base,
     color: colors.dangerText,
   },
-  inertButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    height: 52,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: colors.borderStrong,
-    backgroundColor: colors.surface,
-  },
-  inertButtonLabel: {
-    fontFamily: fontFamily.semiBold,
-    fontSize: fontSize.body,
-    color: colors.brandLink,
-  },
   assignedItem: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -209,15 +226,6 @@ const styles = StyleSheet.create({
     color: colors.textPrimaryStrong,
   },
   assignedItemFraction: {
-    fontFamily: fontFamily.semiBold,
-    fontSize: fontSize.base,
-    color: colors.brandDark,
-  },
-  seeAllLink: {
-    height: 44,
-    justifyContent: 'center',
-  },
-  seeAllLinkLabel: {
     fontFamily: fontFamily.semiBold,
     fontSize: fontSize.base,
     color: colors.brandDark,

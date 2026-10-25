@@ -7,7 +7,14 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.fabiam.icarusmobile",
+      "infoPlist": {
+        "NSAppTransportSecurity": {
+          "NSAllowsLocalNetworking": true
+        },
+        "NSLocalNetworkUsageDescription": "Permita que o Icarus acesse a API e o servidor de desenvolvimento na rede local."
+      }
     },
     "android": {
       "versionCode": 2,
@@ -16,13 +23,15 @@
         "backgroundColor": "#11091F",
         "foregroundImage": "./assets/android-icon-foreground.png"
       },
-      "package": "com.fabiam.icarusmobile"
+      "package": "com.fabiam.icarusmobile",
+      "permissions": ["android.permission.RECORD_AUDIO"]
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
       "expo-font",
+      "expo-secure-store",
       [
         "expo-splash-screen",
         {
@@ -32,7 +41,22 @@
           "resizeMode": "contain"
         }
       ],
-      "expo-secure-store"
-    ]
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Permite escolher uma foto de perfil na sua galeria.",
+          "cameraPermission": "Permite tirar uma foto para usar como foto de perfil."
+        }
+      ],
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Permita que o Icarus acesse seu microfone para preencher o diário por voz.",
+          "speechRecognitionPermission": "Permita que o Icarus reconheça sua fala para preencher o diário.",
+          "androidSpeechServicePackages": ["com.google.android.as", "com.google.android.tts"]
+        }
+      ]
+    ],
+    "scheme": "icarus"
   }
 }
