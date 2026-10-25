@@ -1,3 +1,6 @@
+import { File } from 'expo-file-system';
+import { fromByteArray } from 'base64-js';
+
 export function criarServicoPerfil({ usuarioId, requisitarAutenticado }) {
   const base = `/api/usuarios/${usuarioId}`;
   return {
@@ -16,9 +19,9 @@ export function obterFusoDoDispositivo() {
   }
 }
 
-export async function atualizarFotoPerfil({ usuarioId, uri, nomeArquivo, contentType, requisitarAutenticado }) {
+export async function atualizarFotoPerfil({ usuarioId, uri, requisitarAutenticado }) {
   const formData = new FormData();
-  formData.append('arquivo', { uri, name: nomeArquivo, type: contentType });
+  formData.append('arquivo', new File(uri));
 
   return requisitarAutenticado(`/api/usuarios/${usuarioId}/foto`, {
     metodo: 'PUT',
@@ -26,8 +29,9 @@ export async function atualizarFotoPerfil({ usuarioId, uri, nomeArquivo, content
   });
 }
 
-/** URL da foto de perfil — usada direto num componente Image (autenticação via header). */
-export function urlFotoPerfil(usuarioId) {
-  const urlBase = process.env.EXPO_PUBLIC_API_URL ?? '';
-  return `${urlBase.replace(/\/+$/, '')}/api/usuarios/${usuarioId}/foto`;
+export async function obterFotoPerfil({ usuarioId, requisitarAutenticado }) {
+  const { conteudo, tipo } = await requisitarAutenticado(`/api/usuarios/${usuarioId}/foto`, {
+    formatoResposta: 'binario',
+  });
+  return `data:${tipo};base64,${fromByteArray(conteudo)}`;
 }

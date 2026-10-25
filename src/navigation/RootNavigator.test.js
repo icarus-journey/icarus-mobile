@@ -78,6 +78,27 @@ beforeEach(() => {
 });
 
 describe('fluxo de autenticação e missões', () => {
+  it('ignora toques em Missões na tela atual e permite voltar do Diário', () => {
+    const registrarErro = jest.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      renderApp('MissionList');
+      fireEvent.press(screen.getByLabelText('Campanha'));
+      fireEvent.press(screen.getByLabelText('Missões'));
+      fireEvent.press(screen.getByLabelText('Missões'));
+      expect(screen.getByText('Campanhas')).toBeTruthy();
+      expect(registrarErro).not.toHaveBeenCalled();
+
+      fireEvent.press(screen.getByLabelText('Diário'));
+      expect(screen.getByText('Diário de crescimento')).toBeTruthy();
+      fireEvent.press(screen.getByLabelText('Missões'));
+      expect(screen.getByText('Seus próximos passos.')).toBeTruthy();
+      fireEvent.press(screen.getByLabelText('Missões'));
+      expect(registrarErro).not.toHaveBeenCalled();
+    } finally {
+      registrarErro.mockRestore();
+    }
+  });
+
   it('exibe somente o login quando não existe sessão', () => {
     renderApp();
 

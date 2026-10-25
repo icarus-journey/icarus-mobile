@@ -12,7 +12,7 @@ import { KeyboardAwareScrollView } from '../../components/KeyboardAwareScrollVie
 import { PickerModal } from '../../components/PickerModal';
 import { ReadonlyField } from '../../components/ReadonlyField';
 import { SelectField } from '../../components/SelectField';
-import { atualizarFotoPerfil, criarServicoPerfil, urlFotoPerfil } from '../../services/perfil';
+import { atualizarFotoPerfil, criarServicoPerfil, obterFotoPerfil } from '../../services/perfil';
 import { useSessao } from '../../state/SessaoContext';
 import { colors } from '../../theme/colors';
 import { fontFamily, fontSize } from '../../theme/typography';
@@ -39,6 +39,7 @@ export function ContaScreen({ navigation }) {
   const [salvando, setSalvando] = useState(false);
   const [saindo, setSaindo] = useState(false);
   const [enviandoFoto, setEnviandoFoto] = useState(false);
+  const [uriFoto, setUriFoto] = useState(null);
   const [confirmarSaida, setConfirmarSaida] = useState(false);
   const [seletor, setSeletor] = useState(null);
   const [erros, setErros] = useState({});
@@ -53,7 +54,9 @@ export function ContaScreen({ navigation }) {
     ocupado.current = false;
     setCarregando(true);
     setSalvando(false);
+    setEnviandoFoto(false);
     setPerfil(null);
+    setUriFoto(null);
     setFormulario(null);
     setErro('');
     setSucesso('');
@@ -63,13 +66,22 @@ export function ContaScreen({ navigation }) {
       if (atual !== operacao.current) return;
       setPerfil(resposta);
       setFormulario(formularioDoPerfil(resposta));
+      if (resposta.temFoto) {
+        try {
+          const foto = await obterFotoPerfil({ usuarioId, requisitarAutenticado });
+          if (atual === operacao.current) setUriFoto(foto);
+        } catch {
+          if (atual === operacao.current)
+            setErro('Não foi possível carregar sua foto. Abra o perfil novamente para tentar.');
+        }
+      }
     } catch {
       if (atual === operacao.current)
         setErro('Não foi possível carregar seu perfil. Confira a conexão e tente novamente.');
     } finally {
       if (atual === operacao.current) setCarregando(false);
     }
-  }, [servico]);
+  }, [servico, usuarioId, requisitarAutenticado]);
 
   useFocusEffect(
     useCallback(() => {
@@ -122,6 +134,7 @@ export function ContaScreen({ navigation }) {
   async function enviarImagem(resultado) {
     if (resultado.canceled) return;
     const imagem = resultado.assets[0];
+    const atual = operacao.current;
 
     setEnviandoFoto(true);
     setErro('');
@@ -130,15 +143,17 @@ export function ContaScreen({ navigation }) {
       await atualizarFotoPerfil({
         usuarioId,
         uri: imagem.uri,
-        nomeArquivo: 'foto-perfil.jpg',
-        contentType: 'image/jpeg',
         requisitarAutenticado,
       });
-      setPerfil((atual) => (atual ? { ...atual, temFoto: true } : atual));
+      if (atual !== operacao.current) return;
+      setPerfil((perfilAtual) => (perfilAtual ? { ...perfilAtual, temFoto: true } : perfilAtual));
+      const foto = await obterFotoPerfil({ usuarioId, requisitarAutenticado });
+      if (atual === operacao.current) setUriFoto(foto);
     } catch {
-      setErro('Não foi possível atualizar a foto. Tente novamente.');
+      if (atual === operacao.current)
+        setErro('Não foi possível atualizar a foto. Tente novamente.');
     } finally {
-      setEnviandoFoto(false);
+      if (atual === operacao.current) setEnviandoFoto(false);
     }
   }
 
@@ -198,8 +213,7 @@ export function ContaScreen({ navigation }) {
             <View style={styles.identity}>
               <Avatar
                 nome={perfil.nome}
-                uriFoto={perfil.temFoto ? urlFotoPerfil(usuarioId) : null}
-                headersFoto={{ Authorization: `Bearer ${sessao?.accessToken}` }}
+                uriFoto={uriFoto}
                 enviando={enviandoFoto}
                 onPressCamera={trocarFoto}
               />

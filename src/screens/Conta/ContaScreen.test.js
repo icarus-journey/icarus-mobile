@@ -16,6 +16,7 @@ jest.mock('../../state/SessaoContext', () => ({
   }),
 }));
 let perfil;
+let conteudoFoto;
 function tela() {
   return (
     <NavigationContainer>
@@ -33,6 +34,7 @@ async function selecionar(label, opcao) {
   fireEvent.press(screen.getByLabelText(opcao));
 }
 beforeEach(() => {
+  conteudoFoto = new Uint8Array([65, 66, 67]);
   mockUsuarioId = 'pessoa-a';
   perfil = {
     id: mockUsuarioId,
@@ -46,6 +48,8 @@ beforeEach(() => {
   };
   mockSair.mockReset().mockResolvedValue();
   mockRequisitar.mockReset().mockImplementation(async (_caminho, opcoes) => {
+    if (opcoes?.formatoResposta === 'binario')
+      return { conteudo: conteudoFoto, tipo: 'image/jpeg' };
     if (opcoes) perfil = { ...perfil, ...opcoes.corpo };
     return { ...perfil };
   });
@@ -221,7 +225,9 @@ describe('foto de perfil', () => {
   });
 
   it('envia a foto escolhida da galeria e troca as iniciais pela imagem', async () => {
-    jest.spyOn(ImagePicker, 'requestMediaLibraryPermissionsAsync').mockResolvedValue({ granted: true });
+    jest
+      .spyOn(ImagePicker, 'requestMediaLibraryPermissionsAsync')
+      .mockResolvedValue({ granted: true });
     jest.spyOn(ImagePicker, 'launchImageLibraryAsync').mockResolvedValue({
       canceled: false,
       assets: [{ uri: 'file://foto-local.jpg' }],
@@ -236,10 +242,86 @@ describe('foto de perfil', () => {
   });
 
   it('não envia nada quando a permissão da galeria é negada', async () => {
-    jest.spyOn(ImagePicker, 'requestMediaLibraryPermissionsAsync').mockResolvedValue({ granted: false });
+    jest
+      .spyOn(ImagePicker, 'requestMediaLibraryPermissionsAsync')
+      .mockResolvedValue({ granted: false });
     await abrir();
     await escolherOpcao('Escolher da galeria');
-    expect(mockRequisitar).not.toHaveBeenCalledWith('/api/usuarios/pessoa-a/foto', expect.anything());
-    expect(await screen.findByText('Permita o acesso à galeria para escolher uma foto.')).toBeTruthy();
+    expect(mockRequisitar).not.toHaveBeenCalledWith(
+      '/api/usuarios/pessoa-a/foto',
+      expect.anything(),
+    );
+    expect(
+      await screen.findByText('Permita o acesso à galeria para escolher uma foto.'),
+    ).toBeTruthy();
+  });
+
+  it('recarrega a imagem remota quando uma foto existente é substituída', async () => {
+    perfil.temFoto = true;
+    jest
+      .spyOn(ImagePicker, 'requestMediaLibraryPermissionsAsync')
+      .mockResolvedValue({ granted: true });
+    jest.spyOn(ImagePicker, 'launchImageLibraryAsync').mockResolvedValue({
+      canceled: false,
+      assets: [{ uri: 'file://foto-nova.jpg' }],
+    });
+    await abrir();
+    const fonteAnterior = screen.getByLabelText('Foto de perfil de Ana Silva').props.source.uri;
+    conteudoFoto = new Uint8Array([68, 69, 70]);
+    await escolherOpcao('Escolher da galeria');
+    const fonteAtual = screen.getByLabelText('Foto de perfil de Ana Silva').props.source.uri;
+    expect(fonteAtual).not.toEqual(fonteAnterior);
+    expect(fonteAnterior).toEqual('data:image/jpeg;base64,QUJD');
+    expect(fonteAtual).toEqual('data:image/jpeg;base64,REVG');
+  });
+
+  it('busca e exibe a foto já salva ao abrir o perfil', async () => {
+    perfil.temFoto = true;
+    await abrir();
+    const foto = await screen.findByLabelText('Foto de perfil de Ana Silva');
+    expect(mockRequisitar).toHaveBeenCalledWith('/api/usuarios/pessoa-a/foto', {
+      formatoResposta: 'binario',
+    });
+    expect(foto.props.source.uri).toBe('data:image/jpeg;base64,QUJD');
+  });
+
+  it('libera a troca de foto na nova conta e ignora o envio anterior', async () => {
+    jest
+      .spyOn(ImagePicker, 'requestMediaLibraryPermissionsAsync')
+      .mockResolvedValue({ granted: true });
+    jest.spyOn(ImagePicker, 'launchImageLibraryAsync').mockResolvedValue({
+      canceled: false,
+      assets: [{ uri: 'file://foto-anterior.jpg' }],
+    });
+    const resultado = await abrir();
+    let concluirEnvio;
+    mockRequisitar.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          concluirEnvio = resolve;
+        }),
+    );
+    fireEvent.press(screen.getByLabelText('Trocar foto de perfil'));
+    const [, , botoes] = Alert.alert.mock.calls[0];
+    let envio;
+    await act(async () => {
+      envio = botoes.find((botao) => botao.text === 'Escolher da galeria').onPress();
+    });
+    expect(screen.getByLabelText('Trocar foto de perfil')).toBeDisabled();
+
+    mockUsuarioId = 'pessoa-b';
+    perfil = { ...perfil, id: 'pessoa-b', nome: 'Beatriz Souza' };
+    resultado.rerender(tela());
+    await screen.findByLabelText('Nome: Beatriz Souza');
+    expect(screen.getByLabelText('Trocar foto de perfil')).toBeEnabled();
+    await act(async () => {
+      concluirEnvio();
+      await envio;
+    });
+    expect(screen.queryByLabelText('Foto de perfil de Ana Silva')).toBeNull();
+    expect(mockRequisitar).not.toHaveBeenCalledWith('/api/usuarios/pessoa-a/foto', {
+      formatoResposta: 'binario',
+    });
+    expect(screen.getByLabelText('Nome: Beatriz Souza')).toBeTruthy();
   });
 });

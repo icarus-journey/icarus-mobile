@@ -12,7 +12,10 @@ export function criarApi({
   executarFetch = (...args) => fetch(...args),
   tempoLimite = 15000,
 } = {}) {
-  return async function requisitar(caminho, { metodo = 'GET', corpo, corpoFormData, token } = {}) {
+  return async function requisitar(
+    caminho,
+    { metodo = 'GET', corpo, corpoFormData, token, formatoResposta = 'json' } = {},
+  ) {
     if (!urlBase) {
       throw new ErroApi(
         'Não foi possível conectar ao serviço. Verifique a configuração do aplicativo.',
@@ -25,6 +28,7 @@ export function criarApi({
         method: metodo,
         headers: {
           Accept: 'application/json',
+          ...(formatoResposta === 'binario' ? { 'Cache-Control': 'no-cache' } : {}),
           // FormData define o próprio Content-Type (com boundary) — não sobrescrever aqui.
           ...(corpo ? { 'Content-Type': 'application/json' } : {}),
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -33,6 +37,12 @@ export function criarApi({
         ...(corpoFormData ? { body: corpoFormData } : {}),
         signal: controlador.signal,
       });
+      if (resposta.ok && formatoResposta === 'binario') {
+        return {
+          conteudo: new Uint8Array(await resposta.arrayBuffer()),
+          tipo: resposta.headers.get('Content-Type'),
+        };
+      }
       const dados = resposta.status === 204 ? null : await resposta.json().catch(() => null);
       if (!resposta.ok) {
         const mensagens = {

@@ -287,7 +287,7 @@ export function PlanningHubScreen({ navigation, route }) {
 
       <BottomNav
         onPressLoja={() => navigation.navigate('Loja')}
-        onPressMissoes={() => navigation.popToTop()}
+        onPressMissoes={() => navigation.navigate('MissionList')}
         onPressDiario={() => navigation.navigate('Diario')}
         onPressPerfil={() => navigation.navigate('Conta')}
       />

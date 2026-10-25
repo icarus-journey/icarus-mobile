@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen } from '@testing-library/react-native';
 
 import { CampaignDetailScreen } from '../screens/CampaignDetail/CampaignDetailScreen';
 import { MissionDetailScreen } from '../screens/MissionDetail/MissionDetailScreen';
+import { vibrarConclusao } from '../utils/haptics';
 import { CampaignsProvider } from './CampaignsContext';
 import { MissionsProvider } from './MissionsContext';
 
@@ -13,6 +14,13 @@ const mockConcluirMissao = jest.fn();
 jest.mock('../services/missoes', () => ({
   concluirMissao: (...args) => mockConcluirMissao(...args),
 }));
+
+jest.mock('../utils/haptics', () => ({ vibrarConclusao: jest.fn() }));
+
+beforeEach(() => {
+  mockConcluirMissao.mockReset();
+  vibrarConclusao.mockClear();
+});
 
 const navigation = { goBack: jest.fn(), popToTop: jest.fn(), navigate: jest.fn() };
 
@@ -139,3 +147,38 @@ it.each(['módulos', 'reais', 'minutos', null, 'pontos '])(
     expect(screen.queryByText(/^40 de 100/)).toBeNull();
   },
 );
+
+it('vibra uma vez somente depois de a API confirmar a conclusão', async () => {
+  let confirmar;
+  mockConcluirMissao.mockReturnValueOnce(
+    new Promise((resolve) => {
+      confirmar = resolve;
+    }),
+  );
+  renderAmbasAsTelas();
+  fireEvent.press(screen.getByLabelText('Concluir missão'));
+  expect(vibrarConclusao).not.toHaveBeenCalled();
+
+  await act(async () => {
+    confirmar({
+      id: 5,
+      concluidaEm: '2026-10-23T21:00:00+00:00',
+      pontuacaoCreditada: 30,
+    });
+  });
+
+  expect(screen.getByLabelText('Missão concluída')).toBeTruthy();
+  expect(vibrarConclusao).toHaveBeenCalledTimes(1);
+  fireEvent.press(screen.getByLabelText('Missão concluída'));
+  expect(vibrarConclusao).toHaveBeenCalledTimes(1);
+});
+
+it('não vibra quando a API recusa a conclusão', async () => {
+  mockConcluirMissao.mockRejectedValueOnce(new Error('Sem conexão'));
+  renderAmbasAsTelas();
+  await act(async () => {
+    fireEvent.press(screen.getByLabelText('Concluir missão'));
+  });
+  expect(screen.getByText('Não foi possível concluir a missão. Tente novamente.')).toBeTruthy();
+  expect(vibrarConclusao).not.toHaveBeenCalled();
+});

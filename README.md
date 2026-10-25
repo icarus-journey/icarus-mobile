@@ -42,6 +42,9 @@ Secrets e aplique as migrations conforme a seção 6 de `icarus-platform/PROJETO
 - A aba Perfil consulta o cadastro real (somente leitura) e permite salvar ou limpar
   situação e horas semanais de estudo/trabalho. O fuso IANA do dispositivo é
   sincronizado ao abrir a sessão e ao retornar ao aplicativo.
+- A foto pode vir da câmera ou galeria. Envio e leitura passam pelo cliente
+  autenticado, com renovação de sessão e descarte de respostas de outra conta;
+  trocar a imagem atualiza o avatar sem reutilizar a foto anterior em cache.
 - Sair da conta exige confirmação. Confirmar remove a sessão local e tenta
   revogar a renovação no servidor; a saída local funciona inclusive sem rede.
 - Missões, campanhas, épicos e onboarding usam a API autenticada; os contextos
@@ -49,6 +52,9 @@ Secrets e aplique as migrations conforme a seção 6 de `icarus-platform/PROJETO
   permanece local, sem endpoint de persistência nesta entrega.
 
 Validação: `npm test -- --runInBand --watch=false` e `npm run lint`.
+
+A conclusão confirmada pela API produz dois pulsos de vibração no Android e
+retorno háptico de sucesso no iOS; falha ou ausência de suporte não impede o fluxo.
 
 ## Loja de recompensas
 

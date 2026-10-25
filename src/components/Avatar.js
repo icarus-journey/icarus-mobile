@@ -15,12 +15,16 @@ function iniciais(nome) {
  * Avatar circular com um pequeno botão de câmera sobreposto (como em outros apps) pra trocar
  * a foto de perfil. Sem foto, mostra as iniciais do nome num círculo colorido.
  */
-export function Avatar({ nome, uriFoto, headersFoto, enviando, onPressCamera }) {
+export function Avatar({ nome, uriFoto, enviando, onPressCamera }) {
   return (
     <View style={styles.container}>
       <View style={styles.circulo}>
         {uriFoto ? (
-          <Image source={{ uri: uriFoto, headers: headersFoto }} style={styles.imagem} />
+          <Image
+            source={{ uri: uriFoto }}
+            accessibilityLabel={`Foto de perfil de ${nome}`}
+            style={styles.imagem}
+          />
         ) : (
           <Text style={styles.inicial}>{iniciais(nome)}</Text>
         )}
