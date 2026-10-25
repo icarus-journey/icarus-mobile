@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Alert, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BottomNav } from '../../components/BottomNav';
@@ -49,6 +49,7 @@ export function CampaignDetailScreen({ route, navigation }) {
   }
 
   const concluida = campaign.estado === 'concluida';
+  const encerrada = concluida || campaign.estado === 'excluida';
   const estadoLabel = ESTADO_CAMPANHA_LABELS[campaign.estado] ?? 'Em andamento';
 
   async function handleConcluir() {
@@ -62,6 +63,17 @@ export function CampaignDetailScreen({ route, navigation }) {
     } finally {
       setConcluindo(false);
     }
+  }
+
+  function confirmarConclusao() {
+    Alert.alert(
+      'Concluir campanha?',
+      'As repetições pendentes de hoje em diante serão canceladas. Seu histórico e seus pontos ficam salvos.',
+      [
+        { text: 'Voltar', style: 'cancel' },
+        { text: 'Concluir', onPress: handleConcluir },
+      ],
+    );
   }
 
   const quantidadeMissoes = campaign.missoesAtribuidas?.length ?? 0;
@@ -110,6 +122,12 @@ export function CampaignDetailScreen({ route, navigation }) {
 
         <DetailInfoCard
           rows={[
+            {
+              label: 'Início',
+              value: campaign.prazoInicio
+                ? campaign.prazoInicio.split('-').reverse().join('/')
+                : null,
+            },
             { label: 'Prazo', value: campaign.prazoLabel },
             { label: 'Dificuldade', value: DIFICULDADE_LABELS[campaign.dificuldade] },
             {
@@ -125,7 +143,7 @@ export function CampaignDetailScreen({ route, navigation }) {
           campanha={campaign}
           aoAtualizar={aplicarProgresso}
           aoDefinirMeta={() => navigation.navigate('CampaignForm', { campaignId: campaign.id })}
-          aoConcluir={handleConcluir}
+          aoConcluir={confirmarConclusao}
           concluindo={concluindo}
         />
 
@@ -150,10 +168,10 @@ export function CampaignDetailScreen({ route, navigation }) {
           label={
             concluida ? 'Campanha concluída' : concluindo ? 'Concluindo...' : 'Concluir campanha'
           }
-          onPress={handleConcluir}
-          disabled={concluida || concluindo}
+          onPress={confirmarConclusao}
+          disabled={encerrada || concluindo}
         />
-        {!concluida ? (
+        {campaign.estado === 'planejada' ? (
           <SecondaryButton
             label="Editar campanha"
             onPress={() => navigation.navigate('CampaignForm', { campaignId: campaign.id })}

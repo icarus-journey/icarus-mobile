@@ -1,5 +1,5 @@
 import { lerValorProgresso } from '../../utils/valorProgresso';
-import { isValidDateString } from '../../utils/dateInput';
+import { isValidDateString, paraDataIso } from '../../utils/dateInput';
 
 const TITULO_MAX_LENGTH = 120;
 const DESCRICAO_MAX_LENGTH = 1000;
@@ -18,10 +18,22 @@ export function validateCampaignForm(values) {
     errors.descricao = `A descrição deve ter no máximo ${DESCRICAO_MAX_LENGTH} caracteres.`;
   }
 
+  if (!isValidDateString(values.dataInicio ?? '')) {
+    errors.dataInicio = 'Informe uma data de início válida.';
+  }
+
   if (!values.dataLimite) {
     errors.dataLimite = 'Informe a data limite.';
   } else if (!isValidDateString(values.dataLimite)) {
     errors.dataLimite = 'Informe uma data válida no formato dd/mm/aaaa.';
+  }
+
+  if (
+    !errors.dataInicio &&
+    !errors.dataLimite &&
+    paraDataIso(values.dataLimite) < paraDataIso(values.dataInicio)
+  ) {
+    errors.dataLimite = 'A data limite deve ser igual ou posterior ao início.';
   }
 
   if (!values.dificuldade) {

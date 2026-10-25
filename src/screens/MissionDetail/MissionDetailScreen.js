@@ -26,7 +26,7 @@ const DIFICULDADE_LABELS = {
 export function MissionDetailScreen({ route, navigation }) {
   const { missionId } = route.params;
   const { getMissionById, concluirMissao, pararMissao } = useMissions();
-  const { incrementarValorAtual } = useCampaigns();
+  const { incrementarValorAtual, getCampaignById } = useCampaigns();
   const insets = useSafeAreaInsets();
   const mission = getMissionById(missionId);
   const [concluindo, setConcluindo] = useState(false);
@@ -43,7 +43,9 @@ export function MissionDetailScreen({ route, navigation }) {
   }
 
   const concluida = Boolean(mission.concluidaEm);
-  const inativa = Boolean(mission.inativa);
+  const campanha = mission.campanha ? getCampaignById(mission.campanha.id) : null;
+  const campanhaEncerrada = ['concluida', 'excluida'].includes(campanha?.estado);
+  const inativa = Boolean(mission.inativa) || (campanhaEncerrada && mission.recorrente);
 
   async function handleConcluir() {
     setConcluindo(true);
@@ -106,10 +108,22 @@ export function MissionDetailScreen({ route, navigation }) {
           chips={[
             { label: 'Missão', backgroundColor: colors.dangerSoft, textColor: colors.dangerText },
             inativa
-              ? { label: 'Parada', backgroundColor: colors.dangerSoft, textColor: colors.dangerText }
+              ? {
+                  label: 'Parada',
+                  backgroundColor: colors.dangerSoft,
+                  textColor: colors.dangerText,
+                }
               : concluida
-                ? { label: 'Concluída', backgroundColor: colors.successSoft, textColor: colors.success }
-                : { label: 'Em andamento', backgroundColor: colors.softPurpleAlt, textColor: colors.brandDark },
+                ? {
+                    label: 'Concluída',
+                    backgroundColor: colors.successSoft,
+                    textColor: colors.success,
+                  }
+                : {
+                    label: 'Em andamento',
+                    backgroundColor: colors.softPurpleAlt,
+                    textColor: colors.brandDark,
+                  },
             {
               label: `+${mission.pontos} pts`,
               backgroundColor: colors.softPurpleAlt,
@@ -153,15 +167,20 @@ export function MissionDetailScreen({ route, navigation }) {
 
         <PrimaryButton
           label={
-            inativa ? 'Missão parada'
-            : concluida ? 'Missão concluída'
-            : concluindo ? 'Concluindo...'
-            : 'Concluir missão'
+            concluida
+              ? 'Missão concluída'
+              : campanhaEncerrada
+                ? 'Campanha encerrada'
+                : inativa
+                  ? 'Missão parada'
+                  : concluindo
+                    ? 'Concluindo...'
+                    : 'Concluir missão'
           }
           onPress={handleConcluir}
-          disabled={inativa || concluida || concluindo}
+          disabled={campanhaEncerrada || inativa || concluida || concluindo}
         />
-        {!concluida && !inativa && !mission.recorrente ? (
+        {!campanhaEncerrada && !concluida && !inativa && !mission.recorrente ? (
           <SecondaryButton
             label="Editar missão"
             onPress={() => navigation.navigate('MissionForm', { missionId: mission.id })}

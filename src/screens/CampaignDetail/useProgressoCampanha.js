@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 
 import {
   criarServicoProgressoCampanha,
@@ -59,14 +60,20 @@ export function useProgressoCampanha({
       });
   }, [servico, usuarioId, aplicar]);
 
-  useEffect(() => {
-    montado.current = true;
-    carregar();
-    return () => {
-      montado.current = false;
-      requisicao.current += 1;
-    };
-  }, [carregar]);
+  useFocusEffect(
+    useCallback(() => {
+      montado.current = true;
+      ocupado.current = false;
+      setEnviando(false);
+      setCarregando(true);
+      setErro('');
+      carregar();
+      return () => {
+        montado.current = false;
+        requisicao.current += 1;
+      };
+    }, [carregar]),
+  );
 
   function recarregar() {
     if (ocupado.current) return;

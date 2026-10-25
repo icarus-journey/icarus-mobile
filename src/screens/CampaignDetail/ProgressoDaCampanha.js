@@ -6,7 +6,7 @@ export function ProgressoDaCampanha(props) {
   const { sessao, requisitarAutenticado } = useSessao();
   return (
     <DadosDoProgresso
-      key={`${sessao?.usuarioId}:${props.campanhaId}`}
+      key={`${sessao?.usuarioId}:${props.campanhaId}:${props.campanha?.estado}`}
       {...props}
       usuarioId={sessao?.usuarioId}
       requisitarAutenticado={requisitarAutenticado}

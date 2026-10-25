@@ -50,7 +50,7 @@ export function CartaoProgressoCampanha({
           <Text style={styles.texto}>
             Defina uma quantidade e uma unidade para acompanhar sua meta.
           </Text>
-          {dados.estado !== 'concluida' && dados.estado !== 'excluida' ? (
+          {dados.estado === 'planejada' ? (
             <SecondaryButton label="Definir minha meta" onPress={aoDefinirMeta} />
           ) : null}
         </View>

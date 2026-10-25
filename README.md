@@ -90,11 +90,14 @@ o reconhecimento de voz continua no dispositivo.
 
 ## Progresso das campanhas
 
-O formulário permite definir quantidade e unidade da meta. Nos detalhes,
+O formulário permite definir início, quantidade e unidade da meta enquanto a
+campanha estiver planejada. A API inicia na data do perfil; em andamento,
+a configuração fica bloqueada e o progresso continua disponível. Nos detalhes,
 **Registrar progresso** salva o total alcançado, inclusive zero ou uma redução,
 e recupera o histórico ao reabrir. Digite o total acumulado, não apenas o avanço
 do dia. A barra para em 100%, mas o texto preserva o valor acima da meta;
-concluir a campanha continua exigindo uma ação explícita.
+concluir exige confirmação e cancela repetições pendentes de hoje em diante,
+preservando histórico e pontos. A jornada é atualizada ao voltar ao aplicativo.
 
 Falhas preservam o valor digitado; repetir a tentativa não duplica a medição.
 Troca de conta descarta o estado e respostas antigas. Registrar progresso não

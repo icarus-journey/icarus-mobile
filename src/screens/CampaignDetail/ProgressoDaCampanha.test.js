@@ -4,6 +4,10 @@ import { ProgressoDaCampanha } from './ProgressoDaCampanha';
 
 let mockUsuarioId = 'conta-1';
 const mockRequisitar = jest.fn();
+jest.mock('@react-navigation/native', () => ({
+  useFocusEffect: (efeito) => require('react').useEffect(efeito, [efeito]),
+}));
+
 jest.mock('../../state/SessaoContext', () => ({
   useSessao: () => ({
     sessao: { usuarioId: mockUsuarioId },
@@ -146,6 +150,7 @@ it('trata carregamento indisponível, repetição e campanha sem meta', async ()
   mockRequisitar.mockResolvedValueOnce({
     ...INICIAL,
     valorMensurado: null,
+    estado: 'planejada',
     unidade: null,
     podeRegistrar: false,
   });

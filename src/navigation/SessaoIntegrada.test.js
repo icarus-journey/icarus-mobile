@@ -1,4 +1,5 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { AppState } from 'react-native';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
 import { ConteudoDaSessao } from '../../App';
 import { criarApi } from '../services/api';
@@ -53,6 +54,8 @@ function iniciar({ salva = null, semConexao = false } = {}) {
       }
       return { ok: true, status: 200, json: async () => [...diarios[conta]] };
     }
+    if (url.endsWith('/epicos') || url.endsWith('/missoes'))
+      return { ok: true, status: 200, json: async () => [] };
     if (url.endsWith('/logout')) return { ok: true, status: 204 };
     if (url.endsWith(`/api/usuarios/usuario-${conta}`))
       return {
@@ -180,4 +183,28 @@ it('encerra a sessão se a análise recusar o acesso e a renovação também exp
   expect(await screen.findByLabelText('Entrar na minha jornada')).toBeTruthy();
   expect(screen.queryByText('Contexto para sua jornada')).toBeNull();
   expect(executarFetch.mock.calls.some(([url]) => url.endsWith('/refresh'))).toBe(true);
+});
+
+it('atualiza a jornada ao voltar ao app, para receber as transições automáticas das campanhas', async () => {
+  const ouvintes = [];
+  const assinatura = jest
+    .spyOn(AppState, 'addEventListener')
+    .mockImplementation((_evento, callback) => {
+      ouvintes.push(callback);
+      return { remove: jest.fn() };
+    });
+  try {
+    const { executarFetch } = iniciar();
+    await entrar();
+    await screen.findByText('Seus próximos passos.');
+    const leituras = () =>
+      executarFetch.mock.calls.filter(([url]) => url.endsWith('/epicos')).length;
+    await waitFor(() => expect(leituras()).toBe(1));
+    await act(async () => {
+      ouvintes.forEach((ouvir) => ouvir('active'));
+    });
+    await waitFor(() => expect(leituras()).toBe(2));
+  } finally {
+    assinatura.mockRestore();
+  }
 });

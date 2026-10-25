@@ -1,3 +1,5 @@
+import { Alert } from 'react-native';
+import { MOCK_CAMPAIGNS } from '../state/campaignMockData';
 import { NavigationContainer } from '@react-navigation/native';
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 
@@ -63,7 +65,13 @@ function renderApp(initialRouteName = 'Login', { initialMissions } = {}) {
     <OnboardingProvider>
       <MissionsProvider {...(initialMissions ? { initialMissions } : {})}>
         <EpicsProvider>
-          <CampaignsProvider>
+          <CampaignsProvider
+            initialCampaigns={MOCK_CAMPAIGNS.map((c) => ({
+              ...c,
+              estado: 'planejada',
+              prazoInicio: '2026-11-01',
+            }))}
+          >
             <DiariosProvider>
               <NavigationContainer>
                 <RootNavigator initialRouteName={initialRouteName} />
@@ -364,12 +372,12 @@ describe('fluxo de campanhas', () => {
       areaDaVida: 'trabalhoECarreira',
       dificuldade: 'media',
       pontuacao: 45,
-      prazoInicio: '2026-01-01',
-      prazoFim: '2026-09-30',
+      prazoInicio: '2026-11-01',
+      prazoFim: '2026-12-30',
       valorMensurado: null,
       unidade: null,
       valorAtual: null,
-      estado: 'emAndamento',
+      estado: 'planejada',
     });
     renderApp('MissionList');
 
@@ -384,6 +392,7 @@ describe('fluxo de campanhas', () => {
     expect(screen.getByText('Editar campanha')).toBeTruthy();
     expect(screen.getByDisplayValue('Capacitação em Python')).toBeTruthy();
 
+    fireEvent.changeText(screen.getByLabelText('Data limite'), '30122026');
     fireEvent.changeText(screen.getByLabelText('Título'), 'Capacitação em Python avançado');
     fireEvent.changeText(screen.getByLabelText('Quanto você quer alcançar?'), '12');
     fireEvent.changeText(screen.getByLabelText('Unidade da meta'), 'módulos');
@@ -406,7 +415,7 @@ describe('fluxo de campanhas', () => {
       areaDaVida: 'trabalhoECarreira',
       dificuldade: 'dificil',
       pontuacao: 60,
-      prazoInicio: '2026-01-01',
+      prazoInicio: '2026-11-01',
       prazoFim: '2027-03-15',
       valorMensurado: null,
       unidade: null,
@@ -433,9 +442,17 @@ describe('fluxo de campanhas', () => {
 
     expect(screen.getByText('Campanhas')).toBeTruthy();
     expect(screen.getByText('Correr uma meia maratona')).toBeTruthy();
+    expect(mockCriarCampanha).toHaveBeenCalledWith(
+      expect.objectContaining({
+        dados: expect.objectContaining({
+          prazoInicio: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
+        }),
+      }),
+    );
   });
 
   it('conclui a campanha a partir do detalhe mesmo sem atingir o valor mensurado (RF-03.7)', async () => {
+    const alerta = jest.spyOn(Alert, 'alert');
     mockConcluirCampanha.mockResolvedValue({ id: 'campanha-1', estado: 'concluida' });
     renderApp('MissionList');
 
@@ -446,7 +463,9 @@ describe('fluxo de campanhas', () => {
 
     await act(async () => {
       fireEvent.press(screen.getByLabelText('Concluir campanha'));
+      await alerta.mock.calls[0][2].find((acao) => acao.text === 'Concluir').onPress();
     });
+    alerta.mockRestore();
 
     expect(mockConcluirCampanha).toHaveBeenCalledTimes(1);
     expect(screen.getByText('Campanha concluída')).toBeTruthy();

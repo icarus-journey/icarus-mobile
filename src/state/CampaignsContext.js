@@ -60,7 +60,7 @@ function DadosDasCampanhas({ children, initialCampaigns }) {
           titulo: formValues.titulo,
           descricao: formValues.descricao || null,
           dificuldade: formValues.dificuldade.toLowerCase(),
-          prazoInicio: null,
+          prazoInicio: paraDataIso(formValues.dataInicio),
           prazoFim: paraDataIso(formValues.dataLimite),
           valorMensurado: lerValorProgresso(formValues.valorMensurado),
           unidade: formValues.unidade?.trim() || null,
@@ -85,7 +85,7 @@ function DadosDasCampanhas({ children, initialCampaigns }) {
           titulo: formValues.titulo,
           descricao: formValues.descricao || null,
           dificuldade: formValues.dificuldade.toLowerCase(),
-          prazoInicio: campanhaAtual?.prazoInicio,
+          prazoInicio: paraDataIso(formValues.dataInicio),
           prazoFim: paraDataIso(formValues.dataLimite),
           valorMensurado:
             formValues.valorMensurado === undefined

@@ -13,6 +13,8 @@ const navigation = { goBack: jest.fn(), navigate: jest.fn() };
 
 const CAMPANHA = {
   id: 1,
+  estado: 'planejada',
+  prazoInicio: '2026-11-01',
   titulo: 'Campanha X',
   descricao: null,
   dataLimite: '31/12/2026',
@@ -106,5 +108,30 @@ describe('CampaignFormScreen — épico (RF-03.8)', () => {
 
     expect(screen.getByLabelText('Épico ativo')).toBeTruthy();
     expect(screen.queryByLabelText('Épico concluído')).toBeNull();
+  });
+});
+
+describe('CampaignFormScreen — ciclo da campanha', () => {
+  it.each(['emAndamento', 'concluida', 'excluida'])(
+    'impede editar configuração em %s, inclusive pela rota direta',
+    (estado) => {
+      renderScreen({ initialCampaigns: [{ ...CAMPANHA, estado }] });
+      expect(screen.queryByLabelText('Título')).toBeNull();
+      expect(screen.queryByLabelText('Salvar alterações')).toBeNull();
+      expect(screen.getByText(/Esta campanha/)).toBeTruthy();
+    },
+  );
+
+  it('oferece a data inicial e mantém o épico de origem ao editar planejada', () => {
+    renderScreen();
+    expect(screen.getByDisplayValue('01/11/2026')).toBeTruthy();
+    expect(screen.queryByLabelText('Escolher épico')).toBeNull();
+    expect(screen.getByText('Épico X')).toBeTruthy();
+  });
+
+  it('rota com campanha indisponível não vira criação silenciosamente', () => {
+    renderScreen({ initialCampaigns: [] });
+    expect(screen.queryByLabelText('Salvar campanha')).toBeNull();
+    expect(screen.getByText('Esta campanha não está disponível para edição.')).toBeTruthy();
   });
 });

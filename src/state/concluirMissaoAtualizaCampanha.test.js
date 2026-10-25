@@ -6,6 +6,10 @@ import { vibrarConclusao } from '../utils/haptics';
 import { CampaignsProvider } from './CampaignsContext';
 import { MissionsProvider } from './MissionsContext';
 
+jest.mock('@react-navigation/native', () => ({
+  useFocusEffect: (efeito) => require('react').useEffect(efeito, [efeito]),
+}));
+
 jest.mock('./SessaoContext', () => ({
   useSessao: () => ({ sessao: { usuarioId: 'usuario-teste' }, requisitarAutenticado: jest.fn() }),
 }));
@@ -181,4 +185,20 @@ it('não vibra quando a API recusa a conclusão', async () => {
   });
   expect(screen.getByText('Não foi possível concluir a missão. Tente novamente.')).toBeTruthy();
   expect(vibrarConclusao).not.toHaveBeenCalled();
+});
+
+it('campanha encerrada bloqueia nova conclusão sem apagar a apresentação da missão já concluída', () => {
+  const concluidaEm = '2026-10-20T12:00:00Z';
+  render(
+    <CampaignsProvider initialCampaigns={[{ ...CAMPANHA_MENSURAVEL, estado: 'concluida' }]}>
+      <MissionsProvider initialMissions={[{ ...MISSAO_VINCULADA, concluidaEm }]}>
+        <MissionDetailScreen navigation={navigation} route={{ params: { missionId: 5 } }} />
+      </MissionsProvider>
+    </CampaignsProvider>,
+  );
+  expect(screen.getByText('Concluída')).toBeTruthy();
+  expect(screen.getByLabelText('Missão concluída')).toBeTruthy();
+  expect(screen.queryByLabelText('Editar missão')).toBeNull();
+  fireEvent.press(screen.getByLabelText('Missão concluída'));
+  expect(mockConcluirMissao).not.toHaveBeenCalled();
 });
