@@ -25,6 +25,7 @@ function mapearMissaoDaApi(missao, campanha) {
     id: missao.id,
     titulo: missao.titulo,
     descricao: missao.descricao,
+    beneficio: missao.beneficio,
     status: 'PENDENTE',
     dataLimite: deDataIso(missao.dataLimite),
     prazoLabel: deDataIso(missao.dataLimite),
@@ -34,6 +35,8 @@ function mapearMissaoDaApi(missao, campanha) {
     horarioIso: missao.horario,
     concluidaEm: missao.concluidaEm ?? null,
     recorrente: missao.recorrente ?? false,
+    versao: missao.versao,
+    configuracaoRecorrencia: missao.configuracaoRecorrencia ?? null,
     inativa: missao.status === 'inativa',
     excluida: missao.status === 'excluida',
     campanha,
@@ -105,16 +108,30 @@ export function MissionsProvider({ children, initialMissions = MOCK_MISSIONS }) 
         dados: {
           titulo: formValues.titulo,
           descricao: formValues.descricao || null,
-          beneficio: null,
+          beneficio: formValues.beneficio ?? missaoAtual?.beneficio ?? null,
           dificuldade: formValues.dificuldade.toLowerCase(),
           dataLimite: formValues.dataLimite ? paraDataIso(formValues.dataLimite) : null,
           // Sem campo de horário no formulário: reenvia o horário já existente, senão a API
           // resetaria para 09:00 por omissão.
-          horario: horarioParaApi(missaoAtual?.horarioIso),
+          horario: horarioParaApi(formValues.horarioIso ?? missaoAtual?.horarioIso),
+          ...(missaoAtual?.recorrente
+            ? {
+                recorrencia: formValues.tipoRecorrencia.toLowerCase(),
+                diasSemana: formValues.tipoRecorrencia === 'SEMANAL' ? formValues.diasSemana : null,
+                dataFimRecorrencia: formValues.dataFimRecorrencia
+                  ? paraDataIso(formValues.dataFimRecorrencia)
+                  : null,
+                diaDoMes:
+                  formValues.tipoRecorrencia === 'MENSAL' ? Number(formValues.diaDoMes) : null,
+                versaoEsperada: formValues.versao,
+              }
+            : {}),
         },
       });
       // Edição não re-vincula a campanha (fora de escopo aqui): mantém a já carregada localmente.
       const camposAtualizados = mapearMissaoDaApi(resposta, missaoAtual?.campanha ?? null);
+      // Editar a regra não desfaz a conclusão já mostrada nesta sessão para a execução atual.
+      if (missaoAtual?.recorrente) camposAtualizados.concluidaEm = missaoAtual.concluidaEm ?? null;
 
       setMissions((current) =>
         current.map((mission) => (mission.id === missionId ? camposAtualizados : mission)),

@@ -160,7 +160,10 @@ export function MissionDetailScreen({ route, navigation }) {
           </Text>
         </View>
 
-        <DetailRewardCard value={mission.recompensaLabel} />
+        <DetailRewardCard
+          label={mission.recorrente ? 'Pontos planejados' : 'Recompensa'}
+          value={mission.recompensaLabel}
+        />
 
         {erro ? (
           <Text style={styles.errorText} accessibilityRole="alert">
@@ -183,7 +186,7 @@ export function MissionDetailScreen({ route, navigation }) {
           onPress={handleConcluir}
           disabled={campanhaEncerrada || inativa || concluida || concluindo || exclusao.excluindo}
         />
-        {!campanhaEncerrada && !concluida && !inativa && !mission.recorrente ? (
+        {!campanhaEncerrada && (!concluida || mission.recorrente) && !inativa ? (
           <SecondaryButton
             label="Editar missão"
             disabled={exclusao.excluindo}

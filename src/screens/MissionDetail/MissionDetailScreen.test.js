@@ -31,7 +31,7 @@ describe('MissionDetailScreen', () => {
     expect(screen.getByText('Capacitação em Python')).toBeTruthy();
     expect(screen.getByText('3 de 5 registros concluídos')).toBeTruthy();
     expect(screen.getByText('Parar missão')).toBeTruthy(); // recorrente e ativa
-    expect(screen.queryByText('Editar missão')).toBeNull(); // missão recorrente nunca é editável
+    expect(screen.getByText('Editar missão')).toBeTruthy(); // recorrente ativa permite editar o planejamento futuro
   });
 
   it('missão não recorrente ativa mostra o botão de editar', () => {

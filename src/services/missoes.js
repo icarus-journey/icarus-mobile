@@ -31,3 +31,7 @@ export async function inativarMissao({ usuarioId, missaoId, requisitarAutenticad
 export async function excluirMissao({ usuarioId, id, requisitarAutenticado }) {
   return requisitarAutenticado(`/api/usuarios/${usuarioId}/missoes/${id}`, { metodo: 'DELETE' });
 }
+
+export async function consultarMissao({ usuarioId, missaoId, requisitarAutenticado }) {
+  return requisitarAutenticado(`/api/usuarios/${usuarioId}/missoes/${missaoId}`);
+}

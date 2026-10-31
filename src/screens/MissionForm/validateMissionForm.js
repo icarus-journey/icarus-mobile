@@ -3,7 +3,7 @@ import { isDataLimiteVencida, isValidDateString } from '../../utils/dateInput';
 const TITULO_MAX_LENGTH = 120;
 const DESCRICAO_MAX_LENGTH = 1000;
 
-export function validateMissionForm(values) {
+export function validateMissionForm(values, { editando = false } = {}) {
   const errors = {};
 
   const titulo = values.titulo?.trim() ?? '';
@@ -17,9 +17,9 @@ export function validateMissionForm(values) {
     errors.descricao = `A descrição deve ter no máximo ${DESCRICAO_MAX_LENGTH} caracteres.`;
   }
 
-  if (!values.dataLimite) {
+  if (!values.dataLimite && !(editando && values.recorrente === 'Sim')) {
     errors.dataLimite = 'Informe a data limite.';
-  } else if (!isValidDateString(values.dataLimite)) {
+  } else if (values.dataLimite && !isValidDateString(values.dataLimite)) {
     errors.dataLimite = 'Informe uma data válida no formato dd/mm/aaaa.';
   }
 
@@ -31,8 +31,23 @@ export function validateMissionForm(values) {
     errors.tipoRecorrencia = 'Escolha o tipo de recorrência.';
   }
 
-  if (values.recorrente === 'Sim' && values.tipoRecorrencia === 'SEMANAL' && !values.diasSemana?.length) {
+  if (
+    values.recorrente === 'Sim' &&
+    values.tipoRecorrencia === 'SEMANAL' &&
+    !values.diasSemana?.length
+  ) {
     errors.diasSemana = 'Escolha ao menos um dia da semana.';
+  }
+
+  if (
+    editando &&
+    values.recorrente === 'Sim' &&
+    values.tipoRecorrencia === 'MENSAL' &&
+    (!/^\d{1,2}$/.test(values.diaDoMes ?? '') ||
+      Number(values.diaDoMes) < 1 ||
+      Number(values.diaDoMes) > 31)
+  ) {
+    errors.diaDoMes = 'Escolha um dia entre 1 e 31.';
   }
 
   if (values.recorrente === 'Sim' && values.dataFimRecorrencia) {

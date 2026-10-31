@@ -249,7 +249,7 @@ describe('fluxo de autenticação e missões', () => {
 
     expect(mockConcluirMissao).toHaveBeenCalledTimes(1);
     expect(screen.getByText('Missão concluída')).toBeTruthy();
-    expect(screen.queryByLabelText('Editar missão')).toBeNull();
+    expect(screen.getByLabelText('Editar missão')).toBeTruthy();
   });
 
   it('não salva e mostra erros quando campos obrigatórios estão vazios', () => {

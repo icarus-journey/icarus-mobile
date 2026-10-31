@@ -32,6 +32,15 @@ túnel do Expo publica o Metro, mas não a API. Reinicie o Metro ao mudar a
 variável. Para testar cadastro e login, inicie PostgreSQL, configure os User
 Secrets e aplique as migrations conforme a seção 6 de `icarus-platform/PROJETO.md`.
 
+## Editar repetições
+
+A missão recorrente ativa oferece **Editar missão**, inclusive após concluir a
+execução do dia. O formulário consulta a regra salva antes de permitir edição;
+frequência, dias, dia mensal e fim opcional usam os controles existentes. As
+alterações valem a partir de amanhã; vínculo permanece somente para leitura.
+Erro preserva o rascunho; conflito solicita reabrir a edição. A confirmação de
+execução já mostrada na sessão é mantida. Sem dependências ou novo APK.
+
 ## Excluir da rotina
 
 Os detalhes de épicos, campanhas e missões elegíveis oferecem **Excluir**, com
