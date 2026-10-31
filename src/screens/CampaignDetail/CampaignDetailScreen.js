@@ -1,13 +1,17 @@
+import { useExclusaoPlanejamento } from '../../hooks/useExclusaoPlanejamento';
+import { BotaoExcluirPlanejamento } from '../../components/BotaoExcluirPlanejamento';
 import { useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BottomNav } from '../../components/BottomNav';
 import { PrimaryButton, SecondaryButton } from '../../components/Button';
 import { DetailInfoCard } from '../../components/DetailInfoCard';
 import { DetailProgressCard } from '../../components/DetailProgressCard';
+import { ProgressoDaCampanha } from './ProgressoDaCampanha';
 import { DetailRewardCard } from '../../components/DetailRewardCard';
 import { DetailSummaryCard } from '../../components/DetailSummaryCard';
+import { KeyboardAwareScrollView } from '../../components/KeyboardAwareScrollView';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import IconEdit from '../../assets/icons/icon-edit.svg';
 import { useCampaigns } from '../../state/CampaignsContext';
@@ -31,7 +35,8 @@ const ESTADO_CAMPANHA_LABELS = {
 
 export function CampaignDetailScreen({ route, navigation }) {
   const { campaignId } = route.params;
-  const { getCampaignById, concluirCampanha } = useCampaigns();
+  const exclusao = useExclusaoPlanejamento({ tipo: 'campanhas', id: campaignId, navigation });
+  const { getCampaignById, concluirCampanha, aplicarProgresso } = useCampaigns();
   const insets = useSafeAreaInsets();
   const campaign = getCampaignById(campaignId);
   const [concluindo, setConcluindo] = useState(false);
@@ -47,6 +52,7 @@ export function CampaignDetailScreen({ route, navigation }) {
   }
 
   const concluida = campaign.estado === 'concluida';
+  const encerrada = concluida || campaign.estado === 'excluida';
   const estadoLabel = ESTADO_CAMPANHA_LABELS[campaign.estado] ?? 'Em andamento';
 
   async function handleConcluir() {
@@ -62,11 +68,22 @@ export function CampaignDetailScreen({ route, navigation }) {
     }
   }
 
+  function confirmarConclusao() {
+    Alert.alert(
+      'Concluir campanha?',
+      'As repetições pendentes de hoje em diante serão canceladas. Seu histórico e seus pontos ficam salvos.',
+      [
+        { text: 'Voltar', style: 'cancel' },
+        { text: 'Concluir', onPress: handleConcluir },
+      ],
+    );
+  }
+
   const quantidadeMissoes = campaign.missoesAtribuidas?.length ?? 0;
 
   return (
     <View style={styles.screen}>
-      <ScrollView
+      <KeyboardAwareScrollView
         style={styles.body}
         contentContainerStyle={[
           styles.content,
@@ -108,6 +125,12 @@ export function CampaignDetailScreen({ route, navigation }) {
 
         <DetailInfoCard
           rows={[
+            {
+              label: 'Início',
+              value: campaign.prazoInicio
+                ? campaign.prazoInicio.split('-').reverse().join('/')
+                : null,
+            },
             { label: 'Prazo', value: campaign.prazoLabel },
             { label: 'Dificuldade', value: DIFICULDADE_LABELS[campaign.dificuldade] },
             {
@@ -118,16 +141,18 @@ export function CampaignDetailScreen({ route, navigation }) {
           ]}
         />
 
-        {campaign.valorMensurado != null ? (
+        <ProgressoDaCampanha
+          campanhaId={campaign.id}
+          campanha={campaign}
+          aoAtualizar={aplicarProgresso}
+          aoDefinirMeta={() => navigation.navigate('CampaignForm', { campaignId: campaign.id })}
+          aoConcluir={confirmarConclusao}
+          concluindo={concluindo}
+        />
+
+        {campaign.progresso ? (
           <DetailProgressCard
-            title="Progresso desta campanha"
-            subtitle={`${campaign.valorAtual ?? 'Não informado'} de ${campaign.valorMensurado} ${campaign.unidade ?? 'unidade não informada'}`}
-            current={campaign.valorAtual}
-            total={campaign.valorMensurado}
-          />
-        ) : campaign.progresso ? (
-          <DetailProgressCard
-            title="Progresso desta campanha"
+            title="Execução das missões"
             subtitle={`${campaign.progresso.concluidas} de ${campaign.progresso.total} missões concluídas`}
             current={campaign.progresso.concluidas}
             total={campaign.progresso.total}
@@ -146,17 +171,28 @@ export function CampaignDetailScreen({ route, navigation }) {
           label={
             concluida ? 'Campanha concluída' : concluindo ? 'Concluindo...' : 'Concluir campanha'
           }
-          onPress={handleConcluir}
-          disabled={concluida || concluindo}
+          onPress={confirmarConclusao}
+          disabled={encerrada || concluindo || exclusao.excluindo}
         />
-        {!concluida ? (
+        {campaign.estado === 'planejada' ? (
           <SecondaryButton
             label="Editar campanha"
+            disabled={exclusao.excluindo}
             onPress={() => navigation.navigate('CampaignForm', { campaignId: campaign.id })}
             icon={<IconEdit width={24} height={24} />}
           />
         ) : null}
-      </ScrollView>
+        {true ? (
+          <BotaoExcluirPlanejamento
+            nome="campanha"
+            hierarquia={true}
+            aoExcluir={exclusao.excluir}
+            excluindo={exclusao.excluindo}
+            erro={exclusao.erro}
+            disabled={concluindo}
+          />
+        ) : null}
+      </KeyboardAwareScrollView>
 
       <BottomNav
         onPressLoja={() => navigation.navigate('Loja')}

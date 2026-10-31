@@ -32,6 +32,31 @@ túnel do Expo publica o Metro, mas não a API. Reinicie o Metro ao mudar a
 variável. Para testar cadastro e login, inicie PostgreSQL, configure os User
 Secrets e aplique as migrations conforme a seção 6 de `icarus-platform/PROJETO.md`.
 
+## Editar repetições
+
+A missão recorrente ativa oferece **Editar missão**, inclusive após concluir a
+execução do dia. O formulário consulta a regra salva antes de permitir edição;
+frequência, dias, dia mensal e fim opcional usam os controles existentes. As
+alterações valem a partir de amanhã; vínculo permanece somente para leitura.
+Erro preserva o rascunho; conflito solicita reabrir a edição. A confirmação de
+execução já mostrada na sessão é mantida. Sem dependências ou novo APK.
+
+O detalhe consulta a execução real (HTTP 1.2.0), seus pontos e disponibilidade.
+Atualiza ao voltar para a tela/app e a cada minuto em primeiro plano. Campanha
+não iniciada e data futura aparecem com rótulos curtos e botão desabilitado;
+falha permite **Atualizar execução**. Conclusão envia o identificador mostrado;
+resposta repetida não incrementa a campanha outra vez. Fuso, datas e limites
+são decididos pela API, com descarte de respostas de outra sessão.
+
+## Excluir da rotina
+
+Os detalhes de épicos, campanhas e missões elegíveis oferecem **Excluir**, com
+confirmação curta. A hierarquia sai das listas após a resposta da API; falhas
+mantêm o item e permitem tentar novamente. Conclusões, medições e pontos ficam
+preservados no servidor. Missões não recorrentes concluídas não oferecem a
+exclusão. Respostas antigas não recolocam itens excluídos, e o filtro local é
+isolado por sessão. A mudança usa JavaScript e não exige recompilar o APK.
+
 ## Ditado no cliente Android
 
 Com Java e Android SDK instalados e o aparelho autorizado no USB:
@@ -88,6 +113,28 @@ o reconhecimento de voz continua no dispositivo.
 - Missões, campanhas, épicos, onboarding e diário usam a API autenticada; os
   contextos mantêm o estado de apresentação e são limpos ao trocar de conta.
 
+## Progresso das campanhas
+
+O formulário permite definir início, quantidade e unidade da meta enquanto a
+campanha estiver planejada. A API inicia na data do perfil; em andamento,
+a configuração fica bloqueada e o progresso continua disponível. Nos detalhes,
+**Registrar progresso** salva o total alcançado, inclusive zero ou uma redução,
+e recupera o histórico ao reabrir. Digite o total acumulado, não apenas o avanço
+do dia. A barra para em 100%, mas o texto preserva o valor acima da meta;
+concluir exige confirmação e cancela repetições pendentes de hoje em diante,
+preservando histórico e pontos. A jornada é atualizada ao voltar ao aplicativo.
+
+Falhas preservam o valor digitado; repetir a tentativa não duplica a medição.
+Troca de conta descarta o estado e respostas antigas. Registrar progresso não
+altera saldo nem cria pontos. Campanhas antigas mantêm seus valores, sem
+inventar medições retroativas. A leitura 1.1.0 mostra avanço, quanto falta e
+um gráfico dos registros, também em **Sua meta em foco**. Com cinco registros
+semanais comparáveis, exibe **Se mantiver esse ritmo…** e o tempo aproximado.
+Sem base elegível, não cria previsão. Explicações e registros completos abrem
+sob demanda em **Entender meu ritmo**; pontos e XP ficam fora do cálculo.
+Contrato: [progresso mensurado](../icarus-context/docs/implementation-design/platform/09-progresso-mensurado-campanhas.md).
+Esta mudança é JavaScript/API e não exige recompilar o cliente instalado.
+
 ## Histórico do diário
 
 Reflexões e deslizes são carregados ao abrir o Diário e por **Atualizar histórico**.
@@ -127,7 +174,7 @@ Esse cartão representa o valor atual, independentemente do período do gráfico
 
 A API calcula a série de conclusões no fuso da conta; HTTP de progresso 1.1.0.
 Ausência de registro e falta de uma funcionalidade têm tratamentos diferentes:
-taxa/previstas e projeções ainda não disponíveis deixam de ocupar cartões de
+taxa/previstas ainda não disponíveis deixam de ocupar cartões de
 “histórico insuficiente”. A explicação fica em **Sobre estes números**. Não se
 estima taxa a partir de conclusões nem se convertem pontos em medidas reais.
 

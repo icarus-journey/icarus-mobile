@@ -43,10 +43,11 @@ export function DetalhesDosIndicadores({ visivel, onFechar, dados }) {
                 </Text>
               </>
             ) : null}
-            <Text style={estilos.titulo}>Previsões de conquistas</Text>
+            <Text style={estilos.titulo}>O ritmo da sua meta</Text>
             <Text style={estilos.texto}>
-              Precisam de medições do resultado da sua meta. Concluir missões e ganhar pontos não
-              substitui essas medições.
+              A evolução da meta usa seus registros de progresso e aparece em Sua meta em foco.
+              Havendo cinco registros semanais comparáveis, mostramos quanto tempo faltaria se o
+              ritmo continuar. Pontos e missões feitas não substituem o resultado da meta.
             </Text>
             <SecondaryButton label="Entendi" onPress={onFechar} />
           </ScrollView>

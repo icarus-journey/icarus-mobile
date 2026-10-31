@@ -8,6 +8,8 @@ import {
 import { colors } from '../theme';
 import { deDataIso, paraDataIso } from '../utils/dateInput';
 import { useSessao } from './SessaoContext';
+import { useExclusoesPlanejamento } from './ExclusoesPlanejamentoContext';
+import { lerValorProgresso } from '../utils/valorProgresso';
 import { MOCK_CAMPAIGNS } from './campaignMockData';
 
 const CampaignsContext = createContext(null);
@@ -37,8 +39,28 @@ function mapearCampanhaDaApi(campanha, epico) {
 }
 
 export function CampaignsProvider({ children, initialCampaigns = MOCK_CAMPAIGNS }) {
+  const { sessao } = useSessao();
+  return (
+    <DadosDasCampanhas key={sessao?.usuarioId ?? 'visitante'} initialCampaigns={initialCampaigns}>
+      {children}
+    </DadosDasCampanhas>
+  );
+}
+
+function DadosDasCampanhas({ children, initialCampaigns }) {
   const { sessao, requisitarAutenticado } = useSessao();
-  const [campaigns, setCampaigns] = useState(initialCampaigns);
+  const [campanhasCarregadas, setCampaigns] = useState(initialCampaigns);
+  const { exclusoes } = useExclusoesPlanejamento();
+  const campaigns = useMemo(
+    () =>
+      campanhasCarregadas.filter(
+        (item) =>
+          !exclusoes.campanhas.includes(item.id) &&
+          !exclusoes.epicos.includes(item.epico?.id) &&
+          item.estado !== 'excluida',
+      ),
+    [campanhasCarregadas, exclusoes],
+  );
 
   const addCampaign = useCallback(
     async (formValues) => {
@@ -50,10 +72,10 @@ export function CampaignsProvider({ children, initialCampaigns = MOCK_CAMPAIGNS 
           titulo: formValues.titulo,
           descricao: formValues.descricao || null,
           dificuldade: formValues.dificuldade.toLowerCase(),
-          prazoInicio: null,
+          prazoInicio: paraDataIso(formValues.dataInicio),
           prazoFim: paraDataIso(formValues.dataLimite),
-          valorMensurado: null,
-          unidade: null,
+          valorMensurado: lerValorProgresso(formValues.valorMensurado),
+          unidade: formValues.unidade?.trim() || null,
         },
       });
       const campaign = mapearCampanhaDaApi(resposta, formValues.epico);
@@ -75,10 +97,16 @@ export function CampaignsProvider({ children, initialCampaigns = MOCK_CAMPAIGNS 
           titulo: formValues.titulo,
           descricao: formValues.descricao || null,
           dificuldade: formValues.dificuldade.toLowerCase(),
-          prazoInicio: campanhaAtual?.prazoInicio,
+          prazoInicio: paraDataIso(formValues.dataInicio),
           prazoFim: paraDataIso(formValues.dataLimite),
-          valorMensurado: campanhaAtual?.valorMensurado ?? null,
-          unidade: campanhaAtual?.unidade ?? null,
+          valorMensurado:
+            formValues.valorMensurado === undefined
+              ? (campanhaAtual?.valorMensurado ?? null)
+              : lerValorProgresso(formValues.valorMensurado),
+          unidade:
+            formValues.unidade === undefined
+              ? (campanhaAtual?.unidade ?? null)
+              : formValues.unidade.trim() || null,
         },
       });
       // Edição não re-vincula o épico (RF-03): mantém o épico já carregado localmente.
@@ -153,6 +181,22 @@ export function CampaignsProvider({ children, initialCampaigns = MOCK_CAMPAIGNS 
     setCampaigns(campanhasMapeadas);
   }, []);
 
+  const aplicarProgresso = useCallback((campanhaId, progresso) => {
+    setCampaigns((atuais) =>
+      atuais.map((campanha) =>
+        campanha.id === campanhaId
+          ? {
+              ...campanha,
+              valorAtual: progresso.valorAtual,
+              valorMensurado: progresso.valorMensurado,
+              unidade: progresso.unidade,
+              estado: progresso.estado,
+            }
+          : campanha,
+      ),
+    );
+  }, []);
+
   const value = useMemo(
     () => ({
       campaigns,
@@ -163,6 +207,7 @@ export function CampaignsProvider({ children, initialCampaigns = MOCK_CAMPAIGNS 
       carregarLista,
       concluirCampanha,
       incrementarValorAtual,
+      aplicarProgresso,
     }),
     [
       campaigns,
@@ -173,6 +218,7 @@ export function CampaignsProvider({ children, initialCampaigns = MOCK_CAMPAIGNS 
       carregarLista,
       concluirCampanha,
       incrementarValorAtual,
+      aplicarProgresso,
     ],
   );
 

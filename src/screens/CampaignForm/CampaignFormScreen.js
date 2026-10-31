@@ -16,24 +16,31 @@ import { useEpics } from '../../state/EpicsContext';
 import { useMissions } from '../../state/MissionsContext';
 import { colors } from '../../theme/colors';
 import { fontFamily, fontSize } from '../../theme/typography';
-import { maskDateInput } from '../../utils/dateInput';
+import { deDataIso, maskDateInput } from '../../utils/dateInput';
 import { isFormValid, validateCampaignForm } from './validateCampaignForm';
 
 const INITIAL_VALUES = {
   titulo: '',
   descricao: '',
+  dataInicio: '',
   dataLimite: '',
   dificuldade: null,
   epico: null,
+  valorMensurado: '',
+  unidade: '',
 };
 
 function valuesFromCampaign(campaign) {
   return {
     titulo: campaign.titulo,
     descricao: campaign.descricao ?? '',
+    dataInicio: deDataIso(campaign.prazoInicio) ?? '',
     dataLimite: campaign.dataLimite ?? '',
     dificuldade: campaign.dificuldade,
     epico: campaign.epico ?? null,
+    valorMensurado:
+      campaign.valorMensurado == null ? '' : String(campaign.valorMensurado).replace('.', ','),
+    unidade: campaign.unidade ?? '',
   };
 }
 
@@ -53,7 +60,9 @@ export function CampaignFormScreen({ navigation, route }) {
   );
 
   const [values, setValues] = useState(() =>
-    editingCampaign ? valuesFromCampaign(editingCampaign) : INITIAL_VALUES,
+    editingCampaign
+      ? valuesFromCampaign(editingCampaign)
+      : { ...INITIAL_VALUES, dataInicio: new Date().toLocaleDateString('pt-BR') },
   );
   const [errors, setErrors] = useState({});
   const [epicModalVisible, setEpicModalVisible] = useState(false);
@@ -79,11 +88,28 @@ export function CampaignFormScreen({ navigation, route }) {
         await addCampaign(values);
       }
       navigation.goBack();
-    } catch {
+    } catch (erro) {
+      if (erro.codigo === 'configuracao_campanha_bloqueada') {
+        setErroEnvio('Esta campanha já começou. Volte aos detalhes para registrar seu progresso.');
+        return;
+      }
       setErroEnvio('Não foi possível salvar a campanha. Tente novamente.');
     } finally {
       setEnviando(false);
     }
+  }
+
+  if (editingCampaignId && editingCampaign?.estado !== 'planejada') {
+    return (
+      <View style={[styles.screen, { paddingTop: insets.top + 12 }]}>
+        <ScreenHeader title="Editar campanha" onBack={() => navigation.goBack()} />
+        <Text style={[styles.groupLabel, { margin: 24 }]}>
+          {editingCampaign?.estado === 'emAndamento'
+            ? 'Esta campanha já começou. Registre seu progresso nos detalhes.'
+            : 'Esta campanha não está disponível para edição.'}
+        </Text>
+      </View>
+    );
   }
 
   return (
@@ -119,6 +145,37 @@ export function CampaignFormScreen({ navigation, route }) {
         <ReadonlyField label="Tipo" value="Campanha" />
 
         <InputField
+          label="Quanto você quer alcançar?"
+          required
+          value={values.valorMensurado}
+          onChangeText={(valor) => setField('valorMensurado', valor)}
+          placeholder="Ex.: 12"
+          keyboardType="decimal-pad"
+          maxLength={13}
+          error={errors.valorMensurado}
+        />
+        <InputField
+          label="Unidade da meta"
+          required
+          value={values.unidade}
+          onChangeText={(valor) => setField('unidade', valor)}
+          placeholder="Ex.: módulos, quilômetros ou reais"
+          maxLength={30}
+          error={errors.unidade}
+        />
+
+        <InputField
+          label="Data de início"
+          required
+          value={values.dataInicio}
+          onChangeText={(text) => setField('dataInicio', maskDateInput(text))}
+          placeholder="dd/mm/aaaa"
+          keyboardType="number-pad"
+          maxLength={10}
+          error={errors.dataInicio}
+        />
+
+        <InputField
           label="Data limite"
           required
           value={values.dataLimite}
@@ -142,12 +199,19 @@ export function CampaignFormScreen({ navigation, route }) {
           <Pressable
             onPress={() =>
               navigation.navigate('MissionForm', {
-                campanha: { id: editingCampaign.id, titulo: editingCampaign.titulo },
+                campanha: {
+                  id: editingCampaign.id,
+                  titulo: editingCampaign.titulo,
+                  epicoId: editingCampaign.epico?.id,
+                },
               })
             }
             accessibilityRole="button"
             accessibilityLabel="Adicionar missão"
-            style={({ pressed }) => [styles.addMissionButton, pressed && styles.addMissionButtonPressed]}
+            style={({ pressed }) => [
+              styles.addMissionButton,
+              pressed && styles.addMissionButtonPressed,
+            ]}
           >
             <Text style={styles.addMissionButtonLabel}>Adicionar missão</Text>
             <IconEdit width={24} height={24} />
@@ -168,14 +232,18 @@ export function CampaignFormScreen({ navigation, route }) {
           </>
         ) : null}
 
-        <SelectField
-          label="Épico"
-          required
-          value={values.epico?.titulo}
-          placeholder="Selecionar épico"
-          onPress={() => setEpicModalVisible(true)}
-          error={errors.epico}
-        />
+        {editingCampaign ? (
+          <ReadonlyField label="Épico" value={values.epico?.titulo} />
+        ) : (
+          <SelectField
+            label="Épico"
+            required
+            value={values.epico?.titulo}
+            placeholder="Selecionar épico"
+            onPress={() => setEpicModalVisible(true)}
+            error={errors.epico}
+          />
+        )}
 
         {erroEnvio ? (
           <Text style={styles.errorText} accessibilityRole="alert">
