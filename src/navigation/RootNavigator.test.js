@@ -14,6 +14,9 @@ import { useSessao } from '../state/SessaoContext';
 jest.mock('../hooks/useRelatorioSemanal', () => ({
   useRelatorioSemanal: () => ({ dados: null, carregando: false }),
 }));
+jest.mock('../hooks/useJornada', () => ({
+  useJornada: () => ({ dados: null, carregando: false, erro: '', atualizar: jest.fn() }),
+}));
 
 jest.mock('../state/SessaoContext', () => ({ useSessao: jest.fn() }));
 

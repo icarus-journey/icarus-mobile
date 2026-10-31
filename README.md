@@ -34,6 +34,15 @@ Secrets e aplique as migrations conforme a seção 6 de `icarus-platform/PROJETO
 
 ## Editar repetições
 
+O cabeçalho de Missões mostra sequência e saldo reais de
+`GET /api/usuarios/{id}/jornada` (1.0.0). O foguinho abre o calendário; a moeda
+abre a Loja. Atualiza ao retornar à tela/app e a cada minuto ativo, descartando
+respostas de outra sessão. Hoje confirmado usa chama laranja; contagem
+desconhecida usa travessão, sem inventar zero para registros antigos sem fuso.
+Layout se adapta à fonte/tela e valores grandes. Os três PNGs aprovados ficam
+em `src/assets/jornada/`; não requer nova build ou dependência. Contrato e
+limites: [sequência diária](../icarus-context/docs/implementation-design/platform/10-sequencia-diaria.md).
+
 A missão recorrente ativa oferece **Editar missão**, inclusive após concluir a
 execução do dia. O formulário consulta a regra salva antes de permitir edição;
 frequência, dias, dia mensal e fim opcional usam os controles existentes. As
