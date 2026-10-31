@@ -1,3 +1,5 @@
+import { useExclusaoPlanejamento } from '../../hooks/useExclusaoPlanejamento';
+import { BotaoExcluirPlanejamento } from '../../components/BotaoExcluirPlanejamento';
 import { useState } from 'react';
 import { Alert, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -33,6 +35,7 @@ const ESTADO_CAMPANHA_LABELS = {
 
 export function CampaignDetailScreen({ route, navigation }) {
   const { campaignId } = route.params;
+  const exclusao = useExclusaoPlanejamento({ tipo: 'campanhas', id: campaignId, navigation });
   const { getCampaignById, concluirCampanha, aplicarProgresso } = useCampaigns();
   const insets = useSafeAreaInsets();
   const campaign = getCampaignById(campaignId);
@@ -169,13 +172,24 @@ export function CampaignDetailScreen({ route, navigation }) {
             concluida ? 'Campanha concluída' : concluindo ? 'Concluindo...' : 'Concluir campanha'
           }
           onPress={confirmarConclusao}
-          disabled={encerrada || concluindo}
+          disabled={encerrada || concluindo || exclusao.excluindo}
         />
         {campaign.estado === 'planejada' ? (
           <SecondaryButton
             label="Editar campanha"
+            disabled={exclusao.excluindo}
             onPress={() => navigation.navigate('CampaignForm', { campaignId: campaign.id })}
             icon={<IconEdit width={24} height={24} />}
+          />
+        ) : null}
+        {true ? (
+          <BotaoExcluirPlanejamento
+            nome="campanha"
+            hierarquia={true}
+            aoExcluir={exclusao.excluir}
+            excluindo={exclusao.excluindo}
+            erro={exclusao.erro}
+            disabled={concluindo}
           />
         ) : null}
       </KeyboardAwareScrollView>

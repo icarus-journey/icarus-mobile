@@ -1,3 +1,5 @@
+import { useExclusaoPlanejamento } from '../../hooks/useExclusaoPlanejamento';
+import { BotaoExcluirPlanejamento } from '../../components/BotaoExcluirPlanejamento';
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -30,6 +32,7 @@ const ESTADO_EPICO_LABELS = {
 
 export function EpicDetailScreen({ route, navigation }) {
   const { epicId } = route.params;
+  const exclusao = useExclusaoPlanejamento({ tipo: 'epicos', id: epicId, navigation });
   const { getEpicById, concluirEpico } = useEpics();
   const insets = useSafeAreaInsets();
   const epic = getEpicById(epicId);
@@ -133,13 +136,24 @@ export function EpicDetailScreen({ route, navigation }) {
         <PrimaryButton
           label={concluido ? 'Épico concluído' : concluindo ? 'Concluindo...' : 'Concluir épico'}
           onPress={handleConcluir}
-          disabled={concluido || concluindo}
+          disabled={concluido || concluindo || exclusao.excluindo}
         />
         {!concluido ? (
           <SecondaryButton
             label="Editar épico"
+            disabled={exclusao.excluindo}
             onPress={() => navigation.navigate('EpicForm', { epicId: epic.id })}
             icon={<IconEdit width={24} height={24} />}
+          />
+        ) : null}
+        {true ? (
+          <BotaoExcluirPlanejamento
+            nome="épico"
+            hierarquia={true}
+            aoExcluir={exclusao.excluir}
+            excluindo={exclusao.excluindo}
+            erro={exclusao.erro}
+            disabled={concluindo}
           />
         ) : null}
       </ScrollView>

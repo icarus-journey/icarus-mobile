@@ -32,6 +32,15 @@ túnel do Expo publica o Metro, mas não a API. Reinicie o Metro ao mudar a
 variável. Para testar cadastro e login, inicie PostgreSQL, configure os User
 Secrets e aplique as migrations conforme a seção 6 de `icarus-platform/PROJETO.md`.
 
+## Excluir da rotina
+
+Os detalhes de épicos, campanhas e missões elegíveis oferecem **Excluir**, com
+confirmação curta. A hierarquia sai das listas após a resposta da API; falhas
+mantêm o item e permitem tentar novamente. Conclusões, medições e pontos ficam
+preservados no servidor. Missões não recorrentes concluídas não oferecem a
+exclusão. Respostas antigas não recolocam itens excluídos, e o filtro local é
+isolado por sessão. A mudança usa JavaScript e não exige recompilar o APK.
+
 ## Ditado no cliente Android
 
 Com Java e Android SDK instalados e o aparelho autorizado no USB:

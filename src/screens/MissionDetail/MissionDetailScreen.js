@@ -1,3 +1,5 @@
+import { useExclusaoPlanejamento } from '../../hooks/useExclusaoPlanejamento';
+import { BotaoExcluirPlanejamento } from '../../components/BotaoExcluirPlanejamento';
 import { useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -25,6 +27,7 @@ const DIFICULDADE_LABELS = {
 
 export function MissionDetailScreen({ route, navigation }) {
   const { missionId } = route.params;
+  const exclusao = useExclusaoPlanejamento({ tipo: 'missoes', id: missionId, navigation });
   const { getMissionById, concluirMissao, pararMissao } = useMissions();
   const { incrementarValorAtual, getCampaignById } = useCampaigns();
   const insets = useSafeAreaInsets();
@@ -178,11 +181,12 @@ export function MissionDetailScreen({ route, navigation }) {
                     : 'Concluir missão'
           }
           onPress={handleConcluir}
-          disabled={campanhaEncerrada || inativa || concluida || concluindo}
+          disabled={campanhaEncerrada || inativa || concluida || concluindo || exclusao.excluindo}
         />
         {!campanhaEncerrada && !concluida && !inativa && !mission.recorrente ? (
           <SecondaryButton
             label="Editar missão"
+            disabled={exclusao.excluindo}
             onPress={() => navigation.navigate('MissionForm', { missionId: mission.id })}
             icon={<IconEdit width={24} height={24} />}
           />
@@ -191,7 +195,17 @@ export function MissionDetailScreen({ route, navigation }) {
           <SecondaryButton
             label={parando ? 'Parando...' : 'Parar missão'}
             onPress={handleParar}
-            disabled={parando}
+            disabled={parando || exclusao.excluindo}
+          />
+        ) : null}
+        {mission.recorrente || (!concluida && !inativa) ? (
+          <BotaoExcluirPlanejamento
+            nome="missão"
+            hierarquia={false}
+            aoExcluir={exclusao.excluir}
+            excluindo={exclusao.excluindo}
+            erro={exclusao.erro}
+            disabled={concluindo || parando}
           />
         ) : null}
       </ScrollView>

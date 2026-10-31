@@ -8,6 +8,7 @@ import {
 import { colors } from '../theme';
 import { deDataIso, paraDataIso } from '../utils/dateInput';
 import { useSessao } from './SessaoContext';
+import { useExclusoesPlanejamento } from './ExclusoesPlanejamentoContext';
 import { lerValorProgresso } from '../utils/valorProgresso';
 import { MOCK_CAMPAIGNS } from './campaignMockData';
 
@@ -48,7 +49,18 @@ export function CampaignsProvider({ children, initialCampaigns = MOCK_CAMPAIGNS 
 
 function DadosDasCampanhas({ children, initialCampaigns }) {
   const { sessao, requisitarAutenticado } = useSessao();
-  const [campaigns, setCampaigns] = useState(initialCampaigns);
+  const [campanhasCarregadas, setCampaigns] = useState(initialCampaigns);
+  const { exclusoes } = useExclusoesPlanejamento();
+  const campaigns = useMemo(
+    () =>
+      campanhasCarregadas.filter(
+        (item) =>
+          !exclusoes.campanhas.includes(item.id) &&
+          !exclusoes.epicos.includes(item.epico?.id) &&
+          item.estado !== 'excluida',
+      ),
+    [campanhasCarregadas, exclusoes],
+  );
 
   const addCampaign = useCallback(
     async (formValues) => {

@@ -1,9 +1,14 @@
 import { createContext, useCallback, useContext, useMemo, useState } from 'react';
 
-import { criarEpico, atualizarEpico, concluirEpico as concluirEpicoNaApi } from '../services/epicos';
+import {
+  criarEpico,
+  atualizarEpico,
+  concluirEpico as concluirEpicoNaApi,
+} from '../services/epicos';
 import { colors } from '../theme';
 import { deDataIso, paraDataIso } from '../utils/dateInput';
 import { useSessao } from './SessaoContext';
+import { useExclusoesPlanejamento } from './ExclusoesPlanejamentoContext';
 import { MOCK_EPICS } from './epicMockData';
 
 const EpicsContext = createContext(null);
@@ -34,7 +39,20 @@ function mapearEpicoDaApi(epico) {
 
 export function EpicsProvider({ children, initialEpics = MOCK_EPICS }) {
   const { sessao, requisitarAutenticado } = useSessao();
-  const [epics, setEpics] = useState(initialEpics);
+  const [epicosCarregados, setEpics] = useState(initialEpics);
+  const { exclusoes } = useExclusoesPlanejamento();
+  const epics = useMemo(
+    () =>
+      epicosCarregados
+        .filter((item) => !exclusoes.epicos.includes(item.id) && item.estado !== 'excluido')
+        .map((item) => ({
+          ...item,
+          campanhasAtribuidas: (item.campanhasAtribuidas ?? []).filter(
+            (campanha) => !exclusoes.campanhas.includes(campanha.id),
+          ),
+        })),
+    [epicosCarregados, exclusoes],
+  );
 
   const addEpic = useCallback(
     async (formValues) => {
@@ -79,7 +97,9 @@ export function EpicsProvider({ children, initialEpics = MOCK_EPICS }) {
 
       setEpics((current) =>
         current.map((epic) =>
-          epic.id === epicId ? { ...camposAtualizados, campanhasAtribuidas: epic.campanhasAtribuidas } : epic,
+          epic.id === epicId
+            ? { ...camposAtualizados, campanhasAtribuidas: epic.campanhasAtribuidas }
+            : epic,
         ),
       );
     },
@@ -136,7 +156,11 @@ export function EpicsProvider({ children, initialEpics = MOCK_EPICS }) {
   // Conclusão manual e irreversível (RF-03.8) — não altera o estado das campanhas do épico.
   const concluirEpico = useCallback(
     async (epicId) => {
-      const resposta = await concluirEpicoNaApi({ usuarioId: sessao.usuarioId, epicoId: epicId, requisitarAutenticado });
+      const resposta = await concluirEpicoNaApi({
+        usuarioId: sessao.usuarioId,
+        epicoId: epicId,
+        requisitarAutenticado,
+      });
       setEpics((current) =>
         current.map((epic) => (epic.id === epicId ? { ...epic, estado: resposta.estado } : epic)),
       );
@@ -152,8 +176,26 @@ export function EpicsProvider({ children, initialEpics = MOCK_EPICS }) {
   }, []);
 
   const value = useMemo(
-    () => ({ epics, addEpic, updateEpic, getEpicById, hidratarDoOnboarding, vincularCampanha, carregarLista, concluirEpico }),
-    [epics, addEpic, updateEpic, getEpicById, hidratarDoOnboarding, vincularCampanha, carregarLista, concluirEpico],
+    () => ({
+      epics,
+      addEpic,
+      updateEpic,
+      getEpicById,
+      hidratarDoOnboarding,
+      vincularCampanha,
+      carregarLista,
+      concluirEpico,
+    }),
+    [
+      epics,
+      addEpic,
+      updateEpic,
+      getEpicById,
+      hidratarDoOnboarding,
+      vincularCampanha,
+      carregarLista,
+      concluirEpico,
+    ],
   );
 
   return <EpicsContext.Provider value={value}>{children}</EpicsContext.Provider>;

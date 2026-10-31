@@ -12,6 +12,7 @@ import {
   useFonts,
 } from '@expo-google-fonts/inter';
 
+import { ExclusoesPlanejamentoProvider } from './src/state/ExclusoesPlanejamentoContext';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { listarEpicos } from './src/services/epicos';
 import { listarMissoesAvulsas } from './src/services/missoes';
@@ -61,21 +62,23 @@ export function ConteudoDaSessao() {
   const { sessao } = useSessao();
   return (
     <OnboardingProvider key={sessao?.usuarioId ?? 'visitante'}>
-      <MissionsProvider initialMissions={[]}>
-        <EpicsProvider initialEpics={[]}>
-          <CampaignsProvider initialCampaigns={[]}>
-            <DiariosProvider>
-              <CarregadorDeDados />
-              <SincronizadorDeFuso />
-              <LojaProvider>
-                <NavigationContainer>
-                  <RootNavigator />
-                </NavigationContainer>
-              </LojaProvider>
-            </DiariosProvider>
-          </CampaignsProvider>
-        </EpicsProvider>
-      </MissionsProvider>
+      <ExclusoesPlanejamentoProvider>
+        <MissionsProvider initialMissions={[]}>
+          <EpicsProvider initialEpics={[]}>
+            <CampaignsProvider initialCampaigns={[]}>
+              <DiariosProvider>
+                <CarregadorDeDados />
+                <SincronizadorDeFuso />
+                <LojaProvider>
+                  <NavigationContainer>
+                    <RootNavigator />
+                  </NavigationContainer>
+                </LojaProvider>
+              </DiariosProvider>
+            </CampaignsProvider>
+          </EpicsProvider>
+        </MissionsProvider>
+      </ExclusoesPlanejamentoProvider>
     </OnboardingProvider>
   );
 }

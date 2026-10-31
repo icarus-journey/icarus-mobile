@@ -199,7 +199,11 @@ export function CampaignFormScreen({ navigation, route }) {
           <Pressable
             onPress={() =>
               navigation.navigate('MissionForm', {
-                campanha: { id: editingCampaign.id, titulo: editingCampaign.titulo },
+                campanha: {
+                  id: editingCampaign.id,
+                  titulo: editingCampaign.titulo,
+                  epicoId: editingCampaign.epico?.id,
+                },
               })
             }
             accessibilityRole="button"

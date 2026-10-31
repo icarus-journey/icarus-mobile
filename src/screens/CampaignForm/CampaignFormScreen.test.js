@@ -67,7 +67,7 @@ describe('CampaignFormScreen — missões atribuídas', () => {
     fireEvent.press(screen.getByLabelText('Adicionar missão'));
 
     expect(navigation.navigate).toHaveBeenCalledWith('MissionForm', {
-      campanha: { id: 1, titulo: 'Campanha X' },
+      campanha: { id: 1, titulo: 'Campanha X', epicoId: 1 },
     });
   });
 
