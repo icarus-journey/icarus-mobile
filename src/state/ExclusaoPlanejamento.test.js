@@ -8,6 +8,9 @@ import { ExclusoesPlanejamentoProvider } from './ExclusoesPlanejamentoContext';
 import { EpicDetailScreen } from '../screens/EpicDetail/EpicDetailScreen';
 import { CampaignDetailScreen } from '../screens/CampaignDetail/CampaignDetailScreen';
 import { MissionDetailScreen } from '../screens/MissionDetail/MissionDetailScreen';
+jest.mock('../hooks/useExecucaoMissao', () => ({
+  useExecucaoMissao: () => ({ dados: null, carregando: false, erro: '', atualizar: jest.fn() }),
+}));
 
 const mockRequisitar = jest.fn();
 jest.mock('./SessaoContext', () => ({

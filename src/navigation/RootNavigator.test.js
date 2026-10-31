@@ -1,7 +1,7 @@
 import { Alert } from 'react-native';
 import { MOCK_CAMPAIGNS } from '../state/campaignMockData';
 import { NavigationContainer } from '@react-navigation/native';
-import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
 import { CampaignsProvider } from '../state/CampaignsContext';
 import { DiariosProvider } from '../state/DiariosContext';
@@ -39,6 +39,27 @@ const mockCriarMissao = jest.fn();
 const mockAtualizarMissao = jest.fn();
 const mockConcluirMissao = jest.fn();
 jest.mock('../services/missoes', () => ({
+  consultarMissao: async ({ missaoId }) => {
+    const concluida = mockConcluirMissao.mock.calls.length > 0;
+    return {
+      id: missaoId,
+      status: 'ativa',
+      recorrente: true,
+      titulo: 'Fazer exercício de dados',
+      dificuldade: 'media',
+      pontuacao: 45,
+      versao: 'versao-teste',
+      configuracaoRecorrencia: { tipo: 'diaria', diasSemana: [], dataFim: null },
+      execucao: {
+        podeConcluir: !concluida,
+        concluida,
+        concluidaEm: concluida ? '2026-10-30T12:00:00Z' : null,
+        pontuacao: 45,
+        hoje: '2026-10-30',
+        dataPrevista: '2026-10-30',
+      },
+    };
+  },
   criarMissao: (...args) => mockCriarMissao(...args),
   atualizarMissao: (...args) => mockAtualizarMissao(...args),
   concluirMissao: (...args) => mockConcluirMissao(...args),
@@ -241,8 +262,9 @@ describe('fluxo de autenticação e missões', () => {
     renderApp('MissionList');
 
     fireEvent.press(screen.getAllByLabelText(/Fazer exercício de dados/)[0]);
-    expect(screen.getByLabelText('Concluir missão')).toBeTruthy();
+    await waitFor(() => expect(screen.getByLabelText('Concluir missão')).toBeTruthy());
 
+    await waitFor(() => screen.getByLabelText('Concluir missão'));
     await act(async () => {
       fireEvent.press(screen.getByLabelText('Concluir missão'));
     });

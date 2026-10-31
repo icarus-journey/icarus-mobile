@@ -37,6 +37,7 @@ function mapearMissaoDaApi(missao, campanha) {
     recorrente: missao.recorrente ?? false,
     versao: missao.versao,
     configuracaoRecorrencia: missao.configuracaoRecorrencia ?? null,
+    execucao: missao.execucao ?? null,
     inativa: missao.status === 'inativa',
     excluida: missao.status === 'excluida',
     campanha,
@@ -140,6 +141,25 @@ export function MissionsProvider({ children, initialMissions = MOCK_MISSIONS }) 
     [missions, sessao, requisitarAutenticado],
   );
 
+  const aplicarExecucao = useCallback((missaoId, dados) => {
+    setMissions((atuais) =>
+      atuais.map((missao) =>
+        missao.id !== missaoId
+          ? missao
+          : {
+              ...missao,
+              execucao: dados.execucao,
+              inativa: dados.status === 'inativa',
+              concluidaEm: dados.recorrente
+                ? dados.execucao.concluida
+                  ? dados.execucao.concluidaEm
+                  : null
+                : dados.concluidaEm,
+            },
+      ),
+    );
+  }, []);
+
   const getMissionById = useCallback(
     (missionId) => missions.find((mission) => mission.id === missionId) ?? null,
     [missions],
@@ -159,8 +179,9 @@ export function MissionsProvider({ children, initialMissions = MOCK_MISSIONS }) 
   // Credita pontos ao usuário e, se a missão tiver campanha mensurável, soma ao valor atual
   // dela (RF-04.6). Idempotente no backend: concluir de novo não credita pontos de novo.
   const concluirMissao = useCallback(
-    async (missionId) => {
+    async (missionId, ocorrenciaId) => {
       const resposta = await concluirMissaoNaApi({
+        ocorrenciaId,
         usuarioId: sessao.usuarioId,
         missaoId: missionId,
         requisitarAutenticado,
@@ -221,6 +242,7 @@ export function MissionsProvider({ children, initialMissions = MOCK_MISSIONS }) 
       addMission,
       updateMission,
       getMissionById,
+      aplicarExecucao,
       hidratarDoOnboarding,
       carregarLista,
       concluirMissao,
@@ -231,6 +253,7 @@ export function MissionsProvider({ children, initialMissions = MOCK_MISSIONS }) 
       addMission,
       updateMission,
       getMissionById,
+      aplicarExecucao,
       hidratarDoOnboarding,
       carregarLista,
       concluirMissao,

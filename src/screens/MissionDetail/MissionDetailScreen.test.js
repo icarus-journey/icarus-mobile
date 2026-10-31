@@ -3,6 +3,9 @@ import { render, screen } from '@testing-library/react-native';
 import { CampaignsProvider } from '../../state/CampaignsContext';
 import { MissionsProvider } from '../../state/MissionsContext';
 import { MissionDetailScreen } from './MissionDetailScreen';
+jest.mock('../../hooks/useExecucaoMissao', () => ({
+  useExecucaoMissao: () => ({ dados: null, carregando: false, erro: '', atualizar: jest.fn() }),
+}));
 
 jest.mock('../../state/SessaoContext', () => ({
   useSessao: () => ({ sessao: { usuarioId: 'usuario-teste' }, requisitarAutenticado: jest.fn() }),

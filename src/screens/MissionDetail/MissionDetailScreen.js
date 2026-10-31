@@ -1,6 +1,7 @@
+import { useExecucaoMissao } from '../../hooks/useExecucaoMissao';
 import { useExclusaoPlanejamento } from '../../hooks/useExclusaoPlanejamento';
 import { BotaoExcluirPlanejamento } from '../../components/BotaoExcluirPlanejamento';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -28,11 +29,14 @@ const DIFICULDADE_LABELS = {
 export function MissionDetailScreen({ route, navigation }) {
   const { missionId } = route.params;
   const exclusao = useExclusaoPlanejamento({ tipo: 'missoes', id: missionId, navigation });
-  const { getMissionById, concluirMissao, pararMissao } = useMissions();
+  const { getMissionById, concluirMissao, pararMissao, aplicarExecucao } = useMissions();
   const { incrementarValorAtual, getCampaignById } = useCampaigns();
   const insets = useSafeAreaInsets();
   const mission = getMissionById(missionId);
+  const leitura = useExecucaoMissao(missionId, navigation, aplicarExecucao);
+  const execucao = leitura.dados?.execucao;
   const [concluindo, setConcluindo] = useState(false);
+  const envioEmCurso = useRef(false);
   const [parando, setParando] = useState(false);
   const [erro, setErro] = useState('');
 
@@ -45,25 +49,34 @@ export function MissionDetailScreen({ route, navigation }) {
     );
   }
 
-  const concluida = Boolean(mission.concluidaEm);
+  const concluida = execucao ? execucao.concluida : Boolean(mission.concluidaEm);
   const campanha = mission.campanha ? getCampaignById(mission.campanha.id) : null;
   const campanhaEncerrada = ['concluida', 'excluida'].includes(campanha?.estado);
   const inativa = Boolean(mission.inativa) || (campanhaEncerrada && mission.recorrente);
 
   async function handleConcluir() {
+    if (envioEmCurso.current || !execucao?.podeConcluir) return;
+    envioEmCurso.current = true;
     setConcluindo(true);
     setErro('');
     try {
-      const resultado = await concluirMissao(mission.id);
+      const resultado = await concluirMissao(mission.id, execucao.ocorrenciaId);
       vibrarConclusao();
       // Missão e campanha vivem em Contexts separados — reflete aqui, sem round-trip à API,
       // o mesmo crédito que ConcluirMissaoUseCase já aplicou ao valor_atual no backend.
-      if (mission.campanha) {
+      if (mission.campanha && !resultado.repetida) {
         incrementarValorAtual(mission.campanha.id, resultado.pontuacaoCreditada);
       }
-    } catch {
-      setErro('Não foi possível concluir a missão. Tente novamente.');
+      leitura.atualizar();
+    } catch (falha) {
+      setErro(
+        falha.status === 409
+          ? 'A execução mudou. Atualize os dados antes de concluir.'
+          : 'Não foi possível concluir a missão. Tente novamente.',
+      );
+      leitura.atualizar();
     } finally {
+      envioEmCurso.current = false;
       setConcluindo(false);
     }
   }
@@ -82,6 +95,7 @@ export function MissionDetailScreen({ route, navigation }) {
             setErro('');
             try {
               await pararMissao(mission.id);
+              leitura.atualizar();
             } catch {
               setErro('Não foi possível parar a missão. Tente novamente.');
             } finally {
@@ -128,7 +142,7 @@ export function MissionDetailScreen({ route, navigation }) {
                     textColor: colors.brandDark,
                   },
             {
-              label: `+${mission.pontos} pts`,
+              label: `+${execucao?.pontuacao ?? mission.pontos} pts`,
               backgroundColor: colors.softPurpleAlt,
               textColor: colors.brandDark,
             },
@@ -137,7 +151,12 @@ export function MissionDetailScreen({ route, navigation }) {
 
         <DetailInfoCard
           rows={[
-            { label: 'Prazo', value: mission.prazoCompleto },
+            {
+              label: execucao ? 'Execução' : 'Prazo',
+              value: execucao?.dataPrevista
+                ? execucao.dataPrevista.split('-').reverse().join('/')
+                : mission.prazoCompleto,
+            },
             { label: 'Dificuldade', value: DIFICULDADE_LABELS[mission.dificuldade] },
             { label: 'Recorrente', value: mission.recorrente ? 'Sim' : 'Não' },
             { label: 'Campanha', value: mission.campanha?.titulo },
@@ -161,8 +180,10 @@ export function MissionDetailScreen({ route, navigation }) {
         </View>
 
         <DetailRewardCard
-          label={mission.recorrente ? 'Pontos planejados' : 'Recompensa'}
-          value={mission.recompensaLabel}
+          label={mission.recorrente ? 'Pontos desta execução' : 'Recompensa'}
+          value={
+            execucao?.pontuacao != null ? `${execucao.pontuacao} pontos` : mission.recompensaLabel
+          }
         />
 
         {erro ? (
@@ -171,21 +192,51 @@ export function MissionDetailScreen({ route, navigation }) {
           </Text>
         ) : null}
 
+        {leitura.erro ? (
+          <Text style={styles.errorText} accessibilityRole="alert">
+            {leitura.erro}
+          </Text>
+        ) : null}
         <PrimaryButton
           label={
-            concluida
-              ? 'Missão concluída'
-              : campanhaEncerrada
-                ? 'Campanha encerrada'
-                : inativa
-                  ? 'Missão parada'
-                  : concluindo
-                    ? 'Concluindo...'
-                    : 'Concluir missão'
+            leitura.carregando
+              ? 'Carregando execução...'
+              : concluida
+                ? 'Missão concluída'
+                : campanhaEncerrada
+                  ? 'Campanha encerrada'
+                  : inativa
+                    ? 'Missão parada'
+                    : execucao?.codigoBloqueio === 'campanha_nao_iniciada'
+                      ? 'Campanha não iniciada'
+                      : execucao?.codigoBloqueio === 'execucao_futura' && execucao.proximaData
+                        ? `Disponível em ${execucao.proximaData.split('-').reverse().join('/')}`
+                        : !execucao?.podeConcluir
+                          ? 'Sem execução disponível'
+                          : concluindo
+                            ? 'Concluindo...'
+                            : 'Concluir missão'
           }
           onPress={handleConcluir}
-          disabled={campanhaEncerrada || inativa || concluida || concluindo || exclusao.excluindo}
+          disabled={
+            leitura.carregando ||
+            !execucao?.podeConcluir ||
+            campanhaEncerrada ||
+            inativa ||
+            concluida ||
+            concluindo ||
+            exclusao.excluindo
+          }
         />
+        {leitura.erro || erro ? (
+          <SecondaryButton
+            label="Atualizar execução"
+            onPress={() => {
+              setErro('');
+              leitura.atualizar();
+            }}
+          />
+        ) : null}
         {!campanhaEncerrada && (!concluida || mission.recorrente) && !inativa ? (
           <SecondaryButton
             label="Editar missão"

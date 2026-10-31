@@ -41,6 +41,13 @@ alterações valem a partir de amanhã; vínculo permanece somente para leitura.
 Erro preserva o rascunho; conflito solicita reabrir a edição. A confirmação de
 execução já mostrada na sessão é mantida. Sem dependências ou novo APK.
 
+O detalhe consulta a execução real (HTTP 1.2.0), seus pontos e disponibilidade.
+Atualiza ao voltar para a tela/app e a cada minuto em primeiro plano. Campanha
+não iniciada e data futura aparecem com rótulos curtos e botão desabilitado;
+falha permite **Atualizar execução**. Conclusão envia o identificador mostrado;
+resposta repetida não incrementa a campanha outra vez. Fuso, datas e limites
+são decididos pela API, com descarte de respostas de outra sessão.
+
 ## Excluir da rotina
 
 Os detalhes de épicos, campanhas e missões elegíveis oferecem **Excluir**, com

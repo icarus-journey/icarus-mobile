@@ -16,9 +16,10 @@ export async function atualizarMissao({ usuarioId, missaoId, dados, requisitarAu
   });
 }
 
-export async function concluirMissao({ usuarioId, missaoId, requisitarAutenticado }) {
+export async function concluirMissao({ usuarioId, missaoId, ocorrenciaId, requisitarAutenticado }) {
   return requisitarAutenticado(`/api/usuarios/${usuarioId}/missoes/${missaoId}/concluir`, {
     metodo: 'POST',
+    ...(ocorrenciaId != null ? { corpo: { ocorrenciaId } } : {}),
   });
 }
 
