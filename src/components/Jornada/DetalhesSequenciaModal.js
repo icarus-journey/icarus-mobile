@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 
 import { SecondaryButton } from '../Button';
+import IconeProtecao from '../../assets/icons/icone-protecao.svg';
 import { colors } from '../../theme/colors';
 import { fontFamily } from '../../theme/typography';
 import { nomeDoFuso, periodoCurto } from '../../utils/formatarProgresso';
@@ -100,11 +101,13 @@ export function DetalhesSequenciaModal({ jornada, aoFechar, espacoInferior = 0 }
                       const descricao =
                         dia.realizada === true
                           ? 'Missão realizada'
-                          : dia.realizada === null
-                            ? 'Registro sem data confirmada'
-                            : dia.data === sequencia.hoje
-                              ? 'Hoje em aberto'
-                              : 'Sem realização registrada';
+                          : dia.protegida
+                            ? 'Dia protegido. Sua sequência foi mantida'
+                            : dia.realizada === null
+                              ? 'Registro sem data confirmada'
+                              : dia.data === sequencia.hoje
+                                ? 'Hoje em aberto'
+                                : 'Sem realização registrada';
                       return (
                         <View
                           key={dia.data}
@@ -126,21 +129,37 @@ export function DetalhesSequenciaModal({ jornada, aoFechar, espacoInferior = 0 }
                               {data.getUTCDate()}
                             </Text>
                           </View>
-                          <Text style={[styles.legenda, dia.realizada && styles.marcador]}>
-                            {dia.realizada
-                              ? '✓'
-                              : dia.realizada === null
-                                ? '?'
-                                : dia.data === sequencia.hoje
-                                  ? 'Hoje'
-                                  : '–'}
-                          </Text>
+                          {dia.protegida && !dia.realizada ? (
+                            <View style={styles.marcaProtecao} accessible={false}>
+                              <IconeProtecao color={colors.brand} />
+                            </View>
+                          ) : (
+                            <Text style={[styles.legenda, dia.realizada && styles.marcador]}>
+                              {dia.realizada
+                                ? '✓'
+                                : dia.realizada === null
+                                  ? '?'
+                                  : dia.data === sequencia.hoje
+                                    ? 'Hoje'
+                                    : '–'}
+                            </Text>
+                          )}
                         </View>
                       );
                     })}
                   </View>
                 ) : null}
                 <Text style={styles.regra}>Cada dia conta uma vez.</Text>
+                {sequencia.dias.some((dia) => dia.protegida) ? (
+                  <Text style={styles.texto}>O escudo mantém sua sequência sem somar um dia.</Text>
+                ) : null}
+                {dados.protecoesPendentes > 0 ? (
+                  <Text style={styles.texto}>
+                    {dados.protecoesPendentes === 1
+                      ? 'Uma proteção será reposta quando houver espaço na loja.'
+                      : `${dados.protecoesPendentes} proteções serão repostas quando houver espaço na loja.`}
+                  </Text>
+                ) : null}
                 <Text style={styles.texto}>
                   Vale o dia em que você fez a missão, no seu horário local.
                 </Text>
@@ -224,4 +243,5 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   marcador: { color: colors.brand },
+  marcaProtecao: { minHeight: 16, justifyContent: 'center', alignItems: 'center' },
 });

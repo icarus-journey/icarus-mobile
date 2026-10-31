@@ -94,3 +94,24 @@ it('explica legado e fuso sem inventar previsão ou saldo', () => {
   expect(screen.getByText(/Alguns registros antigos/)).toBeTruthy();
   expect(screen.queryByText('0 dias seguidos')).toBeNull();
 });
+
+it('identifica dia protegido sem apresentá-lo como realização ou aumentar a contagem', () => {
+  const base = jornadaDeTeste();
+  const dados = jornadaDeTeste({
+    protecoesPendentes: 1,
+    sequencia: {
+      ...base.sequencia,
+      diasAtuais: 3,
+      dias: base.sequencia.dias.map((dia, i) =>
+        i === 2 ? { ...dia, realizada: false, protegida: true } : dia,
+      ),
+    },
+  });
+  render(<DetalhesSequenciaModal jornada={{ dados }} aoFechar={jest.fn()} />);
+  expect(
+    screen.getByLabelText('27/10/2026. Dia protegido. Sua sequência foi mantida.'),
+  ).toBeTruthy();
+  expect(screen.getByText('O escudo mantém sua sequência sem somar um dia.')).toBeTruthy();
+  expect(screen.getByText('Uma proteção será reposta quando houver espaço na loja.')).toBeTruthy();
+  expect(screen.getByText('3 dias seguidos')).toBeTruthy();
+});

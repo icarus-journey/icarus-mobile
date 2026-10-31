@@ -61,3 +61,45 @@ it('preserva ausência, fuso não informado e dias de calendário desconhecidos'
       await consultarJornada({ usuarioId: 'titular', requisitarAutenticado: async () => dados }),
     ).toBe(dados);
 });
+
+it('aceita calendário com proteção e mantém compatibilidade com a versão anterior', async () => {
+  const base = jornadaDeTeste();
+  const dados = {
+    ...base,
+    versaoContrato: '1.1.0',
+    protecoesPendentes: 2,
+    sequencia: {
+      ...base.sequencia,
+      dias: base.sequencia.dias.map((dia, i) =>
+        i === 1 ? { ...dia, realizada: false, protegida: true } : dia,
+      ),
+    },
+  };
+  expect(
+    await consultarJornada({ usuarioId: 'titular', requisitarAutenticado: async () => dados }),
+  ).toBe(dados);
+  expect(
+    await consultarJornada({ usuarioId: 'titular', requisitarAutenticado: async () => base }),
+  ).toBe(base);
+});
+
+it.each(['sim', true, null, -1])('rejeita quantidade de devoluções inválida: %s', async (valor) => {
+  const dados = jornadaDeTeste({ protecoesPendentes: valor });
+  await expect(
+    consultarJornada({ usuarioId: 'titular', requisitarAutenticado: async () => dados }),
+  ).rejects.toThrow('indisponível');
+});
+
+it.each([null, 'sim', 1])('rejeita marcador de proteção inválido: %s', async (valor) => {
+  const base = jornadaDeTeste();
+  const dados = {
+    ...base,
+    sequencia: {
+      ...base.sequencia,
+      dias: base.sequencia.dias.map((dia) => ({ ...dia, protegida: valor })),
+    },
+  };
+  await expect(
+    consultarJornada({ usuarioId: 'titular', requisitarAutenticado: async () => dados }),
+  ).rejects.toThrow('indisponível');
+});

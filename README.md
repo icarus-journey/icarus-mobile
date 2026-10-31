@@ -35,12 +35,14 @@ Secrets e aplique as migrations conforme a seção 6 de `icarus-platform/PROJETO
 ## Editar repetições
 
 O cabeçalho de Missões mostra sequência e saldo reais de
-`GET /api/usuarios/{id}/jornada` (1.0.0). O foguinho abre o calendário; a moeda
+`GET /api/usuarios/{id}/jornada` (1.1.0). O foguinho abre o calendário; a moeda
 abre a Loja. Atualiza ao retornar à tela/app e a cada minuto ativo, descartando
 respostas de outra sessão. Hoje confirmado usa chama laranja; contagem
 desconhecida usa travessão, sem inventar zero para registros antigos sem fuso.
 Layout se adapta à fonte/tela e valores grandes. Os três PNGs aprovados ficam
-em `src/assets/jornada/`; não requer nova build ou dependência. Contrato e
+em `src/assets/jornada/`; não requer nova build ou dependência. Dia protegido
+usa escudo no calendário, mantém o contador e não ativa a chama de hoje.
+Devolução aguardando vaga aparece só nos detalhes. Contrato e
 limites: [sequência diária](../icarus-context/docs/implementation-design/platform/10-sequencia-diaria.md).
 
 A missão recorrente ativa oferece **Editar missão**, inclusive após concluir a
@@ -175,8 +177,9 @@ retorno háptico de sucesso no iOS; falha ou ausência de suporte não impede o 
 A aba Loja consulta a API autenticada e permite criar, editar e excluir
 recompensas disponíveis, resgatar, desfazer resgate e confirmar o uso
 irreversível. Saldo e estado vêm do servidor. Proteções de sequência têm preço
-visível e limite de três unidades; o consumo automático depende da rotina
-diária, ainda não implementada. A loja oferece atualização por gesto e ao
+visível e limite de três unidades. O fechamento automático e a compensação
+retroativa vêm da API; dia protegido mantém a sequência sem somar. Devoluções
+com estoque cheio aguardam vaga, sem virar pontos. A loja oferece atualização por gesto e ao
 receber foco, além de estados de carregamento, vazio e erro.
 
 Contrato e limites: [`05-contrato-da-loja.md`](../icarus-context/docs/implementation-design/platform/05-contrato-da-loja.md).

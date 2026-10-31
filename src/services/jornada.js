@@ -14,12 +14,20 @@ export async function consultarJornada({ usuarioId, requisitarAutenticado }) {
       sequencia.diasAtuais === null ||
       (Number.isSafeInteger(sequencia.diasAtuais) && sequencia.diasAtuais >= 0)
     ) ||
+    (resposta.protecoesPendentes !== undefined &&
+      (!Number.isSafeInteger(resposta.protecoesPendentes) || resposta.protecoesPendentes < 0)) ||
     !booleanoOuAusente(sequencia.realizouHoje) ||
     !Array.isArray(sequencia.dias) ||
     (sequencia.estado === 'fuso_nao_informado'
       ? sequencia.hoje !== null || sequencia.dias.length !== 0
       : !dataCivil(sequencia.hoje) || sequencia.dias.length !== 7) ||
-    sequencia.dias.some((dia) => !dataCivil(dia.data) || !booleanoOuAusente(dia.realizada))
+    sequencia.dias.some(
+      (dia) =>
+        !dataCivil(dia.data) ||
+        !booleanoOuAusente(dia.realizada) ||
+        (dia.protegida !== undefined && typeof dia.protegida !== 'boolean') ||
+        (dia.protegida === true && dia.realizada !== false),
+    )
   )
     throw new Error('Resposta da jornada indisponível.');
   return resposta;
