@@ -1,8 +1,12 @@
+import { validarProgresso } from './progresso';
+
 export function criarServicoAnalise({ usuarioId, requisitarAutenticado }) {
   const base = `/api/usuarios/${usuarioId}`;
   return {
-    progresso: (periodo = 'semanaAnterior') =>
-      requisitarAutenticado(`${base}/progresso?periodo=${encodeURIComponent(periodo)}`),
+    progresso: async (periodo = 'semanaAnterior') =>
+      validarProgresso(
+        await requisitarAutenticado(`${base}/progresso?periodo=${encodeURIComponent(periodo)}`),
+      ),
     consultarRelatorio: () => requisitarAutenticado(`${base}/relatorios/semanais/atual`),
     solicitarRelatorio: () =>
       requisitarAutenticado(`${base}/relatorios/semanais`, { metodo: 'POST' }),

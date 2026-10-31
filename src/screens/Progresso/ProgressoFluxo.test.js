@@ -115,7 +115,7 @@ it('explica uma limitação da versão sem culpar a quantidade de registros da p
   fireEvent.press(screen.getByLabelText('Sobre estes números'));
   expect(
     await screen.findByText(
-      'Ainda não estão disponíveis nesta versão. Seus registros de conclusões continuam aparecendo normalmente.',
+      'A porcentagem do planejamento ainda não está disponível nesta versão da API.',
     ),
   ).toBeTruthy();
   fireEvent.press(screen.getByLabelText('Entendi'));

@@ -2,7 +2,10 @@ import { criarServicoAnalise } from './analise';
 
 describe('serviço analítico autenticado', () => {
   it('consome somente a API com período pessoal separado das referências públicas', async () => {
-    const requisitarAutenticado = jest.fn(async () => ({ estado: 'disponivel' }));
+    const requisitarAutenticado = jest.fn(async () => ({
+      estado: 'disponivel',
+      versaoContrato: '1.1.0',
+    }));
     const servico = criarServicoAnalise({ usuarioId: 'pessoa', requisitarAutenticado });
     await servico.referencias('SONO_E_RECUPERACAO', 'todos');
     expect(requisitarAutenticado).toHaveBeenLastCalledWith(

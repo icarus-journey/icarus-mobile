@@ -61,6 +61,7 @@ export function progressoDeTeste() {
       ],
     },
     indicadores: indicadoresDeTeste(),
+    versaoContrato: '1.1.0',
     situacaoCenarios: 'historico_mensurado_indisponivel',
     mensagem: 'Seus registros deste período.',
   };

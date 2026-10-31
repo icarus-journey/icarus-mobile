@@ -192,11 +192,14 @@ e distribuição por área. **Sua meta em foco** mostra o valor atual na unidade
 original (por exemplo, 2 de 6 módulos) e abre a meta ou pesquisas da mesma área.
 Esse cartão representa o valor atual, independentemente do período do gráfico.
 
-A API calcula a série de conclusões no fuso da conta; HTTP de progresso 1.1.0.
-Ausência de registro e falta de uma funcionalidade têm tratamentos diferentes:
-taxa/previstas ainda não disponíveis deixam de ocupar cartões de
-“histórico insuficiente”. A explicação fica em **Sobre estes números**. Não se
-estima taxa a partir de conclusões nem se convertem pontos em medidas reais.
+A API calcula a atividade por realização e a adesão ao planejamento em bases
+separadas; HTTP de progresso 1.2.0, compatível com a leitura anterior. O resumo
+**Do que você planejou** mostra barra, porcentagem e feitas/previstas até fechar
+o período. Uma realização posterior aparece na atividade seguinte. Legado
+mostra apenas planejadas registradas, com explicação em **Sobre estes números**;
+não inventa taxa. Pendentes/atrasadas ficam em **Ver mais números**. Trocar a
+sessão ou o período esconde imediatamente resultados anteriores, inclusive
+respostas atrasadas. Sem dependência ou nova build.
 
 Pesquisas de 2024 aparecem uma por vez, com controles anterior/próxima, valores
 visuais, fonte, país e população. A linguagem é cotidiana: horas/minutos e
