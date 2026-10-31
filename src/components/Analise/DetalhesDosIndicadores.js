@@ -53,7 +53,7 @@ export function DetalhesDosIndicadores({ visivel, onFechar, dados }) {
               </Text>
             ) : !dados?.adesao ? (
               <Text style={estilos.texto}>
-                A porcentagem do planejamento ainda não está disponível nesta versão da API.
+                A porcentagem do planejamento ainda não está disponível.
               </Text>
             ) : null}
             <Text style={estilos.titulo}>Comparação entre períodos</Text>
