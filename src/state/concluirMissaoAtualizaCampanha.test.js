@@ -123,9 +123,9 @@ it('ao concluir uma missão vinculada, a campanha reflete o novo valor atual sem
 
   expect(screen.getByText('10 de 100 pontos')).toBeTruthy();
 
-  await waitFor(() => screen.getByLabelText('Concluir missão'));
+  await waitFor(() => screen.getByLabelText('Concluir agora'));
   await act(async () => {
-    fireEvent.press(screen.getByLabelText('Concluir missão'));
+    fireEvent.press(screen.getByLabelText('Concluir agora'));
   });
 
   expect(mockConcluirMissao).toHaveBeenCalledTimes(1);
@@ -152,9 +152,9 @@ it('não altera o valor atual quando a campanha não é mensurável (valorMensur
     </CampaignsProvider>,
   );
 
-  await waitFor(() => screen.getByLabelText('Concluir missão'));
+  await waitFor(() => screen.getByLabelText('Concluir agora'));
   await act(async () => {
-    fireEvent.press(screen.getByLabelText('Concluir missão'));
+    fireEvent.press(screen.getByLabelText('Concluir agora'));
   });
 
   expect(screen.queryByText(/de .* pontos$/)).toBeNull();
@@ -178,9 +178,9 @@ it.each(['módulos', 'reais', 'minutos', null, 'pontos '])(
         </MissionsProvider>
       </CampaignsProvider>,
     );
-    await waitFor(() => screen.getByLabelText('Concluir missão'));
+    await waitFor(() => screen.getByLabelText('Concluir agora'));
     await act(async () => {
-      fireEvent.press(screen.getByLabelText('Concluir missão'));
+      fireEvent.press(screen.getByLabelText('Concluir agora'));
     });
     expect(screen.getByText(`10 de 100 ${unidade ?? 'unidade não informada'}`)).toBeTruthy();
     expect(screen.queryByText(/^40 de 100/)).toBeNull();
@@ -195,8 +195,8 @@ it('vibra uma vez somente depois de a API confirmar a conclusão', async () => {
     }),
   );
   renderAmbasAsTelas();
-  await waitFor(() => screen.getByLabelText('Concluir missão'));
-  fireEvent.press(screen.getByLabelText('Concluir missão'));
+  await waitFor(() => screen.getByLabelText('Concluir agora'));
+  fireEvent.press(screen.getByLabelText('Concluir agora'));
   expect(vibrarConclusao).not.toHaveBeenCalled();
 
   await act(async () => {
@@ -216,9 +216,9 @@ it('vibra uma vez somente depois de a API confirmar a conclusão', async () => {
 it('não vibra quando a API recusa a conclusão', async () => {
   mockConcluirMissao.mockRejectedValueOnce(new Error('Sem conexão'));
   renderAmbasAsTelas();
-  await waitFor(() => screen.getByLabelText('Concluir missão'));
+  await waitFor(() => screen.getByLabelText('Concluir agora'));
   await act(async () => {
-    fireEvent.press(screen.getByLabelText('Concluir missão'));
+    fireEvent.press(screen.getByLabelText('Concluir agora'));
   });
   expect(screen.getByText('Não foi possível concluir a missão. Tente novamente.')).toBeTruthy();
   expect(vibrarConclusao).not.toHaveBeenCalled();
@@ -249,8 +249,8 @@ it('vincula o envio à execução exibida e não soma outra vez uma resposta rep
     pontuacaoCreditada: 30,
   });
   renderAmbasAsTelas();
-  await waitFor(() => screen.getByLabelText('Concluir missão'));
-  await act(async () => fireEvent.press(screen.getByLabelText('Concluir missão')));
+  await waitFor(() => screen.getByLabelText('Concluir agora'));
+  await act(async () => fireEvent.press(screen.getByLabelText('Concluir agora')));
   expect(mockConcluirMissao).toHaveBeenCalledWith(
     expect.objectContaining({ missaoId: 5, ocorrenciaId: 40 }),
   );

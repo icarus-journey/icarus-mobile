@@ -41,12 +41,20 @@ alterações valem a partir de amanhã; vínculo permanece somente para leitura.
 Erro preserva o rascunho; conflito solicita reabrir a edição. A confirmação de
 execução já mostrada na sessão é mantida. Sem dependências ou novo APK.
 
-O detalhe consulta a execução real (HTTP 1.2.0), seus pontos e disponibilidade.
+O detalhe consulta a execução real (HTTP 1.3.0), seus pontos e disponibilidade.
 Atualiza ao voltar para a tela/app e a cada minuto em primeiro plano. Campanha
 não iniciada e data futura aparecem com rótulos curtos e botão desabilitado;
 falha permite **Atualizar execução**. Conclusão envia o identificador mostrado;
 resposta repetida não incrementa a campanha outra vez. Fuso, datas e limites
 são decididos pela API, com descarte de respostas de outra sessão.
+
+**Concluir agora** continua com um toque e sem campos extras: o instante vem da
+API na confirmação. O link **Fiz em outro momento** abre apenas data/horário e
+**Confirmar conclusão**. Cancelar descarta a escolha; falha preserva o rascunho.
+O app envia valores civis com ocorrência, data prevista e fuso esperados; a API
+converte e valida. Depois de concluir, o detalhe mostra a realização salva,
+sem permitir editá-la. A opção manual requer HTTP 1.3 compatível; API antiga
+mantém o padrão agora. Sem biblioteca ou alteração nativa nova.
 
 ## Excluir da rotina
 

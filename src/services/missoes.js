@@ -16,10 +16,18 @@ export async function atualizarMissao({ usuarioId, missaoId, dados, requisitarAu
   });
 }
 
-export async function concluirMissao({ usuarioId, missaoId, ocorrenciaId, requisitarAutenticado }) {
+export async function concluirMissao({
+  usuarioId,
+  missaoId,
+  ocorrenciaId,
+  realizacao,
+  requisitarAutenticado,
+}) {
   return requisitarAutenticado(`/api/usuarios/${usuarioId}/missoes/${missaoId}/concluir`, {
     metodo: 'POST',
-    ...(ocorrenciaId != null ? { corpo: { ocorrenciaId } } : {}),
+    ...(ocorrenciaId != null || realizacao
+      ? { corpo: { ...(ocorrenciaId != null ? { ocorrenciaId } : {}), ...realizacao } }
+      : {}),
   });
 }
 

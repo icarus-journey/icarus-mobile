@@ -262,11 +262,11 @@ describe('fluxo de autenticação e missões', () => {
     renderApp('MissionList');
 
     fireEvent.press(screen.getAllByLabelText(/Fazer exercício de dados/)[0]);
-    await waitFor(() => expect(screen.getByLabelText('Concluir missão')).toBeTruthy());
+    await waitFor(() => expect(screen.getByLabelText('Concluir agora')).toBeTruthy());
 
-    await waitFor(() => screen.getByLabelText('Concluir missão'));
+    await waitFor(() => screen.getByLabelText('Concluir agora'));
     await act(async () => {
-      fireEvent.press(screen.getByLabelText('Concluir missão'));
+      fireEvent.press(screen.getByLabelText('Concluir agora'));
     });
 
     expect(mockConcluirMissao).toHaveBeenCalledTimes(1);

@@ -2,7 +2,7 @@ import { useExecucaoMissao } from '../../hooks/useExecucaoMissao';
 import { useExclusaoPlanejamento } from '../../hooks/useExclusaoPlanejamento';
 import { BotaoExcluirPlanejamento } from '../../components/BotaoExcluirPlanejamento';
 import { useRef, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BottomNav } from '../../components/BottomNav';
@@ -18,6 +18,13 @@ import { useMissions } from '../../state/MissionsContext';
 import { colors } from '../../theme/colors';
 import { fontFamily, fontSize } from '../../theme/typography';
 import { vibrarConclusao } from '../../utils/haptics';
+import {
+  aceitaRealizacaoInformada,
+  formatarRealizacao,
+  mensagemErroRealizacao,
+} from '../../utils/realizacaoMissao';
+import { useSessao } from '../../state/SessaoContext';
+import { ConfirmarRealizacaoModal } from './ConfirmarRealizacaoModal';
 
 const DIFICULDADE_LABELS = {
   TRIVIAL: 'Trivial',
@@ -28,6 +35,8 @@ const DIFICULDADE_LABELS = {
 
 export function MissionDetailScreen({ route, navigation }) {
   const { missionId } = route.params;
+  const { sessao } = useSessao();
+  const chave = `${sessao?.usuarioId}:${missionId}`;
   const exclusao = useExclusaoPlanejamento({ tipo: 'missoes', id: missionId, navigation });
   const { getMissionById, concluirMissao, pararMissao, aplicarExecucao } = useMissions();
   const { incrementarValorAtual, getCampaignById } = useCampaigns();
@@ -39,6 +48,8 @@ export function MissionDetailScreen({ route, navigation }) {
   const envioEmCurso = useRef(false);
   const [parando, setParando] = useState(false);
   const [erro, setErro] = useState('');
+  const [registroEmEdicao, setRegistroEmEdicao] = useState(null);
+  const [erroRealizacao, setErroRealizacao] = useState('');
 
   if (!mission) {
     return (
@@ -54,21 +65,38 @@ export function MissionDetailScreen({ route, navigation }) {
   const campanhaEncerrada = ['concluida', 'excluida'].includes(campanha?.estado);
   const inativa = Boolean(mission.inativa) || (campanhaEncerrada && mission.recorrente);
 
-  async function handleConcluir() {
-    if (envioEmCurso.current || !execucao?.podeConcluir) return;
+  async function handleConcluir(realizacao = null, alvo = execucao) {
+    if (envioEmCurso.current || !alvo?.podeConcluir) return;
     envioEmCurso.current = true;
     setConcluindo(true);
     setErro('');
+    setErroRealizacao('');
     try {
-      const resultado = await concluirMissao(mission.id, execucao.ocorrenciaId);
+      const resultado = await concluirMissao(
+        mission.id,
+        alvo.ocorrenciaId,
+        realizacao
+          ? {
+              ...realizacao,
+              dataPrevistaEsperada: alvo.dataPrevista,
+              fusoHorarioEsperado: alvo.fusoHorario,
+            }
+          : undefined,
+      );
       vibrarConclusao();
       // Missão e campanha vivem em Contexts separados — reflete aqui, sem round-trip à API,
       // o mesmo crédito que ConcluirMissaoUseCase já aplicou ao valor_atual no backend.
       if (mission.campanha && !resultado.repetida) {
         incrementarValorAtual(mission.campanha.id, resultado.pontuacaoCreditada);
       }
+      setRegistroEmEdicao(null);
       leitura.atualizar();
     } catch (falha) {
+      if (realizacao) {
+        setErroRealizacao(mensagemErroRealizacao(falha));
+        if ([404, 409].includes(falha.status)) leitura.atualizar();
+        return;
+      }
       setErro(
         falha.status === 409
           ? 'A execução mudou. Atualize os dados antes de concluir.'
@@ -111,6 +139,10 @@ export function MissionDetailScreen({ route, navigation }) {
     <View style={styles.screen}>
       <ScrollView
         style={styles.body}
+        accessibilityElementsHidden={registroEmEdicao?.chave === chave}
+        importantForAccessibility={
+          registroEmEdicao?.chave === chave ? 'no-hide-descendants' : 'auto'
+        }
         contentContainerStyle={[
           styles.content,
           { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 32 },
@@ -157,6 +189,17 @@ export function MissionDetailScreen({ route, navigation }) {
                 ? execucao.dataPrevista.split('-').reverse().join('/')
                 : mission.prazoCompleto,
             },
+            ...(execucao?.realizadaEm
+              ? [
+                  {
+                    label: 'Realizada em',
+                    value: formatarRealizacao(
+                      execucao.realizadaEm,
+                      execucao.fusoHorarioRealizacao ?? execucao.fusoHorario,
+                    ),
+                  },
+                ]
+              : []),
             { label: 'Dificuldade', value: DIFICULDADE_LABELS[mission.dificuldade] },
             { label: 'Recorrente', value: mission.recorrente ? 'Sim' : 'Não' },
             { label: 'Campanha', value: mission.campanha?.titulo },
@@ -215,9 +258,9 @@ export function MissionDetailScreen({ route, navigation }) {
                           ? 'Sem execução disponível'
                           : concluindo
                             ? 'Concluindo...'
-                            : 'Concluir missão'
+                            : 'Concluir agora'
           }
-          onPress={handleConcluir}
+          onPress={() => handleConcluir()}
           disabled={
             leitura.carregando ||
             !execucao?.podeConcluir ||
@@ -228,6 +271,26 @@ export function MissionDetailScreen({ route, navigation }) {
             exclusao.excluindo
           }
         />
+        {aceitaRealizacaoInformada(leitura.dados?.versaoContrato) &&
+        execucao?.podeConcluir &&
+        !campanhaEncerrada &&
+        !inativa &&
+        !concluida ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Fiz em outro momento"
+            accessibilityHint="Escolher data e horário antes de confirmar a conclusão"
+            accessibilityState={{ disabled: concluindo || exclusao.excluindo }}
+            disabled={concluindo || exclusao.excluindo}
+            style={styles.outroMomento}
+            onPress={() => {
+              setErroRealizacao('');
+              setRegistroEmEdicao({ chave, execucao });
+            }}
+          >
+            <Text style={styles.outroMomentoTexto}>Fiz em outro momento</Text>
+          </Pressable>
+        ) : null}
         {leitura.erro || erro ? (
           <SecondaryButton
             label="Atualizar execução"
@@ -264,6 +327,16 @@ export function MissionDetailScreen({ route, navigation }) {
         ) : null}
       </ScrollView>
 
+      {registroEmEdicao?.chave === chave ? (
+        <ConfirmarRealizacaoModal
+          execucao={registroEmEdicao.execucao}
+          aoConfirmar={(realizacao) => handleConcluir(realizacao, registroEmEdicao.execucao)}
+          aoCancelar={() => setRegistroEmEdicao(null)}
+          enviando={concluindo}
+          erro={erroRealizacao}
+          espacoInferior={insets.bottom}
+        />
+      ) : null}
       <BottomNav
         onPressLoja={() => navigation.navigate('Loja')}
         onPressMissoes={() => navigation.popToTop()}
@@ -290,6 +363,18 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.regular,
     fontSize: fontSize.label,
     color: colors.textSecondary,
+  },
+  outroMomento: {
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+  },
+  outroMomentoTexto: {
+    fontFamily: fontFamily.medium,
+    fontSize: fontSize.body,
+    color: colors.brandLink,
+    textAlign: 'center',
   },
   errorText: {
     fontFamily: fontFamily.regular,

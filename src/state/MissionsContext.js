@@ -179,9 +179,10 @@ export function MissionsProvider({ children, initialMissions = MOCK_MISSIONS }) 
   // Credita pontos ao usuário e, se a missão tiver campanha mensurável, soma ao valor atual
   // dela (RF-04.6). Idempotente no backend: concluir de novo não credita pontos de novo.
   const concluirMissao = useCallback(
-    async (missionId, ocorrenciaId) => {
+    async (missionId, ocorrenciaId, realizacao) => {
       const resposta = await concluirMissaoNaApi({
         ocorrenciaId,
+        realizacao,
         usuarioId: sessao.usuarioId,
         missaoId: missionId,
         requisitarAutenticado,
