@@ -78,7 +78,7 @@ async function abrir() {
       </NavigationContainer>
     </LojaProvider>,
   );
-  await screen.findByText('300 pontos');
+  await screen.findByLabelText('Saldo disponível agora: 300 pontos');
 }
 
 describe('loja integrada ao contrato da API', () => {
@@ -103,14 +103,14 @@ describe('loja integrada ao contrato da API', () => {
     await abrir();
     fireEvent.press(screen.getByLabelText('Pausa sem culpa, 120 pontos'));
     fireEvent.press(screen.getByLabelText('Resgatar recompensa'));
-    expect(screen.getByText(/Seu saldo atual é 300 pontos/)).toBeTruthy();
+    expect(screen.getByLabelText('Seu saldo: 300 pontos')).toBeTruthy();
     expect(
       mockRequisitar.mock.calls.filter(([, opcoes]) => opcoes?.metodo === 'POST'),
     ).toHaveLength(0);
     await act(async () => {
       fireEvent.press(screen.getByLabelText('Confirmar resgate'));
     });
-    expect(await screen.findByText('180 pontos')).toBeTruthy();
+    expect(await screen.findByLabelText('Saldo disponível agora: 180 pontos')).toBeTruthy();
     expect(screen.getByText('Resgatadas')).toBeTruthy();
   });
 
@@ -160,7 +160,7 @@ describe('loja integrada ao contrato da API', () => {
     expect(screen.getByLabelText('Confirmar resgate')).toBeTruthy();
     fireEvent.press(screen.getByLabelText('Cancelar'));
     fireEvent.press(screen.getByLabelText('Fechar'));
-    expect(screen.getByText('300 pontos')).toBeTruthy();
+    expect(screen.getByLabelText('Saldo disponível agora: 300 pontos')).toBeTruthy();
     expect(screen.queryByText('Resgatadas')).toBeNull();
   });
 
@@ -189,6 +189,8 @@ describe('loja integrada ao contrato da API', () => {
     await act(async () => {
       fireEvent.press(screen.getByLabelText('Atualizar loja'));
     });
-    await waitFor(() => expect(screen.getByText('300 pontos')).toBeTruthy());
+    await waitFor(() =>
+      expect(screen.getByLabelText('Saldo disponível agora: 300 pontos')).toBeTruthy(),
+    );
   });
 });

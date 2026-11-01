@@ -1,3 +1,5 @@
+import { ExtratoScreen } from '../screens/Extrato/ExtratoScreen';
+import { MovimentoExtratoScreen } from '../screens/Extrato/MovimentoExtratoScreen';
 import { HistoricoMissoesScreen } from '../screens/HistoricoMissoes/HistoricoMissoesScreen';
 import { RegistroHistoricoMissaoScreen } from '../screens/HistoricoMissoes/RegistroHistoricoMissaoScreen';
 import { RelatorioSemanalScreen } from '../screens/Progresso/RelatorioSemanalScreen';
@@ -55,6 +57,8 @@ export function RootNavigator({ initialRouteName }) {
       <Stack.Screen name="DetalhesDaReferenciaScreen" component={DetalhesDaReferenciaScreen} />
       <Stack.Screen name="Conta" component={ContaScreen} />
       <Stack.Screen name="Loja" component={LojaScreen} />
+      <Stack.Screen name="Extrato" component={ExtratoScreen} />
+      <Stack.Screen name="MovimentoExtrato" component={MovimentoExtratoScreen} />
       <Stack.Screen name="FormularioRecompensa" component={FormularioRecompensaScreen} />
     </Stack.Navigator>
   );

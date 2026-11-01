@@ -18,6 +18,8 @@ import { useLoja } from '../../state/LojaContext';
 import { colors } from '../../theme/colors';
 import { fontFamily } from '../../theme/typography';
 import { CartaoRecompensa } from './CartaoRecompensa';
+import { CartaoSaldo } from '../../components/Pontos/CartaoSaldo';
+import { ValorComMoeda } from '../../components/Pontos/ValorComMoeda';
 
 const ESTADOS = { disponivel: 'Disponível', resgatada: 'Resgatada', utilizada: 'Utilizada' };
 
@@ -55,7 +57,12 @@ export function LojaScreen({ navigation }) {
       acao: 'resgatar',
       id: selecao.protecao ? null : selecionada.id,
       titulo: 'Resgatar recompensa?',
-      mensagem: `${selecionada.titulo} custa ${selecionada.custo} pontos. Seu saldo atual é ${loja.saldoPontos} pontos. Após o resgate, restarão ${loja.saldoPontos - selecionada.custo} pontos.`,
+      mensagem: `Confirmar o resgate de “${selecionada.titulo}”?`,
+      resumo: {
+        custo: selecionada.custo,
+        saldo: loja.saldoPontos,
+        apos: loja.saldoPontos - selecionada.custo,
+      },
       botao: 'Confirmar resgate',
     });
   }
@@ -103,13 +110,9 @@ export function LojaScreen({ navigation }) {
             <Text style={styles.mais}>+</Text>
           </Pressable>
         </View>
-        <Text style={styles.texto}>Troque pontos por descanso e personalização.</Text>
-        <View style={styles.saldo}>
-          <Text style={styles.rotuloSaldo}>Saldo disponível</Text>
-          <Text style={styles.valorSaldo} accessibilityLiveRegion="polite">
-            {loja ? `${loja.saldoPontos.toLocaleString('pt-BR')} pontos` : '—'}
-          </Text>
-        </View>
+        <Text style={styles.texto}>Escolha uma recompensa para você.</Text>
+        <CartaoSaldo saldo={loja?.saldoPontos} carregando={carregando} />
+        <SecondaryButton label="Ver extrato" onPress={() => navigation.navigate('Extrato')} />
         {erro && !selecao && !confirmacao ? (
           <View style={styles.aviso}>
             <Text accessibilityRole="alert" style={styles.erro}>
@@ -168,9 +171,12 @@ export function LojaScreen({ navigation }) {
                 <Text style={styles.rotulo}>{item.titulo}</Text>
                 <Text style={styles.texto}>
                   {item.estado === 'estornado'
-                    ? `Estornado · +${item.custo} pontos`
-                    : `${item.estado === 'utilizado' ? 'Utilizado' : 'Resgatado'} · ${item.custo} pontos`}
+                    ? 'Resgate desfeito'
+                    : item.estado === 'utilizado'
+                      ? 'Utilizado'
+                      : 'Resgatado'}
                 </Text>
+                <ValorComMoeda valor={item.custo} comSinal={item.estado === 'estornado'} />
                 {item.protecao && item.estado === 'resgatado' ? (
                   <SecondaryButton
                     label="Desfazer resgate da proteção"
@@ -180,7 +186,8 @@ export function LojaScreen({ navigation }) {
                         acao: 'desfazer',
                         id: item.id,
                         titulo: 'Desfazer resgate?',
-                        mensagem: `${item.custo} pontos serão devolvidos ao seu saldo.`,
+                        mensagem: 'O valor será devolvido ao seu saldo.',
+                        valor: item.custo,
                         botao: 'Desfazer resgate',
                       })
                     }
@@ -215,6 +222,23 @@ export function LojaScreen({ navigation }) {
               <>
                 <Text style={styles.subtitulo}>{confirmacao.titulo}</Text>
                 <Text style={styles.texto}>{confirmacao.mensagem}</Text>
+                {confirmacao.resumo ? (
+                  <View style={styles.grupo}>
+                    {[
+                      ['Custo', confirmacao.resumo.custo],
+                      ['Seu saldo', confirmacao.resumo.saldo],
+                      ['Após o resgate', confirmacao.resumo.apos],
+                    ].map(([rotulo, valor]) => (
+                      <View key={rotulo}>
+                        <Text style={styles.rotulo}>{rotulo}</Text>
+                        <ValorComMoeda valor={valor} rotulo={rotulo} />
+                      </View>
+                    ))}
+                  </View>
+                ) : null}
+                {confirmacao.valor != null ? (
+                  <ValorComMoeda valor={confirmacao.valor} comSinal rotulo="Devolução" />
+                ) : null}
                 {erro ? (
                   <Text style={styles.erro} accessibilityRole="alert">
                     {erro}
@@ -239,8 +263,10 @@ export function LojaScreen({ navigation }) {
                 {selecionada.descricao ? (
                   <Text style={styles.texto}>{selecionada.descricao}</Text>
                 ) : null}
-                <Text style={styles.rotulo}>Custo: {selecionada.custo} pontos</Text>
-                <Text style={styles.texto}>Seu saldo: {loja.saldoPontos} pontos</Text>
+                <Text style={styles.rotulo}>Custo</Text>
+                <ValorComMoeda valor={selecionada.custo} rotulo="Custo" />
+                <Text style={styles.texto}>Seu saldo</Text>
+                <ValorComMoeda valor={loja.saldoPontos} rotulo="Seu saldo" />
                 {erro ? (
                   <Text style={styles.erro} accessibilityRole="alert">
                     {erro}
@@ -298,7 +324,8 @@ export function LojaScreen({ navigation }) {
                           acao: 'desfazer',
                           id: selecionada.resgateId,
                           titulo: 'Desfazer resgate?',
-                          mensagem: `${selecionada.custo} pontos serão devolvidos ao saldo.`,
+                          mensagem: 'O valor será devolvido ao saldo.',
+                          valor: selecionada.custo,
                           botao: 'Desfazer resgate',
                         })
                       }

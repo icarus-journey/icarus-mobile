@@ -1,3 +1,4 @@
+import { mesesDeConsulta } from '../../utils/mesesDeConsulta';
 import { periodoCurto } from '../../utils/formatarProgresso';
 export const FILTROS_INICIAIS = {
   periodo: 'ultimos30',
@@ -31,36 +32,11 @@ export function dataDoRegistro(data) {
   return periodoCurto({ inicio: data, fim: data });
 }
 export function opcoesDePeriodo(referencia = new Date(), fuso) {
-  const data = new Date(referencia),
-    opcoes = [{ id: 'ultimos30', titulo: 'Últimos 30 dias' }];
-  const partes = new Intl.DateTimeFormat('pt-BR', {
-    year: 'numeric',
-    month: 'numeric',
-    timeZone: fuso,
-  }).formatToParts(data);
-  const ano = Number(partes.find((p) => p.type === 'year').value);
-  const mes = Number(partes.find((p) => p.type === 'month').value) - 1;
-  for (let i = 0; i < 12; i++) {
-    const d = new Date(Date.UTC(ano, mes - i, 1));
-    const inicio = d.toISOString().slice(0, 10),
-      fim = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0))
-        .toISOString()
-        .slice(0, 10);
-    const nome = new Intl.DateTimeFormat('pt-BR', {
-      month: 'long',
-      year: 'numeric',
-      timeZone: 'UTC',
-    })
-      .format(d)
-      .replace(' de ', ' ');
-    opcoes.push({
-      id: inicio.slice(0, 7),
-      titulo: nome.charAt(0).toUpperCase() + nome.slice(1),
-      inicio,
-      fim,
-    });
-  }
-  return [opcoes[0], { id: 'personalizado', titulo: 'Outro período' }, ...opcoes.slice(1)];
+  return [
+    { id: 'ultimos30', titulo: 'Últimos 30 dias' },
+    { id: 'personalizado', titulo: 'Outro período' },
+    ...mesesDeConsulta(referencia, fuso),
+  ];
 }
 export function filtroDoPeriodo(filtros, opcao) {
   const proximo = { ...filtros, periodo: opcao.id };

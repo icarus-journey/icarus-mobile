@@ -165,6 +165,15 @@ com realização, registro e ausência de metadados explícitos. Troca de conta 
 filtro descarta respostas antigas. Sem dependência ou nova build nativa.
 Contrato: [histórico 1.0.0](../icarus-context/docs/implementation-design/platform/11-historico-missoes.md).
 
+## Extrato
+
+Na Loja, **Ver extrato** abre os movimentos reais da API. Período combina com
+Todos/Recebidos/Usados, Ver mais pagina e o detalhe é somente leitura. Voltar
+preserva a consulta. Valores usam moeda e número; saldo antigo não registrado é
+exibido como indisponível. Há repetição de falha e isolamento na troca de conta.
+Contrato [1.0.0](../icarus-context/docs/implementation-design/platform/12-extrato-pontos.md).
+JavaScript/API: o cliente já instalado não precisa de nova build nativa.
+
 ## Histórico do diário
 
 Reflexões e deslizes são carregados ao abrir o Diário e por **Atualizar histórico**.
