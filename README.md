@@ -162,7 +162,8 @@ configuração da IA sob demanda. Sem gerar ao abrir, recalcular o passado ou
 preencher fontes não registradas. Paginação, falhas recuperáveis, sessão e retorno
 com lista preservada seguem o cliente autenticado. Contrato
 [1.0.0](../icarus-context/docs/implementation-design/platform/13-historico-relatorios.md).
-JavaScript/API, sem nova build nativa; teste físico aguarda reconexão do aparelho.
+JavaScript/API, sem nova build nativa. Fluxo de leitura e retorno conferido no
+Samsung Android 16; validação pelo usuário, iPhone e leitores de tela pendentes.
 
 ## Histórico de missões
 
