@@ -130,10 +130,9 @@ function RegistroDaSessao({ navigation, route }) {
               ))}
             </View>
             <Text style={e.legenda}>
-              {r.fusoHorarioRealizacao
-                ? `Realização: ${nomeDoFuso(r.fusoHorarioRealizacao)}`
-                : 'Horário local da realização não informado.'}
-              {'\n'}Registro: {nomeDoFuso(dados.fusoHorario)}
+              {r.fusoHorarioRealizacao === dados.fusoHorario
+                ? nomeDoFuso(dados.fusoHorario)
+                : `${r.fusoHorarioRealizacao ? `Realização: ${nomeDoFuso(r.fusoHorarioRealizacao)}\n` : ''}Registro: ${nomeDoFuso(dados.fusoHorario)}`}
             </Text>
           </>
         ) : null}

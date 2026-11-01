@@ -74,13 +74,13 @@ export function filtroDoPeriodo(filtros, opcao) {
 }
 export function momentoDoRegistro(instante, fuso) {
   if (!instante) return 'Não informado';
-  if (!fuso) return 'Data registrada; horário local não informado';
   try {
-    return new Intl.DateTimeFormat('pt-BR', {
+    const horario = new Intl.DateTimeFormat('pt-BR', {
       dateStyle: 'medium',
       timeStyle: 'short',
-      timeZone: fuso,
+      timeZone: fuso ?? 'UTC',
     }).format(new Date(instante.replace(/(\.\d{3})\d+/, '$1')));
+    return fuso ? horario : `${horario} (UTC)`;
   } catch {
     return 'Horário não informado';
   }

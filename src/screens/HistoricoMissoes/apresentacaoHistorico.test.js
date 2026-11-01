@@ -17,7 +17,8 @@ it('formata a realização no próprio fuso e não inventa horário ausente', ()
     '19:30',
   );
   expect(momentoDoRegistro(null, 'UTC')).toBe('Não informado');
-  expect(momentoDoRegistro('2026-10-30T22:30:00Z', null)).toContain('horário local não informado');
+  expect(momentoDoRegistro('2026-10-30T22:30:00Z', null)).toContain('22:30');
+  expect(momentoDoRegistro('2026-10-30T22:30:00Z', null)).toContain('(UTC)');
 });
 it('os meses seguem o fuso informado pela API quando a data UTC cruza o mês', () => {
   expect(opcoesDePeriodo('2027-01-31T23:00:00Z', 'Asia/Tokyo').find((p) => p.inicio).id).toBe(
