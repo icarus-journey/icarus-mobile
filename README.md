@@ -154,6 +154,17 @@ sob demanda em **Entender meu ritmo**; pontos e XP ficam fora do cálculo.
 Contrato: [progresso mensurado](../icarus-context/docs/implementation-design/platform/09-progresso-mensurado-campanhas.md).
 Esta mudança é JavaScript/API e não exige recompilar o cliente instalado.
 
+## Histórico de missões
+
+Em Missões, **Histórico** fica ao lado de Meu progresso. A lista usa ocorrências
+reais da API, com data prevista, estado, campanha e crédito recebido. Filtros
+recolhidos permitem período, estado e campanha/avulsas; Outro período aceita
+início/fim. Voltar do detalhe preserva a lista e Ver mais traz a próxima página.
+Registros removidos da rotina continuam consultáveis; o detalhe é somente leitura,
+com realização, registro e ausência de metadados explícitos. Troca de conta ou
+filtro descarta respostas antigas. Sem dependência ou nova build nativa.
+Contrato: [histórico 1.0.0](../icarus-context/docs/implementation-design/platform/11-historico-missoes.md).
+
 ## Histórico do diário
 
 Reflexões e deslizes são carregados ao abrir o Diário e por **Atualizar histórico**.

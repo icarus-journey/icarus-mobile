@@ -1,3 +1,5 @@
+import { HistoricoMissoesScreen } from '../screens/HistoricoMissoes/HistoricoMissoesScreen';
+import { RegistroHistoricoMissaoScreen } from '../screens/HistoricoMissoes/RegistroHistoricoMissaoScreen';
 import { RelatorioSemanalScreen } from '../screens/Progresso/RelatorioSemanalScreen';
 import { ProgressoScreen } from '../screens/Progresso/ProgressoScreen';
 import { DetalhesDaReferenciaScreen } from '../screens/Progresso/DetalhesDaReferenciaScreen';
@@ -39,6 +41,8 @@ export function RootNavigator({ initialRouteName }) {
     >
       <Stack.Screen name="Onboarding" component={OnboardingScreen} />
       <Stack.Screen name="MissionList" component={PlanningHubScreen} />
+      <Stack.Screen name="HistoricoMissoes" component={HistoricoMissoesScreen} />
+      <Stack.Screen name="RegistroHistoricoMissao" component={RegistroHistoricoMissaoScreen} />
       <Stack.Screen name="Diario" component={DiarioScreen} />
       <Stack.Screen name="MissionForm" component={MissionFormScreen} />
       <Stack.Screen name="MissionDetail" component={MissionDetailScreen} />

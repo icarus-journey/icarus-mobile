@@ -155,10 +155,23 @@ export function PlanningHubScreen({ navigation, route }) {
         {cabecalhoCompacto ? <View style={styles.indicadoresCompactos}>{indicadores}</View> : null}
         <Text style={styles.subtitle}>{header.subtitle}</Text>
 
-        <SecondaryButton
-          label="Meu progresso"
-          onPress={() => navigation.navigate('ProgressoScreen')}
-        />
+        <View style={styles.acessos}>
+          <View style={styles.acesso}>
+            <SecondaryButton
+              label="Meu progresso"
+              onPress={() => navigation.navigate('ProgressoScreen')}
+            />
+          </View>
+          {segment === 'MISSAO' ? (
+            <View style={styles.acessoHistorico}>
+              <SecondaryButton
+                label="Histórico"
+                accessibilityHint="Consultar os registros de missões"
+                onPress={() => navigation.navigate('HistoricoMissoes')}
+              />
+            </View>
+          ) : null}
+        </View>
         <SegmentedControl value={segment} onChange={setSegment} />
 
         {segment === 'MISSAO' ? (
@@ -338,6 +351,9 @@ export function PlanningHubScreen({ navigation, route }) {
 }
 
 const styles = StyleSheet.create({
+  acessos: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  acesso: { flexGrow: 1, flexBasis: 180 },
+  acessoHistorico: { flexGrow: 1, flexBasis: 120 },
   screen: {
     flex: 1,
     backgroundColor: colors.surface,
