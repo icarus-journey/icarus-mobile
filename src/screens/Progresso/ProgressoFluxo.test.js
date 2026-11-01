@@ -275,6 +275,32 @@ it('exibe relatório persistido e identifica IA, período e reflexão opcional',
   });
 });
 
+it('mostra o planejamento comparável e abre a atividade em separado sem nova geração', async () => {
+  respostaRelatorio.relatorio.comparacaoSemanal = {
+    semana: { estado: 'disponivel', previstas: 10, concluidas: 8, taxaConclusao: 80 },
+    semanasAnteriores: Array.from({ length: 4 }, () => ({
+      estado: 'disponivel',
+      previstas: 8,
+      concluidas: 4,
+      taxaConclusao: 50,
+    })),
+    mediaQuatroSemanas: { previstas: 8.5, concluidas: 5, taxaConclusao: 56.2 },
+    podeCompararSemanaAnterior: true,
+    podeCompararMediaQuatroSemanas: true,
+  };
+  render(aplicativo('RelatorioSemanalScreen'));
+  await screen.findByText('8 de 10 feitas');
+  expect(screen.queryByText('Média das 4 anteriores')).toBeNull();
+  expect(screen.queryByText('missões feitas')).toBeNull();
+  fireEvent.press(screen.getByLabelText('Comparar semanas'));
+  expect(screen.getByText('Média das 4 anteriores')).toBeTruthy();
+  fireEvent.press(screen.getByLabelText('Ver atividade da semana'));
+  expect(screen.getByText('missões feitas')).toBeTruthy();
+  expect(
+    mockRequisitar.mock.calls.filter(([rota]) => rota.endsWith('/relatorios/semanais')),
+  ).toHaveLength(1);
+});
+
 it('processamento consulta sem iniciar nova geração e falha exige tentativa explícita', async () => {
   respostaRelatorio = {
     estado: 'processando',

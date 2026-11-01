@@ -223,6 +223,10 @@ adaptadas para leitura pela pessoa, sem promessas sobre resultados individuais.
 
 **Minha semana** destaca um próximo passo do relatório persistido. Resumo e
 pergunta opcional abrem sob demanda; a identificação de IA permanece visível.
+No relatório 1.1.0, o planejamento mostra feitas/planejadas e taxa juntos;
+**Comparar semanas** abre a semana anterior e a média das quatro anteriores.
+A atividade por realização fica em outro controle. Valores e disponibilidade
+vêm da API; relatórios antigos permanecem com seu conteúdo e apresentação.
 Nova geração após falha exige ação explícita. Referências públicas e síntese
 pessoal continuam separadas. Componentes usam Inter/roxo e dependências já
 instaladas, com controles acessíveis, alturas variáveis e rolagem em fonte grande.

@@ -3,6 +3,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { DetalhesDosIndicadores } from '../../components/Analise/DetalhesDosIndicadores';
+import { ComparacaoDaSemana } from '../../components/Analise/ComparacaoDaSemana';
 import { IconeAnalise } from '../../components/Analise/IconeAnalise';
 import { ResumoEvolucaoPessoal } from '../../components/Analise/ResumoEvolucaoPessoal';
 import { estilosPainel as estilos } from '../../components/Analise/estilosPainel';
@@ -19,6 +20,7 @@ export function RelatorioSemanalScreen({ navigation }) {
   const [resumo, setResumo] = useState(false);
   const [reflexao, setReflexao] = useState(false);
   const [detalhes, setDetalhes] = useState(false);
+  const [atividade, setAtividade] = useState(false);
   const relatorio = dados?.relatorio;
   return (
     <View style={[estilosProgresso.tela, { paddingTop: insets.top }]}>
@@ -70,6 +72,7 @@ export function RelatorioSemanalScreen({ navigation }) {
               </View>
               <Text style={estilos.texto}>{relatorio.texto.proximoAjuste}</Text>
             </View>
+            <ComparacaoDaSemana comparacao={relatorio.comparacaoSemanal} />
             <View style={estilos.cartao}>
               <Pressable
                 accessibilityRole="button"
@@ -100,12 +103,26 @@ export function RelatorioSemanalScreen({ navigation }) {
             <Text style={estilos.pequeno}>
               É um convite para pensar. Você escolhe o que faz sentido para sua rotina.
             </Text>
-            <ResumoEvolucaoPessoal
-              dados={{
-                indicadores: relatorio.indicadores,
-                mensagem: 'Missões registradas nesta semana.',
-              }}
-            />
+            {relatorio.comparacaoSemanal ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Ver atividade da semana"
+                accessibilityState={{ expanded: atividade }}
+                onPress={() => setAtividade(!atividade)}
+                style={estilos.botaoTexto}
+              >
+                <Text style={estilos.marca}>Atividade da semana</Text>
+                <IconeAnalise nome="chevron" tamanho={18} />
+              </Pressable>
+            ) : null}
+            {!relatorio.comparacaoSemanal || atividade ? (
+              <ResumoEvolucaoPessoal
+                dados={{
+                  indicadores: relatorio.indicadores,
+                  mensagem: 'Missões registradas nesta semana.',
+                }}
+              />
+            ) : null}
           </>
         ) : dados ? (
           <View style={estilos.cartao}>

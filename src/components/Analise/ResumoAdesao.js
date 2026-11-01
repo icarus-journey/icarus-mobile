@@ -21,7 +21,10 @@ export function ResumoAdesao({ adesao }) {
       </View>
     );
   }
-  const abertas = adesao.pendentes + adesao.atrasadas;
+  const abertas =
+    adesao.pendentes != null && adesao.atrasadas != null
+      ? adesao.pendentes + adesao.atrasadas
+      : null;
   return (
     <View style={[painel.cartao, estilos.cartao]}>
       <Text style={painel.rotulo}>Do que você planejou</Text>
@@ -32,11 +35,13 @@ export function ResumoAdesao({ adesao }) {
             {numeroPublico(adesao.concluidasDoPlanejamento)} de{' '}
             {numeroPublico(adesao.previstasRegistradas)} feitas
           </Text>
-          <Text style={painel.pequeno}>
-            {abertas
-              ? `${numeroPublico(abertas)} em aberto ao fechar o período`
-              : 'Tudo feito até fechar o período'}
-          </Text>
+          {abertas != null ? (
+            <Text style={painel.pequeno}>
+              {abertas
+                ? `${numeroPublico(abertas)} em aberto ao fechar o período`
+                : 'Tudo feito até fechar o período'}
+            </Text>
+          ) : null}
         </View>
       </View>
       <View

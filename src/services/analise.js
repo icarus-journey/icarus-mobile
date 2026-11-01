@@ -1,4 +1,5 @@
 import { validarProgresso } from './progresso';
+import { validarRelatorioSemanal } from './validarRelatorioSemanal';
 
 export function criarServicoAnalise({ usuarioId, requisitarAutenticado }) {
   const base = `/api/usuarios/${usuarioId}`;
@@ -7,11 +8,18 @@ export function criarServicoAnalise({ usuarioId, requisitarAutenticado }) {
       validarProgresso(
         await requisitarAutenticado(`${base}/progresso?periodo=${encodeURIComponent(periodo)}`),
       ),
-    consultarRelatorio: () => requisitarAutenticado(`${base}/relatorios/semanais/atual`),
-    solicitarRelatorio: () =>
-      requisitarAutenticado(`${base}/relatorios/semanais`, { metodo: 'POST' }),
-    tentarRelatorioNovamente: () =>
-      requisitarAutenticado(`${base}/relatorios/semanais/tentar-novamente`, { metodo: 'POST' }),
+    consultarRelatorio: async () =>
+      validarRelatorioSemanal(await requisitarAutenticado(`${base}/relatorios/semanais/atual`)),
+    solicitarRelatorio: async () =>
+      validarRelatorioSemanal(
+        await requisitarAutenticado(`${base}/relatorios/semanais`, { metodo: 'POST' }),
+      ),
+    tentarRelatorioNovamente: async () =>
+      validarRelatorioSemanal(
+        await requisitarAutenticado(`${base}/relatorios/semanais/tentar-novamente`, {
+          metodo: 'POST',
+        }),
+      ),
     referencias: (areaDaVida, tipoDia = 'todos') => {
       const parametros = [`tipoDia=${encodeURIComponent(tipoDia)}`];
       if (areaDaVida) parametros.push(`areaDaVida=${encodeURIComponent(areaDaVida)}`);
