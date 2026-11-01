@@ -1,8 +1,12 @@
+import { validarObjetivos } from './validarObjetivos';
+
 const inteiro = (valor) => Number.isSafeInteger(valor) && valor >= 0;
 
 export function validarProgresso(resposta) {
   if (!/^1\./.test(resposta?.versaoContrato ?? ''))
     throw new Error('Resposta de progresso indisponível.');
+  if (resposta.objetivos != null && !validarObjetivos(resposta.objetivos))
+    throw new Error('Resposta dos objetivos indisponível.');
   const adesao = resposta.adesao;
   if (adesao == null) return resposta; // API anterior preserva atividade e gráfico.
   const {

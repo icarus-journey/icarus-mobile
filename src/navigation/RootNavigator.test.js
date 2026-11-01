@@ -322,7 +322,9 @@ describe('fluxo de épicos', () => {
     fireEvent.press(screen.getByLabelText(/Ser promovido/));
 
     expect(screen.getByText('Detalhe do épico')).toBeTruthy();
-    expect(screen.getByText('2 de 3 campanhas concluídas')).toBeTruthy();
+    expect(screen.getByText('Campanhas concluídas')).toBeTruthy();
+    expect(screen.getByText('2 de 3')).toBeTruthy();
+    expect(screen.queryByText('67%')).toBeNull();
 
     fireEvent.press(screen.getByLabelText('Editar épico'));
     expect(screen.getByText('Editar épico')).toBeTruthy();

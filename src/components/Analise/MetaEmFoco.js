@@ -8,7 +8,13 @@ import { IconeAnalise } from './IconeAnalise';
 import { estilosPainel as estilos } from './estilosPainel';
 import { numeroPublico } from './formatarReferencia';
 
-export function MetaEmFoco({ campanhas, onAbrir, onVerPesquisas, renderEvolucao }) {
+export function MetaEmFoco({
+  campanhas,
+  onAbrir,
+  onVerPesquisas,
+  renderEvolucao,
+  titulo = 'Sua meta em foco',
+}) {
   const { width, fontScale } = useWindowDimensions();
   const acoesEmpilhadas = width < 380 || fontScale > 1.3;
   const [indice, setIndice] = useState(0);
@@ -32,7 +38,7 @@ export function MetaEmFoco({ campanhas, onAbrir, onVerPesquisas, renderEvolucao 
     <View style={estilos.cartao}>
       <View style={estilos.entre}>
         <Text style={[estilos.titulo, estilos.textoFlexivel]} accessibilityRole="header">
-          Sua meta em foco
+          {titulo}
         </Text>
         {metas.length > 1 ? (
           <Pressable

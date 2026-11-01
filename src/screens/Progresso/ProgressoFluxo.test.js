@@ -14,6 +14,8 @@ import {
   evolucaoDaMetaDeTeste,
 } from '../../testUtils/dadosAnaliticos';
 
+import { objetivosDeTeste } from '../../testUtils/objetivosAnaliticos';
+
 const mockRequisitar = jest.fn();
 let mockUsuarioId = 'pessoa-a';
 jest.mock('../../state/SessaoContext', () => ({
@@ -114,9 +116,7 @@ it('explica uma limitação da versão sem culpar a quantidade de registros da p
   await screen.findByLabelText('2 missões feitas');
   fireEvent.press(screen.getByLabelText('Sobre estes números'));
   expect(
-    await screen.findByText(
-      'A porcentagem do planejamento ainda não está disponível.',
-    ),
+    await screen.findByText('A porcentagem do planejamento ainda não está disponível.'),
   ).toBeTruthy();
   fireEvent.press(screen.getByLabelText('Entendi'));
   expect(screen.getByLabelText('2 missões feitas')).toBeTruthy();
@@ -432,4 +432,31 @@ it('distingue a meta real dos pontos e avisa quando o prazo da meta passou', asy
   expect(await screen.findByLabelText('Reforçar a reserva: 860 de 1.200 reais')).toBeTruthy();
   expect(screen.queryByText('Acumular pontos')).toBeNull();
   expect(screen.getByText('O prazo passou. Que tal rever o planejamento?')).toBeTruthy();
+});
+
+it('consome objetivos pelo resumo, troca período e abre o detalhe sem consultas de previsão extras', async () => {
+  const anterior = mockRequisitar.getMockImplementation();
+  mockRequisitar.mockImplementation(async (caminho) => {
+    if (/\/progresso\?/.test(caminho)) {
+      const objetivos = objetivosDeTeste();
+      if (caminho.includes('mesAnterior'))
+        objetivos.campanhas[0].resultado.evolucaoNoPeriodo.avancoRegistrado = 5;
+      return { ...progressoDeTeste(), versaoContrato: '1.3.0', objetivos };
+    }
+    return anterior(caminho);
+  });
+  render(aplicativo('ProgressoScreen', [metaComHistorico]));
+  await screen.findByLabelText('Ver meus objetivos');
+  expect(screen.getByText('+2')).toBeTruthy();
+  fireEvent.press(screen.getByLabelText('Mês anterior completo'));
+  await screen.findByText('+5');
+  expect(screen.getByLabelText('Aprender mensageria: 8 de 16 módulos')).toBeTruthy();
+  expect(
+    mockRequisitar.mock.calls.filter(([c]) => /\/campanhas\/12\/progresso/.test(c)),
+  ).toHaveLength(0);
+  fireEvent.press(screen.getByLabelText('Ver meus objetivos'));
+  fireEvent.press(screen.getByLabelText('Detalhar campanha: Aprender mensageria'));
+  fireEvent.press(screen.getByLabelText('Ver campanha: Aprender mensageria'));
+  await screen.findByText('Detalhe da campanha');
+  expect(await screen.findByLabelText('Registrar progresso')).toBeTruthy();
 });

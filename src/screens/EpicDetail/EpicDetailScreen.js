@@ -7,7 +7,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BottomNav } from '../../components/BottomNav';
 import { PrimaryButton, SecondaryButton } from '../../components/Button';
 import { DetailInfoCard } from '../../components/DetailInfoCard';
-import { DetailProgressCard } from '../../components/DetailProgressCard';
 import { DetailRewardCard } from '../../components/DetailRewardCard';
 import { DetailSummaryCard } from '../../components/DetailSummaryCard';
 import { ScreenHeader } from '../../components/ScreenHeader';
@@ -117,11 +116,13 @@ export function EpicDetailScreen({ route, navigation }) {
         />
 
         {epic.progresso ? (
-          <DetailProgressCard
-            title="Progresso deste épico"
-            subtitle={`${epic.progresso.concluidas} de ${epic.progresso.total} campanhas concluídas`}
-            current={epic.progresso.concluidas}
-            total={epic.progresso.total}
+          <DetailInfoCard
+            rows={[
+              {
+                label: 'Campanhas concluídas',
+                value: `${epic.progresso.concluidas} de ${epic.progresso.total}`,
+              },
+            ]}
           />
         ) : null}
 

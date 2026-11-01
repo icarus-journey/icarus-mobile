@@ -13,16 +13,34 @@ export function useProgresso(periodo) {
     dados: null,
     carregando: true,
     erro: '',
+    versaoContrato: null,
   });
   const versao = useRef(0);
   const carregar = useCallback(async () => {
     const atual = ++versao.current;
-    setEstado({ usuarioId, periodo, dados: null, carregando: true, erro: '' });
+    setEstado((anterior) => ({
+      usuarioId,
+      periodo,
+      dados: null,
+      carregando: true,
+      erro: '',
+      versaoContrato:
+        anterior.usuarioId === usuarioId
+          ? (anterior.dados?.versaoContrato ?? anterior.versaoContrato)
+          : null,
+    }));
     if (!usuarioId) return;
     try {
       const resposta = await servico.progresso(periodo);
       if (atual === versao.current)
-        setEstado({ usuarioId, periodo, dados: resposta, carregando: false, erro: '' });
+        setEstado({
+          usuarioId,
+          periodo,
+          dados: resposta,
+          carregando: false,
+          erro: '',
+          versaoContrato: resposta.versaoContrato,
+        });
     } catch (falha) {
       if (atual === versao.current)
         setEstado({
@@ -49,6 +67,10 @@ export function useProgresso(periodo) {
     ...(estado.usuarioId === usuarioId && estado.periodo === periodo
       ? estado
       : { dados: null, carregando: true, erro: '' }),
+    versaoContrato:
+      estado.usuarioId === usuarioId
+        ? (estado.dados?.versaoContrato ?? estado.versaoContrato)
+        : null,
     carregar,
   };
 }

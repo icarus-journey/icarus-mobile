@@ -36,7 +36,7 @@ function dataCurta(data) {
   return `${data.slice(8, 10)}/${data.slice(5, 7)}`;
 }
 
-export function EvolucaoDaMeta({ dados }) {
+export function EvolucaoDaMeta({ dados, periodoSelecionado = null, baseDoAvanco = null }) {
   const [detalhes, setDetalhes] = useState(false);
   const insets = useSafeAreaInsets();
   const evolucao = dados?.evolucao;
@@ -58,14 +58,24 @@ export function EvolucaoDaMeta({ dados }) {
       <View style={locais.resumo}>
         {avanco != null ? (
           <View style={locais.numero}>
-            <Text style={estilos.pequeno}>Avanço registrado</Text>
+            <Text style={estilos.pequeno}>
+              {periodoSelecionado
+                ? baseDoAvanco === 'primeiro_registro_do_periodo'
+                  ? 'Entre registros do período'
+                  : 'Avanço no período'
+                : 'Avanço registrado'}
+            </Text>
             <Text style={locais.valor}>{`${avanco > 0 ? '+' : ''}${numero(avanco)}`}</Text>
             <Text style={estilos.pequeno}>{dados.unidade}</Text>
           </View>
         ) : null}
         <View style={locais.numero}>
           <Text style={estilos.pequeno}>
-            {evolucao.faltante === 0 ? 'Meta alcançada' : 'Faltam'}
+            {evolucao.faltante === 0
+              ? 'Meta alcançada'
+              : periodoSelecionado
+                ? 'Faltam agora'
+                : 'Faltam'}
           </Text>
           <Text style={locais.valor}>{numero(evolucao.faltante)}</Text>
           <Text style={estilos.pequeno}>{dados.unidade}</Text>
@@ -95,7 +105,9 @@ export function EvolucaoDaMeta({ dados }) {
       ) : null}
       {elegivel ? (
         <View style={locais.cenario}>
-          <Text style={estilos.pequeno}>Se mantiver esse ritmo…</Text>
+          <Text style={estilos.pequeno}>
+            {periodoSelecionado ? 'Se mantiver esse ritmo atual…' : 'Se mantiver esse ritmo…'}
+          </Text>
           <Text style={locais.destaque}>
             Cerca de {semanas} {semanas === 1 ? 'semana' : 'semanas'} para chegar lá
           </Text>
@@ -145,12 +157,14 @@ export function EvolucaoDaMeta({ dados }) {
                     'Ainda não há uma base comparável para estimar o tempo. Seus registros continuam disponíveis.')}
               </Text>
               <Text style={estilos.texto}>
-                O gráfico mostra o último total registrado em cada dia, na mesma quantidade e
-                unidade da meta atual. Revisar o valor para baixo também faz parte do histórico.
+                {periodoSelecionado
+                  ? 'O gráfico usa os registros do período escolhido, na quantidade e unidade da meta atual. O avanço compara o último total com o registro anterior ao período; sem essa base, compara o primeiro e o último registro do próprio período. Um registro isolado sem base anterior não estima avanço.'
+                  : 'O gráfico mostra o último total registrado em cada dia, na mesma quantidade e unidade da meta atual. Revisar o valor para baixo também faz parte do histórico.'}
               </Text>
               <Text style={estilos.pequeno}>
-                Este histórico acompanha a meta atual, independentemente do período de missões
-                selecionado.
+                {periodoSelecionado
+                  ? 'O valor da meta, o que falta e o cenário de ritmo são atuais. Atingir a meta não conclui a campanha automaticamente.'
+                  : 'Este histórico acompanha a meta atual, independentemente do período de missões selecionado.'}
               </Text>
               {evolucao.fusoHorario ? (
                 <Text style={estilos.pequeno}>Horário dos registros: {evolucao.fusoHorario}</Text>

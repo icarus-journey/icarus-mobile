@@ -188,12 +188,15 @@ Contrato e limites: [`05-contrato-da-loja.md`](../icarus-context/docs/implementa
 
 **Meu progresso** separa **Minha jornada** de **Pesquisas**. Semana, mês e seis
 meses completos mostram missões feitas, evolução em barras, números disponíveis
-e distribuição por área. **Sua meta em foco** mostra o valor atual na unidade
-original (por exemplo, 2 de 6 módulos) e abre a meta ou pesquisas da mesma área.
-Esse cartão representa o valor atual, independentemente do período do gráfico.
+e distribuição por área. **Seus objetivos · Agora** abre campanhas/épicos sob
+demanda: estados atuais, contagens e atividade. A API escolhe a campanha em
+destaque pelas realizações dos últimos sete dias; sem atividade confirmada,
+não escolhe. Metas mostram a unidade original, valor/faltante atuais e avanço
+registrado no período. Épicos não recebem percentual; pontos não viram resultado.
+Uma consulta ao resumo traz os dados, sem buscar uma previsão por campanha.
 
 A API calcula a atividade por realização e a adesão ao planejamento em bases
-separadas; HTTP de progresso 1.2.0, compatível com a leitura anterior. O resumo
+separadas; HTTP de progresso 1.3.0, compatível com a leitura anterior. O resumo
 **Do que você planejou** mostra barra, porcentagem e feitas/previstas até fechar
 o período. Uma realização posterior aparece na atividade seguinte. Legado
 mostra apenas planejadas registradas, com explicação em **Sobre estes números**;
