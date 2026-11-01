@@ -28,7 +28,7 @@ function LinhaDaSemana({ rotulo, semana }) {
   );
 }
 
-export function ComparacaoDaSemana({ comparacao }) {
+export function ComparacaoDaSemana({ comparacao, mostrarPlanejamento = true, estiloCartao }) {
   const [expandido, setExpandido] = useState(false);
   if (!comparacao) return null;
   const semana = comparacao.semana;
@@ -36,27 +36,29 @@ export function ComparacaoDaSemana({ comparacao }) {
     comparacao.podeCompararSemanaAnterior || comparacao.podeCompararMediaQuatroSemanas;
   return (
     <View style={painel.secao}>
-      {semana.estado === 'disponivel' ? (
-        <ResumoAdesao
-          adesao={{
-            estado: semana.estado,
-            previstasRegistradas: semana.previstas,
-            concluidasDoPlanejamento: semana.concluidas,
-            taxaConclusao: semana.taxaConclusao,
-          }}
-        />
-      ) : (
-        <View style={painel.cartao}>
-          <Text style={painel.rotulo}>Seu planejamento</Text>
-          <Text style={painel.texto}>
-            {semana.estado === 'sem_planejamento'
-              ? 'Sem missões planejadas nesta semana.'
-              : 'O planejamento desta semana tem registros incompletos.'}
-          </Text>
-        </View>
-      )}
+      {mostrarPlanejamento ? (
+        semana.estado === 'disponivel' ? (
+          <ResumoAdesao
+            adesao={{
+              estado: semana.estado,
+              previstasRegistradas: semana.previstas,
+              concluidasDoPlanejamento: semana.concluidas,
+              taxaConclusao: semana.taxaConclusao,
+            }}
+          />
+        ) : (
+          <View style={[painel.cartao, estiloCartao]}>
+            <Text style={painel.rotulo}>Seu planejamento</Text>
+            <Text style={painel.texto}>
+              {semana.estado === 'sem_planejamento'
+                ? 'Sem missões planejadas nesta semana.'
+                : 'O planejamento desta semana tem registros incompletos.'}
+            </Text>
+          </View>
+        )
+      ) : null}
       {podeComparar ? (
-        <View style={painel.cartao}>
+        <View style={[painel.cartao, estiloCartao]}>
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Comparar semanas"

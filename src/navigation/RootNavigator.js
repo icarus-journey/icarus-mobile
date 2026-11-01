@@ -1,3 +1,7 @@
+import { HistoricoRelatoriosScreen } from '../screens/HistoricoRelatorios/HistoricoRelatoriosScreen';
+import { RelatorioSalvoScreen } from '../screens/HistoricoRelatorios/RelatorioSalvoScreen';
+import { OrigemRelatorioScreen } from '../screens/HistoricoRelatorios/OrigemRelatorioScreen';
+import { ConfiguracaoRelatorioScreen } from '../screens/HistoricoRelatorios/ConfiguracaoRelatorioScreen';
 import { ExtratoScreen } from '../screens/Extrato/ExtratoScreen';
 import { MovimentoExtratoScreen } from '../screens/Extrato/MovimentoExtratoScreen';
 import { HistoricoMissoesScreen } from '../screens/HistoricoMissoes/HistoricoMissoesScreen';
@@ -53,6 +57,10 @@ export function RootNavigator({ initialRouteName }) {
       <Stack.Screen name="CampaignForm" component={CampaignFormScreen} />
       <Stack.Screen name="CampaignDetail" component={CampaignDetailScreen} />
       <Stack.Screen name="ProgressoScreen" component={ProgressoScreen} />
+      <Stack.Screen name="HistoricoRelatoriosScreen" component={HistoricoRelatoriosScreen} />
+      <Stack.Screen name="RelatorioSalvoScreen" component={RelatorioSalvoScreen} />
+      <Stack.Screen name="OrigemRelatorioScreen" component={OrigemRelatorioScreen} />
+      <Stack.Screen name="ConfiguracaoRelatorioScreen" component={ConfiguracaoRelatorioScreen} />
       <Stack.Screen name="RelatorioSemanalScreen" component={RelatorioSemanalScreen} />
       <Stack.Screen name="DetalhesDaReferenciaScreen" component={DetalhesDaReferenciaScreen} />
       <Stack.Screen name="Conta" component={ContaScreen} />

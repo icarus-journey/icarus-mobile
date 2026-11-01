@@ -28,15 +28,23 @@ export function RelatorioSemanalScreen({ navigation }) {
         contentContainerStyle={[estilosProgresso.conteudo, { paddingBottom: insets.bottom + 24 }]}
       >
         <ScreenHeader title="Minha semana" onBack={() => navigation.goBack()} />
-        {dados?.periodo ? (
-          <View style={estilos.linha}>
-            <IconeAnalise nome="calendario" tamanho={18} />
-            <View style={estilos.textoFlexivel}>
-              <Text style={estilos.marca}>{periodoCurto(dados.periodo)}</Text>
-              <Text style={estilos.pequeno}>{nomeDoFuso(dados.periodo.fusoHorario)}</Text>
+        <View style={locais.periodoEHistorico}>
+          {dados?.periodo ? (
+            <View style={[estilos.linha, locais.periodo]}>
+              <IconeAnalise nome="calendario" tamanho={18} />
+              <View style={estilos.textoFlexivel}>
+                <Text style={estilos.marca}>{periodoCurto(dados.periodo)}</Text>
+                <Text style={estilos.pequeno}>{nomeDoFuso(dados.periodo.fusoHorario)}</Text>
+              </View>
             </View>
-          </View>
-        ) : null}
+          ) : null}
+          <SecondaryButton
+            label="Ver histórico"
+            style={locais.acessoHistorico}
+            estiloRotulo={locais.rotuloHistorico}
+            onPress={() => navigation.navigate('HistoricoRelatoriosScreen')}
+          />
+        </View>
         {carregando ? (
           <View style={estilos.cartao}>
             <ActivityIndicator color={colors.brand} />
@@ -170,6 +178,16 @@ export function RelatorioSemanalScreen({ navigation }) {
 }
 
 const locais = StyleSheet.create({
+  periodoEHistorico: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 16 },
+  periodo: { flex: 1, minWidth: 160 },
+  acessoHistorico: {
+    width: 160,
+    borderRadius: 24,
+    borderColor: colors.borderDefaultAlt,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+  },
+  rotuloHistorico: { color: colors.brand, lineHeight: 20 },
   controle: { minHeight: 44 },
   ajuste: { backgroundColor: colors.softPurple, borderColor: colors.softPurple },
 });

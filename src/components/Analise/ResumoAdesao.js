@@ -5,12 +5,12 @@ import { fontFamily } from '../../theme/typography';
 import { estilosPainel as painel } from './estilosPainel';
 import { numeroPublico } from './formatarReferencia';
 
-export function ResumoAdesao({ adesao }) {
+export function ResumoAdesao({ adesao, style }) {
   if (!adesao || adesao.estado === 'sem_planejamento') return null;
   if (adesao.estado === 'historico_parcial') {
     if (!adesao.previstasRegistradas) return null;
     return (
-      <View style={[painel.cartao, estilos.cartao]}>
+      <View style={[painel.cartao, estilos.cartao, style]}>
         <Text style={painel.rotulo}>Seu planejamento</Text>
         <Text style={painel.texto}>
           <Text style={estilos.destaque}>{numeroPublico(adesao.previstasRegistradas)}</Text>{' '}
@@ -26,7 +26,7 @@ export function ResumoAdesao({ adesao }) {
       ? adesao.pendentes + adesao.atrasadas
       : null;
   return (
-    <View style={[painel.cartao, estilos.cartao]}>
+    <View style={[painel.cartao, estilos.cartao, style]}>
       <Text style={painel.rotulo}>Do que você planejou</Text>
       <View style={estilos.linha}>
         <Text style={estilos.porcentagem}>{numeroPublico(adesao.taxaConclusao)}%</Text>

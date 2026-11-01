@@ -154,6 +154,16 @@ sob demanda em **Entender meu ritmo**; pontos e XP ficam fora do cálculo.
 Contrato: [progresso mensurado](../icarus-context/docs/implementation-design/platform/09-progresso-mensurado-campanhas.md).
 Esta mudança é JavaScript/API e não exige recompilar o cliente instalado.
 
+## Histórico dos relatórios
+
+Em Minha semana, **Ver histórico** lista as semanas salvas. O detalhe lê o texto
+e os indicadores originais; **Como foi feito** abre período/fuso, registros e
+configuração da IA sob demanda. Sem gerar ao abrir, recalcular o passado ou
+preencher fontes não registradas. Paginação, falhas recuperáveis, sessão e retorno
+com lista preservada seguem o cliente autenticado. Contrato
+[1.0.0](../icarus-context/docs/implementation-design/platform/13-historico-relatorios.md).
+JavaScript/API, sem nova build nativa; teste físico aguarda reconexão do aparelho.
+
 ## Histórico de missões
 
 Em Missões, **Histórico** fica ao lado de Meu progresso. A lista usa ocorrências

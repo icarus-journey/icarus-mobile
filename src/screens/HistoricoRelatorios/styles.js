@@ -1,0 +1,72 @@
+import { StyleSheet } from 'react-native';
+import { colors } from '../../theme/colors';
+import { fontFamily } from '../../theme/typography';
+export const estilos = StyleSheet.create({
+  tela: { flex: 1, backgroundColor: colors.surface },
+  cabecalho: { paddingHorizontal: 24, paddingVertical: 16 },
+  semMargem: { marginBottom: 0 },
+  tituloCabecalho: { fontSize: 20, lineHeight: 28, textAlign: 'left', marginLeft: 8 },
+  conteudo: { paddingHorizontal: 24, paddingTop: 16, gap: 16 },
+  espaco: { gap: 16 },
+  grupo: { gap: 4 },
+  cartao: {
+    backgroundColor: colors.surface,
+    borderColor: colors.borderDefaultAlt,
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 16,
+    gap: 8,
+  },
+  ajuste: { backgroundColor: colors.softPurple, borderColor: colors.softPurple },
+  linha: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  titulo: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: 20,
+    lineHeight: 28,
+    color: colors.textPrimary,
+  },
+  rotulo: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: 14,
+    lineHeight: 20,
+    color: colors.textPrimary,
+  },
+  legenda: {
+    fontFamily: fontFamily.medium,
+    fontSize: 12,
+    lineHeight: 16,
+    color: colors.textSecondary,
+  },
+  texto: {
+    fontFamily: fontFamily.regular,
+    fontSize: 14,
+    lineHeight: 20,
+    color: colors.textPrimary,
+  },
+  roxo: { color: colors.brand },
+  mes: {
+    paddingBottom: 16,
+    fontFamily: fontFamily.semiBold,
+    fontSize: 14,
+    lineHeight: 20,
+    color: colors.textSecondary,
+  },
+  erro: { fontFamily: fontFamily.regular, fontSize: 14, lineHeight: 20, color: colors.dangerText },
+  rodape: { gap: 16, paddingTop: 16 },
+  botao: {
+    borderRadius: 24,
+    borderColor: colors.borderDefaultAlt,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+  },
+  rotuloBotao: { color: colors.brand, lineHeight: 20 },
+  linhaAjuste: { justifyContent: 'flex-start' },
+  planejamento: { padding: 16, borderRadius: 16, gap: 8 },
+  cabecalhoLista: { gap: 16 },
+});
