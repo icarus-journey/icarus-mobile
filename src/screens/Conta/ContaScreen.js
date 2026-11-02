@@ -5,7 +5,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 
 import { Avatar } from '../../components/Avatar';
-import { BottomNav } from '../../components/BottomNav';
 import { PrimaryButton, SecondaryButton } from '../../components/Button';
 import { InputField } from '../../components/InputField';
 import { KeyboardAwareScrollView } from '../../components/KeyboardAwareScrollView';
@@ -292,13 +291,7 @@ export function ContaScreen({ navigation }) {
           disabled={salvando || saindo}
         />
       </KeyboardAwareScrollView>
-      <BottomNav
-        onPressLoja={() => navigation.navigate('Loja')}
-        activeItem="perfil"
-        onPressMissoes={() => navigation.navigate('MissionList')}
-        onPressDiario={() => navigation.navigate('Diario')}
-        onPressPerfil={() => {}}
-      />
+
       <PickerModal
         visible={Boolean(seletor)}
         title={seletor?.label}

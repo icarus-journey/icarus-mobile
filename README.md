@@ -32,6 +32,20 @@ túnel do Expo publica o Metro, mas não a API. Reinicie o Metro ao mudar a
 variável. Para testar cadastro e login, inicie PostgreSQL, configure os User
 Secrets e aplique as migrations conforme a seção 6 de `icarus-platform/PROJETO.md`.
 
+## Navegação por abas
+
+Missões, Diário, Loja e Perfil são abas reais, com uma única barra no visual
+existente. Trocar de aba preserva a posição e o rascunho do Diário; tocar de
+novo em Missões/Loja volta ao início da pilha. Voltar fecha primeiro o detalhe;
+na raiz de outra aba, retorna a Missões. Formulários, análises e históricos
+continuam sem a barra. Logout remove o histórico privado da navegação.
+
+Usa `@react-navigation/bottom-tabs` 7.21.0, em JavaScript, sobre as dependências
+nativas existentes; sem nova build. Consulte o
+[mapa de navegação](../icarus-context/docs/implementation-design/frontend/01-navegacao-mobile.md).
+MVP-23 verificado com 519 testes/73 suítes, lint/formatação e bundles
+Android/iOS; interação física e leitores de tela ainda pendentes.
+
 ## Editar repetições
 
 Na criação/edição de missão, **Recompensa** recebe um inteiro de 1 a 1.000.000,

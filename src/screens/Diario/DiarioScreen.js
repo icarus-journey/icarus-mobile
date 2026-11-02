@@ -3,7 +3,6 @@ import { useFocusEffect } from '@react-navigation/native';
 import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { BottomNav } from '../../components/BottomNav';
 import { InputField } from '../../components/InputField';
 import { KeyboardAwareScrollView } from '../../components/KeyboardAwareScrollView';
 import { PrimaryButton, SecondaryButton } from '../../components/Button';
@@ -259,14 +258,6 @@ export function DiarioScreen({ navigation }) {
           )}
         </View>
       </KeyboardAwareScrollView>
-
-      <BottomNav
-        onPressLoja={() => navigation.navigate('Loja')}
-        activeItem="diario"
-        onPressMissoes={() => navigation.navigate('MissionList')}
-        onPressPerfil={() => navigation.navigate('Conta')}
-        onPressDiario={() => {}}
-      />
     </View>
   );
 }

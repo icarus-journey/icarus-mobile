@@ -1,7 +1,7 @@
 import { Alert } from 'react-native';
 import { MOCK_CAMPAIGNS } from '../state/campaignMockData';
-import { NavigationContainer } from '@react-navigation/native';
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react-native';
 
 import { CampaignsProvider } from '../state/CampaignsContext';
 import { DiariosProvider } from '../state/DiariosContext';
@@ -9,7 +9,11 @@ import { EpicsProvider } from '../state/EpicsContext';
 import { MissionsProvider } from '../state/MissionsContext';
 import { OnboardingProvider } from '../state/OnboardingContext';
 import { RootNavigator } from './RootNavigator';
+import { LojaProvider } from '../state/LojaContext';
+
 import { useSessao } from '../state/SessaoContext';
+
+const referenciaNavegacao = createNavigationContainerRef();
 
 jest.mock('../hooks/useRelatorioSemanal', () => ({
   useRelatorioSemanal: () => ({ dados: null, carregando: false }),
@@ -74,6 +78,20 @@ function renderApp(initialRouteName = 'Login', { initialMissions } = {}) {
     sessao: initialRouteName === 'Login' ? null : { usuarioId: 'usuario' },
     novaConta: false,
     requisitarAutenticado: jest.fn(async (_caminho, opcoes) => {
+      if (_caminho.endsWith('/loja'))
+        return {
+          saldoPontos: 300,
+          recompensas: [],
+          resgates: [],
+          protecao: { titulo: 'Proteção de sequência', custo: 100, quantidade: 1, limite: 3 },
+        };
+      if (_caminho === '/api/usuarios/usuario')
+        return {
+          id: 'usuario',
+          nome: 'Pessoa de teste',
+          email: 'pessoa@exemplo.com',
+          dataNascimento: '2000-01-01',
+        };
       if (!opcoes) return [...entradas];
       const entrada = {
         ...opcoes.corpo,
@@ -97,9 +115,11 @@ function renderApp(initialRouteName = 'Login', { initialMissions } = {}) {
             }))}
           >
             <DiariosProvider>
-              <NavigationContainer>
-                <RootNavigator initialRouteName={initialRouteName} />
-              </NavigationContainer>
+              <LojaProvider>
+                <NavigationContainer ref={referenciaNavegacao}>
+                  <RootNavigator initialRouteName={initialRouteName} />
+                </NavigationContainer>
+              </LojaProvider>
             </DiariosProvider>
           </CampaignsProvider>
         </EpicsProvider>
@@ -121,7 +141,7 @@ beforeEach(() => {
 });
 
 describe('fluxo de autenticação e missões', () => {
-  it('ignora toques em Missões na tela atual e permite voltar do Diário', async () => {
+  it('ignora toques na aba atual e preserva o segmento ao voltar do Diário', async () => {
     const registrarErro = jest.spyOn(console, 'error').mockImplementation(() => {});
     try {
       renderApp('MissionList');
@@ -135,7 +155,7 @@ describe('fluxo de autenticação e missões', () => {
       expect(screen.getByText('Diário de crescimento')).toBeTruthy();
       await screen.findByLabelText('Atualizar histórico');
       fireEvent.press(screen.getByLabelText('Missões'));
-      expect(screen.getByText('Seus próximos passos.')).toBeTruthy();
+      expect(screen.getByText('Campanhas')).toBeTruthy();
       fireEvent.press(screen.getByLabelText('Missões'));
       expect(registrarErro).not.toHaveBeenCalled();
     } finally {
@@ -497,5 +517,88 @@ describe('fluxo de campanhas', () => {
 
     expect(mockConcluirCampanha).toHaveBeenCalledTimes(1);
     expect(screen.getByText('Campanha concluída')).toBeTruthy();
+  });
+});
+
+describe('abas e pilhas independentes (MVP-23)', () => {
+  it('trocar repetidamente entre as quatro abas não empilha telas nem duplica a barra', async () => {
+    renderApp('MissionList');
+    for (let rodada = 0; rodada < 3; rodada += 1) {
+      for (const nome of ['Diário', 'Loja', 'Perfil', 'Missões']) {
+        await act(async () => fireEvent.press(screen.getByRole('tab', { name: nome })));
+        expect(screen.getByRole('tab', { name: nome }).props.accessibilityState.selected).toBe(
+          true,
+        );
+        expect(
+          within(screen.getByLabelText('Navegação principal')).getAllByRole('tab').length,
+        ).toBe(4);
+      }
+    }
+    const raiz = referenciaNavegacao.getRootState();
+    expect(raiz.routes).toHaveLength(1);
+    const abas = raiz.routes[0].state;
+    expect(abas.type).toBe('tab');
+    expect(abas.routes).toHaveLength(4);
+    expect(referenciaNavegacao.canGoBack()).toBe(false);
+  });
+
+  it('trocar de aba preserva o detalhe e o rascunho do Diário; Voltar fecha o detalhe', async () => {
+    renderApp('MissionList');
+    fireEvent.press(screen.getAllByLabelText(/Fazer exercício de dados/)[0]);
+    await screen.findByText('Detalhe da missão');
+    fireEvent.press(screen.getByRole('tab', { name: 'Diário' }));
+    await screen.findByLabelText('Atualizar histórico');
+    fireEvent.changeText(
+      screen.getByLabelText('Reflexão de hoje'),
+      'Rascunho ainda não registrado',
+    );
+    fireEvent.press(screen.getByRole('tab', { name: 'Missões' }));
+    expect(await screen.findByText('Detalhe da missão')).toBeTruthy();
+    fireEvent.press(screen.getByLabelText('Voltar'));
+    expect(await screen.findByText('Seus próximos passos.')).toBeTruthy();
+    fireEvent.press(screen.getByRole('tab', { name: 'Diário' }));
+    expect(screen.getByLabelText('Reflexão de hoje').props.value).toBe(
+      'Rascunho ainda não registrado',
+    );
+  });
+
+  it('pressionar a aba ativa volta ao início da sua pilha sem duplicar a lista', async () => {
+    renderApp('MissionList');
+    fireEvent.press(screen.getAllByLabelText(/Fazer exercício de dados/)[0]);
+    await screen.findByText('Detalhe da missão');
+    fireEvent.press(screen.getByRole('tab', { name: 'Missões' }));
+    await screen.findByText('Seus próximos passos.');
+    expect(screen.queryByText('Detalhe da missão')).toBeNull();
+    expect(referenciaNavegacao.canGoBack()).toBe(false);
+  });
+
+  it('Voltar na raiz da Loja retorna a Missões preservando o segmento escolhido', async () => {
+    renderApp('MissionList');
+    fireEvent.press(screen.getByLabelText('Campanha'));
+    fireEvent.press(screen.getByRole('tab', { name: 'Loja' }));
+    await screen.findByLabelText('Adicionar recompensa');
+    expect(referenciaNavegacao.canGoBack()).toBe(true);
+    await act(async () => referenciaNavegacao.goBack());
+    expect(screen.getByText('Campanhas')).toBeTruthy();
+    expect(screen.getByRole('tab', { name: 'Missões' }).props.accessibilityState.selected).toBe(
+      true,
+    );
+    expect(referenciaNavegacao.canGoBack()).toBe(false);
+  });
+
+  it('formulário e histórico ocupam a tela; retorno restaura uma única barra', async () => {
+    renderApp('MissionList');
+    fireEvent.press(screen.getByLabelText('Adicionar missão'));
+    expect(await screen.findByText('Nova missão')).toBeTruthy();
+    expect(screen.queryByLabelText('Navegação principal')).toBeNull();
+    fireEvent.press(screen.getByLabelText('Voltar'));
+    expect(await screen.findByText('Seus próximos passos.')).toBeTruthy();
+    expect(within(screen.getByLabelText('Navegação principal')).getAllByRole('tab').length).toBe(4);
+    fireEvent.press(screen.getByLabelText('Histórico'));
+    expect(await screen.findByText('Histórico de missões')).toBeTruthy();
+    expect(screen.queryByLabelText('Navegação principal')).toBeNull();
+    fireEvent.press(screen.getByLabelText('Voltar'));
+    expect(await screen.findByText('Seus próximos passos.')).toBeTruthy();
+    expect(within(screen.getByLabelText('Navegação principal')).getAllByRole('tab').length).toBe(4);
   });
 });

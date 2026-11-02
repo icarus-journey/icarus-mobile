@@ -4,7 +4,6 @@ import { useMemo, useRef, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { BottomNav } from '../../components/BottomNav';
 import { IndicadoresJornada } from '../../components/Jornada/IndicadoresJornada';
 import { DetalhesSequenciaModal } from '../../components/Jornada/DetalhesSequenciaModal';
 import { useJornada } from '../../hooks/useJornada';
@@ -332,12 +331,6 @@ export function PlanningHubScreen({ navigation, route }) {
         ) : null}
       </View>
 
-      <BottomNav
-        onPressLoja={() => navigation.navigate('Loja')}
-        onPressMissoes={() => navigation.navigate('MissionList')}
-        onPressDiario={() => navigation.navigate('Diario')}
-        onPressPerfil={() => navigation.navigate('Conta')}
-      />
       {sequenciaAberta ? (
         <DetalhesSequenciaModal
           key={jornada.usuarioId ?? 'sem-sessao'}

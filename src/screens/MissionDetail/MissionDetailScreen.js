@@ -5,7 +5,6 @@ import { useRef, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { BottomNav } from '../../components/BottomNav';
 import { PrimaryButton, SecondaryButton } from '../../components/Button';
 import { DetailInfoCard } from '../../components/DetailInfoCard';
 import { DetailProgressCard } from '../../components/DetailProgressCard';
@@ -337,10 +336,6 @@ export function MissionDetailScreen({ route, navigation }) {
           espacoInferior={insets.bottom}
         />
       ) : null}
-      <BottomNav
-        onPressLoja={() => navigation.navigate('Loja')}
-        onPressMissoes={() => navigation.popToTop()}
-      />
     </View>
   );
 }

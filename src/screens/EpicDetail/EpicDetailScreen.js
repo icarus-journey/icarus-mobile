@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { BottomNav } from '../../components/BottomNav';
 import { PrimaryButton, SecondaryButton } from '../../components/Button';
 import { DetailInfoCard } from '../../components/DetailInfoCard';
 import { DetailRewardCard } from '../../components/DetailRewardCard';
@@ -158,11 +157,6 @@ export function EpicDetailScreen({ route, navigation }) {
           />
         ) : null}
       </ScrollView>
-
-      <BottomNav
-        onPressLoja={() => navigation.navigate('Loja')}
-        onPressMissoes={() => navigation.popToTop()}
-      />
     </View>
   );
 }

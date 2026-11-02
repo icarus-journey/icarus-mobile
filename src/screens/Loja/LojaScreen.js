@@ -12,7 +12,6 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { BottomNav } from '../../components/BottomNav';
 import { PrimaryButton, SecondaryButton } from '../../components/Button';
 import { useLoja } from '../../state/LojaContext';
 import { colors } from '../../theme/colors';
@@ -198,13 +197,7 @@ export function LojaScreen({ navigation }) {
           </>
         ) : null}
       </ScrollView>
-      <BottomNav
-        activeItem="loja"
-        onPressMissoes={() => navigation.navigate('MissionList')}
-        onPressDiario={() => navigation.navigate('Diario')}
-        onPressLoja={() => {}}
-        onPressPerfil={() => navigation.navigate('Conta')}
-      />
+
       <Modal
         visible={Boolean(selecao || confirmacao)}
         transparent
