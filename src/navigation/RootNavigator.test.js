@@ -179,6 +179,7 @@ describe('fluxo de autenticação e missões', () => {
     fireEvent.press(screen.getByLabelText('Adicionar missão'));
 
     fireEvent.changeText(screen.getByLabelText('Título'), 'Ler dez páginas');
+    fireEvent.changeText(screen.getByLabelText('Recompensa'), '45');
     fireEvent.changeText(screen.getByLabelText('Data limite'), '25122026');
     fireEvent.press(screen.getByLabelText('Média'));
     await act(async () => {

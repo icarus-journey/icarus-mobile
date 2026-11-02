@@ -89,6 +89,7 @@ it('carrega configuração real e mantém vínculo somente para leitura', async 
   expect(screen.getByLabelText('Seg').props.accessibilityState.selected).toBe(true);
   expect(screen.getByLabelText('Sex').props.accessibilityState.selected).toBe(true);
   expect(screen.getByText('Curso')).toBeTruthy();
+  expect(screen.getByLabelText('Recompensa').props.value).toBe('45');
   expect(screen.queryByText('Atribuir a uma campanha')).toBeNull();
 });
 
@@ -105,6 +106,7 @@ it('envia versão, dias, fim e campos preservados sem reatribuir a campanha', as
     corpo: expect.objectContaining({
       titulo: 'Ler duas aulas',
       dificuldade: 'dificil',
+      pontuacao: 45,
       beneficio: 'Aprender',
       dataLimite: null,
       horario: '18:30',

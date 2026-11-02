@@ -34,6 +34,12 @@ Secrets e aplique as migrations conforme a seção 6 de `icarus-platform/PROJETO
 
 ## Editar repetições
 
+Na criação/edição de missão, **Recompensa** recebe um inteiro de 1 a 1.000.000,
+sem preenchimento ou alteração automática pela dificuldade. A edição carrega o
+valor salvo e, em recorrentes, vale a partir de amanhã. Requer API com o
+[contrato de escrita manual 2.0.0](../icarus-context/docs/implementation-design/platform/01-arquitetura-da-solucao.md#escrita-manual-de-missão--contrato-200-em-revisão);
+publicar os dois lados juntos. Sem dependência ou build nativa nova.
+
 O cabeçalho de Missões mostra sequência e saldo reais de
 `GET /api/usuarios/{id}/jornada` (1.1.0). O foguinho abre o calendário; a moeda
 abre a Loja. Atualiza ao retornar à tela/app e a cada minuto ativo, descartando

@@ -5,6 +5,7 @@ const VALID_VALUES = {
   descricao: '',
   dataLimite: '25/12/2026',
   dificuldade: 'MEDIA',
+  pontos: '37',
   recorrente: 'Não',
   atribuirCampanha: 'Não',
 };
@@ -92,4 +93,16 @@ describe('validateMissionForm', () => {
     });
     expect(errors.dataFimRecorrencia).toBeUndefined();
   });
+});
+
+// O teclado numérico não substitui a validação de texto colado ou preenchido.
+it.each(['', '0', '-1', '1.5', '1,5', '1e2', 'NaN', '1000001', ' 30 '])(
+  'rejeita recompensa inválida: %s',
+  (pontos) => {
+    expect(validateMissionForm({ ...VALID_VALUES, pontos }).pontos).toBeDefined();
+  },
+);
+
+it.each(['1', '137', '1000000'])('aceita recompensa inteira: %s', (pontos) => {
+  expect(isFormValid(validateMissionForm({ ...VALID_VALUES, pontos }))).toBe(true);
 });

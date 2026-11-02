@@ -74,6 +74,7 @@ export function MissionsProvider({ children, initialMissions = MOCK_MISSIONS }) 
           descricao: formValues.descricao || null,
           beneficio: null,
           dificuldade: formValues.dificuldade.toLowerCase(),
+          pontuacao: Number(formValues.pontos),
           dataLimite: formValues.dataLimite ? paraDataIso(formValues.dataLimite) : null,
           horario: null,
           recorrencia:
@@ -111,6 +112,7 @@ export function MissionsProvider({ children, initialMissions = MOCK_MISSIONS }) 
           descricao: formValues.descricao || null,
           beneficio: formValues.beneficio ?? missaoAtual?.beneficio ?? null,
           dificuldade: formValues.dificuldade.toLowerCase(),
+          pontuacao: Number(formValues.pontos),
           dataLimite: formValues.dataLimite ? paraDataIso(formValues.dataLimite) : null,
           // Sem campo de horário no formulário: reenvia o horário já existente, senão a API
           // resetaria para 09:00 por omissão.

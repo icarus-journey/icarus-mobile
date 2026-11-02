@@ -23,6 +23,14 @@ export function validateMissionForm(values, { editando = false } = {}) {
     errors.dataLimite = 'Informe uma data válida no formato dd/mm/aaaa.';
   }
 
+  if (
+    !/^\d{1,7}$/.test(values.pontos ?? '') ||
+    Number(values.pontos) < 1 ||
+    Number(values.pontos) > 1_000_000
+  ) {
+    errors.pontos = 'Informe um valor inteiro entre 1 e 1.000.000.';
+  }
+
   if (!values.dificuldade) {
     errors.dificuldade = 'Escolha uma dificuldade.';
   }

@@ -42,6 +42,7 @@ const INITIAL_VALUES = {
   descricao: '',
   dataLimite: '',
   dificuldade: null,
+  pontos: '',
   recorrente: 'Não',
   tipoRecorrencia: 'DIARIA',
   diasSemana: [],
@@ -59,6 +60,7 @@ function valuesFromMission(mission) {
     horarioIso: mission.horarioIso,
     dataLimite: mission.dataLimite ?? '',
     dificuldade: mission.dificuldade,
+    pontos: mission.pontos == null ? '' : String(mission.pontos),
     recorrente: mission.recorrente ? 'Sim' : 'Não',
     tipoRecorrencia: mission.configuracaoRecorrencia?.tipo?.toUpperCase() ?? 'DIARIA',
     diasSemana: mission.configuracaoRecorrencia?.diasSemana ?? [],
@@ -115,6 +117,7 @@ export function MissionFormScreen({ navigation, route }) {
         ...missao,
         ...dados,
         dificuldade: dados.dificuldade.toUpperCase(),
+        pontos: dados.pontuacao,
         dataLimite: deDataIso(dados.dataLimite) ?? '',
         horarioIso: dados.horario,
       }
@@ -192,6 +195,13 @@ function FormularioMissao({ navigation, route, missaoParaEdicao }) {
         setErroEnvio('Esta missão mudou. Volte aos detalhes e abra a edição novamente.');
         return;
       }
+      if (erro.codigo === 'pontuacao_invalida') {
+        setErrors((atuais) => ({
+          ...atuais,
+          pontos: 'Informe um valor inteiro entre 1 e 1.000.000.',
+        }));
+        return;
+      }
       if (erro.codigo === 'fim_invalido') {
         setErroEnvio('Escolha uma data de repetição a partir de amanhã.');
         return;
@@ -258,6 +268,17 @@ function FormularioMissao({ navigation, route, missaoParaEdicao }) {
           />
           {errors.dificuldade ? <Text style={styles.errorText}>{errors.dificuldade}</Text> : null}
         </View>
+
+        <InputField
+          label="Recompensa"
+          required
+          value={values.pontos}
+          onChangeText={(texto) => setField('pontos', texto)}
+          keyboardType="number-pad"
+          maxLength={7}
+          helper="Moedas por conclusão."
+          error={errors.pontos}
+        />
 
         {!editingMission || editingMission.recorrente ? (
           <>
