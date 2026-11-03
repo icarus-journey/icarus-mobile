@@ -5,8 +5,8 @@ missões, utiliza recompensas e consulta seu progresso.
 
 ## Execução local
 
-Esta branch usa Expo SDK 57 e `expo-secure-store`, compatíveis com o
-[Expo Go da App Store no iPhone](https://expo.dev/changelog/expo-go-57-login).
+Esta branch usa Expo SDK 57 e `expo-secure-store`. O Expo Go precisa
+corresponder ao SDK 57; consulte as [versões do cliente](https://expo.dev/go).
 O diário aceita texto no Expo Go; o ditado local também está nesta branch e
 exige o cliente de desenvolvimento compilado. `feature/recursos-nativos`
 preserva a linha anterior com `react-native-keychain`; a sessão atual continua
@@ -45,6 +45,20 @@ nativas existentes; sem nova build. Consulte o
 [mapa de navegação](../icarus-context/docs/implementation-design/frontend/01-navegacao-mobile.md).
 MVP-23 verificado com 519 testes/73 suítes, lint/formatação e bundles
 Android/iOS; interação física e leitores de tela ainda pendentes.
+
+## Espaço útil e barra do sistema
+
+No Android, a barra inferior do sistema fica oculta durante o uso e reaparece
+pelo gesto da borda. Teclado, leitor de tela ou estado de acessibilidade ainda
+não confirmado mantêm os controles visíveis. As quatro abas do Icarus e a
+barra superior permanecem. As áreas seguras continuam definidas pelo sistema.
+
+No iPhone, o app solicita a ocultação automática do indicador de início;
+a decisão e a área inferior continuam sob controle do iOS. Não exige nova
+build ou dependência: usa opções do native-stack/screens já instalados.
+[Comportamento e evidências do MVP-25](../icarus-context/docs/implementation-design/frontend/02-area-util-e-barras-do-sistema.md).
+Android 16/cliente instalado: ocultação, gesto e teclado conferidos; iPhone,
+leitores e Expo Go compatível com SDK 57 ainda pendentes.
 
 ## Editar repetições
 

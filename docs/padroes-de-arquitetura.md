@@ -4,7 +4,7 @@
 
 **Responsável:** Izael
 
-**Última atualização:** 2026-11-02
+**Última atualização:** 2026-11-03
 
 ## 1. Objetivo
 
@@ -106,6 +106,24 @@ focar, sem transformar o formulário em cache persistente. Logout/troca de
 usuário desmontam os navegadores e providers privados; não há persistência
 da navegação no dispositivo. Mapa e limites no
 [contrato de navegação](../../icarus-context/docs/implementation-design/frontend/01-navegacao-mobile.md).
+
+### Barras do sistema — MVP-25
+
+`OpcoesDaJanelaProvider` fica em `App`, dentro de `SafeAreaProvider`, e centraliza
+teclado, leitor de tela e ciclo do aplicativo. Os três native-stacks usam
+`useOpcoesDaJanela`; novos navegadores nativos devem reutilizar essa política.
+No Android ativo e sem teclado/leitor, `navigationBarHidden` oculta somente a
+barra inferior, com retorno transitório por gesto gerenciado pelo screens.
+No iOS, `autoHideHomeIndicator` é uma preferência; não remove a área segura.
+
+A consulta inicial de acessibilidade precede a ocultação; erro conserva a barra.
+Um evento recente do leitor prevalece sobre resposta inicial atrasada. Ouvintes
+são removidos ao desmontar e consultas pendentes são descartadas. Teclado,
+leitor ou app fora de atividade solicitam controles visíveis; retomar reavalia
+o estado. Não há temporizador para esconder barra, captura de gesto, zeragem
+manual de insets, dependência nova, mudança de configuração nativa ou persistência
+dessa preferência no dispositivo. Ver
+[contrato de área útil](../../icarus-context/docs/implementation-design/frontend/02-area-util-e-barras-do-sistema.md).
 
 ## 5. Estado
 

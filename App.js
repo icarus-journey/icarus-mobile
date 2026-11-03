@@ -14,6 +14,7 @@ import {
 
 import { ExclusoesPlanejamentoProvider } from './src/state/ExclusoesPlanejamentoContext';
 import { RootNavigator } from './src/navigation/RootNavigator';
+import { OpcoesDaJanelaProvider } from './src/navigation/OpcoesDaJanela';
 import { listarEpicos } from './src/services/epicos';
 import { listarMissoesAvulsas } from './src/services/missoes';
 import { CampaignsProvider, useCampaigns } from './src/state/CampaignsContext';
@@ -48,11 +49,13 @@ export default function App() {
 
   return (
     <SafeAreaProvider onLayout={onLayoutRootView}>
-      <SessaoProvider>
-        <SessaoGate>
-          <ConteudoDaSessao />
-        </SessaoGate>
-      </SessaoProvider>
+      <OpcoesDaJanelaProvider>
+        <SessaoProvider>
+          <SessaoGate>
+            <ConteudoDaSessao />
+          </SessaoGate>
+        </SessaoProvider>
+      </OpcoesDaJanelaProvider>
       <StatusBar style="dark" />
     </SafeAreaProvider>
   );

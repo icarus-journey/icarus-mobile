@@ -16,14 +16,16 @@ import { OrigemRelatorioScreen } from '../screens/HistoricoRelatorios/OrigemRela
 import { ConfiguracaoRelatorioScreen } from '../screens/HistoricoRelatorios/ConfiguracaoRelatorioScreen';
 import { RelatorioSemanalScreen } from '../screens/Progresso/RelatorioSemanalScreen';
 import { DetalhesDaReferenciaScreen } from '../screens/Progresso/DetalhesDaReferenciaScreen';
+import { useOpcoesDaJanela } from './OpcoesDaJanela';
 
 const Stack = createNativeStackNavigator();
 
 export function NavegadorMissoes({ route }) {
+  const opcoesDaJanela = useOpcoesDaJanela();
   return (
     <Stack.Navigator
       initialRouteName={route.params?.telaInicial ?? 'MissionList'}
-      screenOptions={{ headerShown: false }}
+      screenOptions={opcoesDaJanela}
     >
       <Stack.Screen name="MissionList" component={PlanningHubScreen} />
       <Stack.Screen name="HistoricoMissoes" component={HistoricoMissoesScreen} />
