@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-na
 import { colors } from '../../theme/colors';
 import { fontFamily } from '../../theme/typography';
 import { GraficoConclusoes } from './GraficoConclusoes';
+import { ResumoAdesao } from './ResumoAdesao';
 import { IconeAnalise } from './IconeAnalise';
 import { estilosPainel as painel } from './estilosPainel';
 import { numeroPublico } from './formatarReferencia';
@@ -31,7 +32,11 @@ export function ResumoEvolucaoPessoal({ dados }) {
     ['pontos', 'Pontos ganhos', indicadores.pontosGanhos],
     ['presente', 'Recompensas resgatadas', indicadores.recompensasResgatadas],
     ['pontos', 'Pontos utilizados', indicadores.pontosUtilizados],
-    ['confirmar', 'Taxa de conclusão', indicadores.taxaConclusao, '%'],
+    ['calendario', 'Planejadas no período', indicadores.previstas],
+    ['confirmar', 'Feitas do planejamento', dados.adesao?.concluidasDoPlanejamento],
+    ['calendario', 'Pendentes ao fechar', indicadores.pendentes],
+    ['calendario', 'Em atraso ao fechar', indicadores.atrasadas],
+    ['confirmar', 'Taxa de conclusão', dados.adesao ? null : indicadores.taxaConclusao, '%'],
   ].filter(([, , valor]) => valor != null);
   return (
     <View style={painel.secao}>
@@ -60,7 +65,8 @@ export function ResumoEvolucaoPessoal({ dados }) {
           <GraficoConclusoes evolucao={dados.evolucao} />
         </View>
       ) : null}
-      {metricas.length > 0 && indicadores.concluidas != null ? (
+      <ResumoAdesao adesao={dados.adesao} />
+      {metricas.length > 0 && (indicadores.concluidas != null || dados.adesao) ? (
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Ver mais números"
@@ -74,7 +80,7 @@ export function ResumoEvolucaoPessoal({ dados }) {
           <IconeAnalise nome="chevron" tamanho={18} />
         </Pressable>
       ) : null}
-      {maisNumeros || indicadores.concluidas == null ? (
+      {maisNumeros || (indicadores.concluidas == null && !dados.adesao) ? (
         <View style={estilos.grade}>
           {metricas.map(([icone, rotulo, valor, unidade]) => (
             <View

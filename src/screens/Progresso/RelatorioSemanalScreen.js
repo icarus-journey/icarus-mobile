@@ -3,6 +3,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { DetalhesDosIndicadores } from '../../components/Analise/DetalhesDosIndicadores';
+import { ComparacaoDaSemana } from '../../components/Analise/ComparacaoDaSemana';
 import { IconeAnalise } from '../../components/Analise/IconeAnalise';
 import { ResumoEvolucaoPessoal } from '../../components/Analise/ResumoEvolucaoPessoal';
 import { estilosPainel as estilos } from '../../components/Analise/estilosPainel';
@@ -19,6 +20,7 @@ export function RelatorioSemanalScreen({ navigation }) {
   const [resumo, setResumo] = useState(false);
   const [reflexao, setReflexao] = useState(false);
   const [detalhes, setDetalhes] = useState(false);
+  const [atividade, setAtividade] = useState(false);
   const relatorio = dados?.relatorio;
   return (
     <View style={[estilosProgresso.tela, { paddingTop: insets.top }]}>
@@ -26,15 +28,23 @@ export function RelatorioSemanalScreen({ navigation }) {
         contentContainerStyle={[estilosProgresso.conteudo, { paddingBottom: insets.bottom + 24 }]}
       >
         <ScreenHeader title="Minha semana" onBack={() => navigation.goBack()} />
-        {dados?.periodo ? (
-          <View style={estilos.linha}>
-            <IconeAnalise nome="calendario" tamanho={18} />
-            <View style={estilos.textoFlexivel}>
-              <Text style={estilos.marca}>{periodoCurto(dados.periodo)}</Text>
-              <Text style={estilos.pequeno}>{nomeDoFuso(dados.periodo.fusoHorario)}</Text>
+        <View style={locais.periodoEHistorico}>
+          {dados?.periodo ? (
+            <View style={[estilos.linha, locais.periodo]}>
+              <IconeAnalise nome="calendario" tamanho={18} />
+              <View style={estilos.textoFlexivel}>
+                <Text style={estilos.marca}>{periodoCurto(dados.periodo)}</Text>
+                <Text style={estilos.pequeno}>{nomeDoFuso(dados.periodo.fusoHorario)}</Text>
+              </View>
             </View>
-          </View>
-        ) : null}
+          ) : null}
+          <SecondaryButton
+            label="Ver histórico"
+            style={locais.acessoHistorico}
+            estiloRotulo={locais.rotuloHistorico}
+            onPress={() => navigation.navigate('HistoricoRelatoriosScreen')}
+          />
+        </View>
         {carregando ? (
           <View style={estilos.cartao}>
             <ActivityIndicator color={colors.brand} />
@@ -70,6 +80,7 @@ export function RelatorioSemanalScreen({ navigation }) {
               </View>
               <Text style={estilos.texto}>{relatorio.texto.proximoAjuste}</Text>
             </View>
+            <ComparacaoDaSemana comparacao={relatorio.comparacaoSemanal} />
             <View style={estilos.cartao}>
               <Pressable
                 accessibilityRole="button"
@@ -100,12 +111,26 @@ export function RelatorioSemanalScreen({ navigation }) {
             <Text style={estilos.pequeno}>
               É um convite para pensar. Você escolhe o que faz sentido para sua rotina.
             </Text>
-            <ResumoEvolucaoPessoal
-              dados={{
-                indicadores: relatorio.indicadores,
-                mensagem: 'Missões registradas nesta semana.',
-              }}
-            />
+            {relatorio.comparacaoSemanal ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Ver atividade da semana"
+                accessibilityState={{ expanded: atividade }}
+                onPress={() => setAtividade(!atividade)}
+                style={estilos.botaoTexto}
+              >
+                <Text style={estilos.marca}>Atividade da semana</Text>
+                <IconeAnalise nome="chevron" tamanho={18} />
+              </Pressable>
+            ) : null}
+            {!relatorio.comparacaoSemanal || atividade ? (
+              <ResumoEvolucaoPessoal
+                dados={{
+                  indicadores: relatorio.indicadores,
+                  mensagem: 'Missões registradas nesta semana.',
+                }}
+              />
+            ) : null}
           </>
         ) : dados ? (
           <View style={estilos.cartao}>
@@ -153,6 +178,16 @@ export function RelatorioSemanalScreen({ navigation }) {
 }
 
 const locais = StyleSheet.create({
+  periodoEHistorico: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 16 },
+  periodo: { flex: 1, minWidth: 160 },
+  acessoHistorico: {
+    width: 160,
+    borderRadius: 24,
+    borderColor: colors.borderDefaultAlt,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+  },
+  rotuloHistorico: { color: colors.brand, lineHeight: 20 },
   controle: { minHeight: 44 },
   ajuste: { backgroundColor: colors.softPurple, borderColor: colors.softPurple },
 });

@@ -1,5 +1,7 @@
-import { NavigationContainer } from '@react-navigation/native';
-import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import { Alert } from 'react-native';
+import { MOCK_CAMPAIGNS } from '../state/campaignMockData';
+import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react-native';
 
 import { CampaignsProvider } from '../state/CampaignsContext';
 import { DiariosProvider } from '../state/DiariosContext';
@@ -7,10 +9,17 @@ import { EpicsProvider } from '../state/EpicsContext';
 import { MissionsProvider } from '../state/MissionsContext';
 import { OnboardingProvider } from '../state/OnboardingContext';
 import { RootNavigator } from './RootNavigator';
+import { LojaProvider } from '../state/LojaContext';
+
 import { useSessao } from '../state/SessaoContext';
+
+const referenciaNavegacao = createNavigationContainerRef();
 
 jest.mock('../hooks/useRelatorioSemanal', () => ({
   useRelatorioSemanal: () => ({ dados: null, carregando: false }),
+}));
+jest.mock('../hooks/useJornada', () => ({
+  useJornada: () => ({ dados: null, carregando: false, erro: '', atualizar: jest.fn() }),
 }));
 
 jest.mock('../state/SessaoContext', () => ({ useSessao: jest.fn() }));
@@ -37,6 +46,27 @@ const mockCriarMissao = jest.fn();
 const mockAtualizarMissao = jest.fn();
 const mockConcluirMissao = jest.fn();
 jest.mock('../services/missoes', () => ({
+  consultarMissao: async ({ missaoId }) => {
+    const concluida = mockConcluirMissao.mock.calls.length > 0;
+    return {
+      id: missaoId,
+      status: 'ativa',
+      recorrente: true,
+      titulo: 'Fazer exercício de dados',
+      dificuldade: 'media',
+      pontuacao: 45,
+      versao: 'versao-teste',
+      configuracaoRecorrencia: { tipo: 'diaria', diasSemana: [], dataFim: null },
+      execucao: {
+        podeConcluir: !concluida,
+        concluida,
+        concluidaEm: concluida ? '2026-10-30T12:00:00Z' : null,
+        pontuacao: 45,
+        hoje: '2026-10-30',
+        dataPrevista: '2026-10-30',
+      },
+    };
+  },
   criarMissao: (...args) => mockCriarMissao(...args),
   atualizarMissao: (...args) => mockAtualizarMissao(...args),
   concluirMissao: (...args) => mockConcluirMissao(...args),
@@ -48,6 +78,20 @@ function renderApp(initialRouteName = 'Login', { initialMissions } = {}) {
     sessao: initialRouteName === 'Login' ? null : { usuarioId: 'usuario' },
     novaConta: false,
     requisitarAutenticado: jest.fn(async (_caminho, opcoes) => {
+      if (_caminho.endsWith('/loja'))
+        return {
+          saldoPontos: 300,
+          recompensas: [],
+          resgates: [],
+          protecao: { titulo: 'Proteção de sequência', custo: 100, quantidade: 1, limite: 3 },
+        };
+      if (_caminho === '/api/usuarios/usuario')
+        return {
+          id: 'usuario',
+          nome: 'Pessoa de teste',
+          email: 'pessoa@exemplo.com',
+          dataNascimento: '2000-01-01',
+        };
       if (!opcoes) return [...entradas];
       const entrada = {
         ...opcoes.corpo,
@@ -63,11 +107,19 @@ function renderApp(initialRouteName = 'Login', { initialMissions } = {}) {
     <OnboardingProvider>
       <MissionsProvider {...(initialMissions ? { initialMissions } : {})}>
         <EpicsProvider>
-          <CampaignsProvider>
+          <CampaignsProvider
+            initialCampaigns={MOCK_CAMPAIGNS.map((c) => ({
+              ...c,
+              estado: 'planejada',
+              prazoInicio: '2026-11-01',
+            }))}
+          >
             <DiariosProvider>
-              <NavigationContainer>
-                <RootNavigator initialRouteName={initialRouteName} />
-              </NavigationContainer>
+              <LojaProvider>
+                <NavigationContainer ref={referenciaNavegacao}>
+                  <RootNavigator initialRouteName={initialRouteName} />
+                </NavigationContainer>
+              </LojaProvider>
             </DiariosProvider>
           </CampaignsProvider>
         </EpicsProvider>
@@ -89,7 +141,7 @@ beforeEach(() => {
 });
 
 describe('fluxo de autenticação e missões', () => {
-  it('ignora toques em Missões na tela atual e permite voltar do Diário', async () => {
+  it('ignora toques na aba atual e preserva o segmento ao voltar do Diário', async () => {
     const registrarErro = jest.spyOn(console, 'error').mockImplementation(() => {});
     try {
       renderApp('MissionList');
@@ -103,7 +155,7 @@ describe('fluxo de autenticação e missões', () => {
       expect(screen.getByText('Diário de crescimento')).toBeTruthy();
       await screen.findByLabelText('Atualizar histórico');
       fireEvent.press(screen.getByLabelText('Missões'));
-      expect(screen.getByText('Seus próximos passos.')).toBeTruthy();
+      expect(screen.getByText('Campanhas')).toBeTruthy();
       fireEvent.press(screen.getByLabelText('Missões'));
       expect(registrarErro).not.toHaveBeenCalled();
     } finally {
@@ -147,6 +199,7 @@ describe('fluxo de autenticação e missões', () => {
     fireEvent.press(screen.getByLabelText('Adicionar missão'));
 
     fireEvent.changeText(screen.getByLabelText('Título'), 'Ler dez páginas');
+    fireEvent.changeText(screen.getByLabelText('Recompensa'), '45');
     fireEvent.changeText(screen.getByLabelText('Data limite'), '25122026');
     fireEvent.press(screen.getByLabelText('Média'));
     await act(async () => {
@@ -233,15 +286,16 @@ describe('fluxo de autenticação e missões', () => {
     renderApp('MissionList');
 
     fireEvent.press(screen.getAllByLabelText(/Fazer exercício de dados/)[0]);
-    expect(screen.getByLabelText('Concluir missão')).toBeTruthy();
+    await waitFor(() => expect(screen.getByLabelText('Concluir agora')).toBeTruthy());
 
+    await waitFor(() => screen.getByLabelText('Concluir agora'));
     await act(async () => {
-      fireEvent.press(screen.getByLabelText('Concluir missão'));
+      fireEvent.press(screen.getByLabelText('Concluir agora'));
     });
 
     expect(mockConcluirMissao).toHaveBeenCalledTimes(1);
     expect(screen.getByText('Missão concluída')).toBeTruthy();
-    expect(screen.queryByLabelText('Editar missão')).toBeNull();
+    expect(screen.getByLabelText('Editar missão')).toBeTruthy();
   });
 
   it('não salva e mostra erros quando campos obrigatórios estão vazios', () => {
@@ -289,7 +343,9 @@ describe('fluxo de épicos', () => {
     fireEvent.press(screen.getByLabelText(/Ser promovido/));
 
     expect(screen.getByText('Detalhe do épico')).toBeTruthy();
-    expect(screen.getByText('2 de 3 campanhas concluídas')).toBeTruthy();
+    expect(screen.getByText('Campanhas concluídas')).toBeTruthy();
+    expect(screen.getByText('2 de 3')).toBeTruthy();
+    expect(screen.queryByText('67%')).toBeNull();
 
     fireEvent.press(screen.getByLabelText('Editar épico'));
     expect(screen.getByText('Editar épico')).toBeTruthy();
@@ -364,12 +420,12 @@ describe('fluxo de campanhas', () => {
       areaDaVida: 'trabalhoECarreira',
       dificuldade: 'media',
       pontuacao: 45,
-      prazoInicio: '2026-01-01',
-      prazoFim: '2026-09-30',
+      prazoInicio: '2026-11-01',
+      prazoFim: '2026-12-30',
       valorMensurado: null,
       unidade: null,
       valorAtual: null,
-      estado: 'emAndamento',
+      estado: 'planejada',
     });
     renderApp('MissionList');
 
@@ -384,7 +440,10 @@ describe('fluxo de campanhas', () => {
     expect(screen.getByText('Editar campanha')).toBeTruthy();
     expect(screen.getByDisplayValue('Capacitação em Python')).toBeTruthy();
 
+    fireEvent.changeText(screen.getByLabelText('Data limite'), '30122026');
     fireEvent.changeText(screen.getByLabelText('Título'), 'Capacitação em Python avançado');
+    fireEvent.changeText(screen.getByLabelText('Quanto você quer alcançar?'), '12');
+    fireEvent.changeText(screen.getByLabelText('Unidade da meta'), 'módulos');
     await act(async () => {
       fireEvent.press(screen.getByLabelText('Salvar alterações'));
     });
@@ -404,7 +463,7 @@ describe('fluxo de campanhas', () => {
       areaDaVida: 'trabalhoECarreira',
       dificuldade: 'dificil',
       pontuacao: 60,
-      prazoInicio: '2026-01-01',
+      prazoInicio: '2026-11-01',
       prazoFim: '2027-03-15',
       valorMensurado: null,
       unidade: null,
@@ -417,6 +476,8 @@ describe('fluxo de campanhas', () => {
     fireEvent.press(screen.getByLabelText('Adicionar campanha'));
 
     fireEvent.changeText(screen.getByLabelText('Título'), 'Correr uma meia maratona');
+    fireEvent.changeText(screen.getByLabelText('Quanto você quer alcançar?'), '21');
+    fireEvent.changeText(screen.getByLabelText('Unidade da meta'), 'quilômetros');
     fireEvent.changeText(screen.getByLabelText('Data limite'), '15032027');
     fireEvent.press(screen.getByLabelText('Difícil'));
 
@@ -429,9 +490,17 @@ describe('fluxo de campanhas', () => {
 
     expect(screen.getByText('Campanhas')).toBeTruthy();
     expect(screen.getByText('Correr uma meia maratona')).toBeTruthy();
+    expect(mockCriarCampanha).toHaveBeenCalledWith(
+      expect.objectContaining({
+        dados: expect.objectContaining({
+          prazoInicio: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
+        }),
+      }),
+    );
   });
 
   it('conclui a campanha a partir do detalhe mesmo sem atingir o valor mensurado (RF-03.7)', async () => {
+    const alerta = jest.spyOn(Alert, 'alert');
     mockConcluirCampanha.mockResolvedValue({ id: 'campanha-1', estado: 'concluida' });
     renderApp('MissionList');
 
@@ -442,9 +511,94 @@ describe('fluxo de campanhas', () => {
 
     await act(async () => {
       fireEvent.press(screen.getByLabelText('Concluir campanha'));
+      await alerta.mock.calls[0][2].find((acao) => acao.text === 'Concluir').onPress();
     });
+    alerta.mockRestore();
 
     expect(mockConcluirCampanha).toHaveBeenCalledTimes(1);
     expect(screen.getByText('Campanha concluída')).toBeTruthy();
+  });
+});
+
+describe('abas e pilhas independentes (MVP-23)', () => {
+  it('trocar repetidamente entre as quatro abas não empilha telas nem duplica a barra', async () => {
+    renderApp('MissionList');
+    for (let rodada = 0; rodada < 3; rodada += 1) {
+      for (const nome of ['Diário', 'Loja', 'Perfil', 'Missões']) {
+        await act(async () => fireEvent.press(screen.getByRole('tab', { name: nome })));
+        expect(screen.getByRole('tab', { name: nome }).props.accessibilityState.selected).toBe(
+          true,
+        );
+        expect(
+          within(screen.getByLabelText('Navegação principal')).getAllByRole('tab').length,
+        ).toBe(4);
+      }
+    }
+    const raiz = referenciaNavegacao.getRootState();
+    expect(raiz.routes).toHaveLength(1);
+    const abas = raiz.routes[0].state;
+    expect(abas.type).toBe('tab');
+    expect(abas.routes).toHaveLength(4);
+    expect(referenciaNavegacao.canGoBack()).toBe(false);
+  });
+
+  it('trocar de aba preserva o detalhe e o rascunho do Diário; Voltar fecha o detalhe', async () => {
+    renderApp('MissionList');
+    fireEvent.press(screen.getAllByLabelText(/Fazer exercício de dados/)[0]);
+    await screen.findByText('Detalhe da missão');
+    fireEvent.press(screen.getByRole('tab', { name: 'Diário' }));
+    await screen.findByLabelText('Atualizar histórico');
+    fireEvent.changeText(
+      screen.getByLabelText('Reflexão de hoje'),
+      'Rascunho ainda não registrado',
+    );
+    fireEvent.press(screen.getByRole('tab', { name: 'Missões' }));
+    expect(await screen.findByText('Detalhe da missão')).toBeTruthy();
+    fireEvent.press(screen.getByLabelText('Voltar'));
+    expect(await screen.findByText('Seus próximos passos.')).toBeTruthy();
+    fireEvent.press(screen.getByRole('tab', { name: 'Diário' }));
+    expect(screen.getByLabelText('Reflexão de hoje').props.value).toBe(
+      'Rascunho ainda não registrado',
+    );
+  });
+
+  it('pressionar a aba ativa volta ao início da sua pilha sem duplicar a lista', async () => {
+    renderApp('MissionList');
+    fireEvent.press(screen.getAllByLabelText(/Fazer exercício de dados/)[0]);
+    await screen.findByText('Detalhe da missão');
+    fireEvent.press(screen.getByRole('tab', { name: 'Missões' }));
+    await screen.findByText('Seus próximos passos.');
+    expect(screen.queryByText('Detalhe da missão')).toBeNull();
+    expect(referenciaNavegacao.canGoBack()).toBe(false);
+  });
+
+  it('Voltar na raiz da Loja retorna a Missões preservando o segmento escolhido', async () => {
+    renderApp('MissionList');
+    fireEvent.press(screen.getByLabelText('Campanha'));
+    fireEvent.press(screen.getByRole('tab', { name: 'Loja' }));
+    await screen.findByLabelText('Adicionar recompensa');
+    expect(referenciaNavegacao.canGoBack()).toBe(true);
+    await act(async () => referenciaNavegacao.goBack());
+    expect(screen.getByText('Campanhas')).toBeTruthy();
+    expect(screen.getByRole('tab', { name: 'Missões' }).props.accessibilityState.selected).toBe(
+      true,
+    );
+    expect(referenciaNavegacao.canGoBack()).toBe(false);
+  });
+
+  it('formulário e histórico ocupam a tela; retorno restaura uma única barra', async () => {
+    renderApp('MissionList');
+    fireEvent.press(screen.getByLabelText('Adicionar missão'));
+    expect(await screen.findByText('Nova missão')).toBeTruthy();
+    expect(screen.queryByLabelText('Navegação principal')).toBeNull();
+    fireEvent.press(screen.getByLabelText('Voltar'));
+    expect(await screen.findByText('Seus próximos passos.')).toBeTruthy();
+    expect(within(screen.getByLabelText('Navegação principal')).getAllByRole('tab').length).toBe(4);
+    fireEvent.press(screen.getByLabelText('Histórico'));
+    expect(await screen.findByText('Histórico de missões')).toBeTruthy();
+    expect(screen.queryByLabelText('Navegação principal')).toBeNull();
+    fireEvent.press(screen.getByLabelText('Voltar'));
+    expect(await screen.findByText('Seus próximos passos.')).toBeTruthy();
+    expect(within(screen.getByLabelText('Navegação principal')).getAllByRole('tab').length).toBe(4);
   });
 });

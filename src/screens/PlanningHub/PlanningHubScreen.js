@@ -1,10 +1,12 @@
 import { ResumoInicial } from './ResumoInicial';
 import { SecondaryButton } from '../../components/Button';
-import { useMemo, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useMemo, useRef, useState } from 'react';
+import { FlatList, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { BottomNav } from '../../components/BottomNav';
+import { IndicadoresJornada } from '../../components/Jornada/IndicadoresJornada';
+import { DetalhesSequenciaModal } from '../../components/Jornada/DetalhesSequenciaModal';
+import { useJornada } from '../../hooks/useJornada';
 import { CampaignHeroCard } from '../../components/CampaignHeroCard';
 import { EmptyState } from '../../components/EmptyState';
 import { EpicHeroCard } from '../../components/EpicHeroCard';
@@ -16,6 +18,7 @@ import { useMissions } from '../../state/MissionsContext';
 import { colors } from '../../theme/colors';
 import { fontFamily, fontSize } from '../../theme/typography';
 import { isDataLimiteVencida } from '../../utils/dateInput';
+import { focarElemento } from '../../utils/focarElemento';
 
 function isMissaoAtrasada(mission) {
   return mission.status === 'ATRASADA' || isDataLimiteVencida(mission.dataLimite);
@@ -54,6 +57,29 @@ export function PlanningHubScreen({ navigation, route }) {
   const { epics } = useEpics();
   const insets = useSafeAreaInsets();
   const [segment, setSegment] = useState(route.params?.initialSegment ?? 'MISSAO');
+  const jornada = useJornada(navigation);
+  const [sequenciaAberta, setSequenciaAberta] = useState(false);
+  const referenciaSequencia = useRef(null);
+  const { width, fontScale } = useWindowDimensions();
+  const caracteresDosIndicadores =
+    (jornada.dados?.saldoPontos?.toLocaleString('pt-BR').length ?? 1) +
+    (jornada.dados?.sequencia?.diasAtuais?.toLocaleString('pt-BR').length ?? 1);
+  const cabecalhoCompacto =
+    width < 380 ||
+    fontScale > 1.15 ||
+    segment !== 'MISSAO' ||
+    caracteresDosIndicadores > 7 ||
+    (jornada.dados?.saldoPontos?.toLocaleString('pt-BR').length ?? 0) > 6 ||
+    (jornada.dados?.sequencia?.diasAtuais ?? 0) >= 1000;
+  const indicadores = (
+    <IndicadoresJornada
+      dados={jornada.dados}
+      carregando={jornada.carregando}
+      aoVerSequencia={() => setSequenciaAberta(true)}
+      aoVerLoja={() => navigation.navigate('Loja')}
+      referenciaSequencia={referenciaSequencia}
+    />
+  );
 
   const {
     ativas: missoesAtivas,
@@ -102,14 +128,19 @@ export function PlanningHubScreen({ navigation, route }) {
     navigation.navigate(ADD_ROUTES[segment]);
   }
 
+  function fecharSequencia() {
+    setSequenciaAberta(false);
+    requestAnimationFrame(() => focarElemento(referenciaSequencia));
+  }
+
   return (
     <View style={styles.screen}>
       <View style={[styles.content, { paddingTop: insets.top + 12 }]}>
         <View style={styles.headerRow}>
           <View style={styles.headerTexts}>
             <Text style={styles.title}>{header.title}</Text>
-            <Text style={styles.subtitle}>{header.subtitle}</Text>
           </View>
+          {!cabecalhoCompacto ? indicadores : null}
           <Pressable
             onPress={handleAdd}
             accessibilityRole="button"
@@ -120,11 +151,26 @@ export function PlanningHubScreen({ navigation, route }) {
             <View style={styles.plusVertical} />
           </Pressable>
         </View>
+        {cabecalhoCompacto ? <View style={styles.indicadoresCompactos}>{indicadores}</View> : null}
+        <Text style={styles.subtitle}>{header.subtitle}</Text>
 
-        <SecondaryButton
-          label="Meu progresso"
-          onPress={() => navigation.navigate('ProgressoScreen')}
-        />
+        <View style={styles.acessos}>
+          <View style={styles.acesso}>
+            <SecondaryButton
+              label="Meu progresso"
+              onPress={() => navigation.navigate('ProgressoScreen')}
+            />
+          </View>
+          {segment === 'MISSAO' ? (
+            <View style={styles.acessoHistorico}>
+              <SecondaryButton
+                label="Histórico"
+                accessibilityHint="Consultar os registros de missões"
+                onPress={() => navigation.navigate('HistoricoMissoes')}
+              />
+            </View>
+          ) : null}
+        </View>
         <SegmentedControl value={segment} onChange={setSegment} />
 
         {segment === 'MISSAO' ? (
@@ -285,17 +331,22 @@ export function PlanningHubScreen({ navigation, route }) {
         ) : null}
       </View>
 
-      <BottomNav
-        onPressLoja={() => navigation.navigate('Loja')}
-        onPressMissoes={() => navigation.navigate('MissionList')}
-        onPressDiario={() => navigation.navigate('Diario')}
-        onPressPerfil={() => navigation.navigate('Conta')}
-      />
+      {sequenciaAberta ? (
+        <DetalhesSequenciaModal
+          key={jornada.usuarioId ?? 'sem-sessao'}
+          jornada={jornada}
+          espacoInferior={insets.bottom}
+          aoFechar={fecharSequencia}
+        />
+      ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  acessos: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  acesso: { flexGrow: 1, flexBasis: 180 },
+  acessoHistorico: { flexGrow: 1, flexBasis: 120 },
   screen: {
     flex: 1,
     backgroundColor: colors.surface,
@@ -307,13 +358,14 @@ const styles = StyleSheet.create({
   },
   headerRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     justifyContent: 'space-between',
+    gap: 16,
   },
   headerTexts: {
     flex: 1,
-    gap: 4,
   },
+  indicadoresCompactos: { alignSelf: 'flex-end', maxWidth: '100%' },
   title: {
     fontFamily: fontFamily.bold,
     fontSize: fontSize.screenTitle,
@@ -325,9 +377,9 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   addButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
+    width: 44,
+    height: 44,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.brandStrong,

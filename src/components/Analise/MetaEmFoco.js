@@ -8,7 +8,13 @@ import { IconeAnalise } from './IconeAnalise';
 import { estilosPainel as estilos } from './estilosPainel';
 import { numeroPublico } from './formatarReferencia';
 
-export function MetaEmFoco({ campanhas, onAbrir, onVerPesquisas }) {
+export function MetaEmFoco({
+  campanhas,
+  onAbrir,
+  onVerPesquisas,
+  renderEvolucao,
+  titulo = 'Sua meta em foco',
+}) {
   const { width, fontScale } = useWindowDimensions();
   const acoesEmpilhadas = width < 380 || fontScale > 1.3;
   const [indice, setIndice] = useState(0);
@@ -19,7 +25,7 @@ export function MetaEmFoco({ campanhas, onAbrir, onVerPesquisas }) {
         campanha.valorMensurado > 0 &&
         campanha.valorAtual != null &&
         campanha.unidade &&
-        campanha.unidade.trim().toLowerCase() !== 'pontos',
+        !['ponto', 'pontos', 'xp'].includes(campanha.unidade.trim().toLowerCase()),
     )
     .sort(
       (a, b) =>
@@ -32,7 +38,7 @@ export function MetaEmFoco({ campanhas, onAbrir, onVerPesquisas }) {
     <View style={estilos.cartao}>
       <View style={estilos.entre}>
         <Text style={[estilos.titulo, estilos.textoFlexivel]} accessibilityRole="header">
-          Sua meta em foco
+          {titulo}
         </Text>
         {metas.length > 1 ? (
           <Pressable
@@ -73,7 +79,7 @@ export function MetaEmFoco({ campanhas, onAbrir, onVerPesquisas }) {
           ]}
         />
       </View>
-      <Text style={estilos.pequeno}>Como está sua meta agora, pelo último valor registrado.</Text>
+      {renderEvolucao?.(meta.id)}
       {isDataLimiteVencida(meta.dataLimite) ? (
         <Text style={locais.prazo}>O prazo passou. Que tal rever o planejamento?</Text>
       ) : null}

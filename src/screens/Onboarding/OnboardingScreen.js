@@ -14,7 +14,11 @@ import { useMissions } from '../../state/MissionsContext';
 import { useOnboarding } from '../../state/OnboardingContext';
 import { colors } from '../../theme/colors';
 import { fontFamily, fontSize } from '../../theme/typography';
-import { buildRespostasFromAnswers, getStepQuestion, TOTAL_ONBOARDING_STEPS } from './onboardingQuestions';
+import {
+  buildRespostasFromAnswers,
+  getStepQuestion,
+  TOTAL_ONBOARDING_STEPS,
+} from './onboardingQuestions';
 
 const INTERVALO_CONSULTA_MS = 2000;
 const TENTATIVAS_MAXIMAS = 30; // ~60s no total
@@ -84,7 +88,10 @@ export function OnboardingScreen({ navigation }) {
       vincularCampanha(epic.id, campaign);
       resultado.epico.campanha.missoes.forEach((missao) => hidratarMissao(missao, campaign));
 
-      navigation.replace('MissionList', { initialSegment: 'EPICO' });
+      navigation.replace('AreaPrincipal', {
+        screen: 'Missoes',
+        params: { screen: 'MissionList', params: { initialSegment: 'EPICO' } },
+      });
     } catch {
       setErroGeracao('Não foi possível gerar sua jornada agora. Tente novamente.');
     } finally {

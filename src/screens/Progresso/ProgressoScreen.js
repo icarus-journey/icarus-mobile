@@ -15,6 +15,8 @@ import { DetalhesDosIndicadores } from '../../components/Analise/DetalhesDosIndi
 import { DistribuicaoPorArea } from '../../components/Analise/DistribuicaoPorArea';
 import { IconeAnalise } from '../../components/Analise/IconeAnalise';
 import { MetaEmFoco } from '../../components/Analise/MetaEmFoco';
+import { ResumoObjetivos } from '../../components/Analise/Objetivos/ResumoObjetivos';
+import { useAbrirObjetivo } from '../../hooks/useAbrirObjetivo';
 import { ReferenciasEmDestaque } from '../../components/Analise/ReferenciasEmDestaque';
 import { ResumoEvolucaoPessoal } from '../../components/Analise/ResumoEvolucaoPessoal';
 import { SeletorPeriodoProgresso } from '../../components/Analise/SeletorPeriodoProgresso';
@@ -30,6 +32,7 @@ import { periodoCurto } from '../../utils/formatarProgresso';
 import { AREA_DA_VIDA_OPTIONS } from '../EpicForm/areaDaVidaOptions';
 import { estilosProgresso } from './estilosProgresso';
 import { ProximoPassoDaSemana } from './ProximoPassoDaSemana';
+import { EvolucaoDaMetaEmFoco } from './EvolucaoDaMetaEmFoco';
 
 const codigoDaArea = (area) => area?.replace(/([A-Z])/g, '_$1').toUpperCase();
 const areas = AREA_DA_VIDA_OPTIONS.map((area) => ({ ...area, id: codigoDaArea(area.id) }));
@@ -43,6 +46,7 @@ export function ProgressoScreen({ navigation, route }) {
   const [seletor, setSeletor] = useState(false);
   const [detalhes, setDetalhes] = useState(false);
   const pessoal = useProgresso(periodo);
+  const abrirObjetivo = useAbrirObjetivo(navigation);
   const publico = useReferenciasPublicas(area);
   const areaEfetiva = area ?? publico.dados?.areaDaVida;
   return (
@@ -97,14 +101,32 @@ export function ProgressoScreen({ navigation, route }) {
               </View>
             ) : null}
             {pessoal.dados ? <ResumoEvolucaoPessoal dados={pessoal.dados} /> : null}
-            <MetaEmFoco
-              campanhas={campaigns}
-              onAbrir={(campaignId) => navigation.navigate('CampaignDetail', { campaignId })}
-              onVerPesquisas={(codigo) => {
-                setArea(codigoDaArea(codigo));
-                setAba('publico');
-              }}
-            />
+            {pessoal.dados?.objetivos ? (
+              <ResumoObjetivos
+                key={`${pessoal.usuarioId}:${periodo}`}
+                dados={pessoal.dados.objetivos}
+                periodo={pessoal.dados.periodo}
+                aoAbrirCampanha={abrirObjetivo.abrirCampanha}
+                aoAbrirEpico={abrirObjetivo.abrirEpico}
+                erroAbertura={abrirObjetivo.erro}
+                abrindo={abrirObjetivo.carregando}
+                aoVerPesquisas={(codigo) => {
+                  setArea(codigoDaArea(codigo));
+                  setAba('publico');
+                }}
+              />
+            ) : (pessoal.dados || pessoal.carregando) &&
+              /^1\.[012]\./.test(pessoal.dados?.versaoContrato ?? pessoal.versaoContrato) ? (
+              <MetaEmFoco
+                campanhas={campaigns}
+                renderEvolucao={(campanhaId) => <EvolucaoDaMetaEmFoco campanhaId={campanhaId} />}
+                onAbrir={(campaignId) => navigation.navigate('CampaignDetail', { campaignId })}
+                onVerPesquisas={(codigo) => {
+                  setArea(codigoDaArea(codigo));
+                  setAba('publico');
+                }}
+              />
+            ) : null}
             <ProximoPassoDaSemana
               onVerSemana={() => navigation.navigate('RelatorioSemanalScreen')}
             />

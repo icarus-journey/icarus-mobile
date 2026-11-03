@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { ValorComMoeda } from '../../components/Pontos/ValorComMoeda';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import IconeExcluir from '../../assets/icons/icone-excluir-loja.svg';
@@ -40,7 +41,7 @@ export function CartaoRecompensa({
         <View style={styles.conteudo}>
           <View style={styles.cabecalho}>
             <Text style={styles.titulo}>{titulo}</Text>
-            <Text style={styles.custo}>{custo} pts</Text>
+            <ValorComMoeda valor={custo} cor={colors.lojaTexto} />
           </View>
           {descricao ? <Text style={styles.descricao}>{descricao}</Text> : null}
           {estado ? <Text style={styles.estado}>{estado}</Text> : null}

@@ -37,10 +37,4 @@ export function mensagemLoja(erro) {
   );
 }
 
-// Identificador de correlação, sem função de autenticação. Reutilizado em tentativas do mesmo resgate.
-export function criarOperacaoId() {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (letra) => {
-    const numero = Math.floor(Math.random() * 16);
-    return (letra === 'x' ? numero : (numero & 3) | 8).toString(16);
-  });
-}
+export { criarOperacaoId } from '../utils/criarOperacaoId';

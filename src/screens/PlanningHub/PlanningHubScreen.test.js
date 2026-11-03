@@ -12,6 +12,9 @@ import { PlanningHubScreen } from './PlanningHubScreen';
 jest.mock('../../hooks/useRelatorioSemanal', () => ({
   useRelatorioSemanal: () => ({ dados: null, carregando: false }),
 }));
+jest.mock('../../hooks/useJornada', () => ({
+  useJornada: () => ({ dados: null, carregando: false, erro: '', atualizar: jest.fn() }),
+}));
 
 const mockRequisitarAnalise = jest.fn(async () => ({
   estado: 'historico_insuficiente',

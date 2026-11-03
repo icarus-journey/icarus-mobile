@@ -4,7 +4,7 @@
 
 **Responsável:** Izael
 
-**Última atualização:** 2026-10-17
+**Última atualização:** 2026-11-03
 
 ## 1. Objetivo
 
@@ -79,6 +79,51 @@ Regras gerais:
   complexa; a decisão de fluxo (ex.: usuário autenticado ou não) fica no
   `RootNavigator`;
 - nomes de rota em `PascalCase` e iguais ao nome do componente de tela.
+
+### Organização implementada no MVP-23
+
+`RootNavigator` separa visitante (`Login`/`Register`) de onboarding e
+`AreaPrincipal`, com chave por usuário. `AbasPrincipais` usa bottom-tabs 7.21.0:
+Missões, Diário, Loja e Perfil. Missões e Loja possuem pilhas próprias;
+Diário e Perfil são destinos diretos, sem pilha artificial de uma tela.
+
+A barra é renderizada somente pelo navegador. Reutiliza `BottomNav` e os
+ícones/tokens existentes; permanece na raiz das abas e nos detalhes de
+épico/campanha/missão. Formulários, progresso, relatórios, históricos e extrato
+ocupam a tela inteira. Trocar de aba preserva a pilha e o estado montado;
+repetir a aba ativa em uma pilha abre sua raiz. `tabPress` cancelável e
+`tabLongPress` são encaminhados ao React Navigation.
+
+Voltar fecha primeiro a tela da pilha atual. Na raiz de outra aba,
+`backBehavior="firstRoute"` retorna a Missões; na raiz de Missões, o navegador
+não consome outro retorno. O onboarding substitui sua rota por `AreaPrincipal`,
+abrindo o segmento Épicos em Missões, sem retorno ao questionário.
+
+Dados continuam atualizados pelos efeitos de foco já existentes. O Diário
+preserva o rascunho ao trocar de aba; o ditado aborta ao perder foco e ignora
+resultados/permissões de um ciclo anterior. Perfil mantém sua reconsulta ao
+focar, sem transformar o formulário em cache persistente. Logout/troca de
+usuário desmontam os navegadores e providers privados; não há persistência
+da navegação no dispositivo. Mapa e limites no
+[contrato de navegação](../../icarus-context/docs/implementation-design/frontend/01-navegacao-mobile.md).
+
+### Barras do sistema — MVP-25
+
+`OpcoesDaJanelaProvider` fica em `App`, dentro de `SafeAreaProvider`, e centraliza
+teclado, leitor de tela e ciclo do aplicativo. Os três native-stacks usam
+`useOpcoesDaJanela`; novos navegadores nativos devem reutilizar essa política.
+No Android ativo e sem teclado/leitor, `navigationBarHidden` oculta somente a
+barra inferior, com retorno transitório por gesto gerenciado pelo screens.
+No iOS, `autoHideHomeIndicator` é uma preferência; não remove a área segura.
+
+A consulta inicial de acessibilidade precede a ocultação; erro conserva a barra.
+Um evento recente do leitor prevalece sobre resposta inicial atrasada. Ouvintes
+são removidos ao desmontar e consultas pendentes são descartadas. Teclado,
+leitor ou app fora de atividade solicitam controles visíveis; retomar reavalia
+o estado. Não há temporizador para esconder barra, captura de gesto, zeragem
+manual de insets, dependência nova, mudança de configuração nativa ou persistência
+dessa preferência no dispositivo. Ver
+[contrato de área útil](../../icarus-context/docs/implementation-design/frontend/02-area-util-e-barras-do-sistema.md).
 
 ## 5. Estado
 
