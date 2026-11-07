@@ -1,7 +1,7 @@
 export function criarServicoLoja({ usuarioId, requisitarAutenticado }) {
   const base = `/api/usuarios/${usuarioId}/loja`;
   return {
-    consultar: () => requisitarAutenticado(base),
+    consultar: (signal) => requisitarAutenticado(base, ...(signal ? [{ signal }] : [])),
     salvar: (dados, id) =>
       requisitarAutenticado(`${base}/recompensas${id ? `/${id}` : ''}`, {
         metodo: id ? 'PATCH' : 'POST',

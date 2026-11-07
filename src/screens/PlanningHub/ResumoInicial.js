@@ -1,7 +1,5 @@
 import { CartaoProximoAjuste } from '../../components/Analise/CartaoProximoAjuste';
-import { useRelatorioSemanal } from '../../hooks/useRelatorioSemanal';
 
-export function ResumoInicial({ onVerSemana }) {
-  const { dados, carregando } = useRelatorioSemanal();
+export function ResumoInicial({ dados, carregando, onVerSemana }) {
   return <CartaoProximoAjuste dados={dados} carregando={carregando} onVerSemana={onVerSemana} />;
 }

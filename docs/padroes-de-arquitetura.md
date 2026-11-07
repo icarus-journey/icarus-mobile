@@ -4,7 +4,7 @@
 
 **Responsável:** Izael
 
-**Última atualização:** 2026-11-03
+**Última atualização:** 2026-11-07
 
 ## 1. Objetivo
 
@@ -158,6 +158,49 @@ dessa preferência no dispositivo. Ver
   etc.) é replicada no aplicativo; o aplicativo exibe o que a API retorna e
   envia o que o usuário informa.
 
+### 6.1. Ciclo de leitura — MVP-24
+
+`CarregadorPlanejamento` concentra a carga inicial/retomada e expõe carregamento,
+falha e repetição. As alterações locais de missões, campanhas e épicos avançam
+uma revisão em memória (`useEstadoVersionado`); se ela mudar durante a carga,
+o snapshot antigo é descartado e consultado novamente antes de hidratar os três
+contextos. Essa revisão protege o estado local; não é versão persistida da API.
+
+`useLeituraEmFoco` identifica a leitura por usuário e filtros, agrupa tentativas
+simultâneas e invalida/cancela consultas ao desfocar ou mudar o escopo. Atualização
+do mesmo escopo preserva o conteúdo durante a espera; mudança de usuário/filtro
+oculta os dados anteriores. Somente a aba analítica visível consulta seus dados.
+Retomada do aplicativo reconsulta a leitura em foco. Históricos distinguem a
+primeira página de paginação; retornar durante uma atualização interrompida
+permite retomar a consulta, e filtros equivalentes não criam ciclos de efeitos.
+
+`SincronizadorDeFuso` compartilha a operação pendente; planejamento, sequência,
+execução, progresso e relatório aguardam essa sincronização antes de ler dados
+dependentes do dia local. Mudanças rápidas confirmam o último fuso do dispositivo.
+Falhas continuam recuperáveis, sem inventar sequência ou métricas. O relatório
+semanal começa pelo GET do resultado salvo, solicita somente se ausente e consulta
+processamento apenas no foco vigente. Seu estado pertence a `PlanningHubScreen`,
+acima da lista remontada por segmento; `ResumoInicial` recebe dados por props.
+Nova tentativa permanece explícita.
+
+Perfil preserva os campos e a foto da mesma sessão durante a reconsulta por foco,
+aplicando a resposta completa após consultar a imagem. Edições locais não salvas
+permanecem em memória e não são sobrescritas pela leitura. Perda de foco cancela
+a consulta; troca de usuário descarta imediatamente o estado anterior.
+Consultar não desativa o botão de salvar: uma gravação cancela/invalida a leitura
+pendente, impedindo que ela sobrescreva a confirmação.
+
+O cliente HTTP aceita `AbortSignal`; cancelar uma leitura não desfaz escritas.
+Loja e Diário agrupam leituras pendentes e invalidam resultados anteriores ao
+salvar. Não há cache global de respostas nem mudança na lista permitida da IA.
+Diário exibe carregamento apenas antes da primeira leitura; retornos preservam
+o histórico, inclusive vazio, sem ação manual de atualizar. Registrar independe
+da consulta: se a gravação interromper uma leitura, reconsulta após confirmar
+para recuperar o histórico completo. Duplicação continua bloqueada no envio.
+Planejamento usa `SectionList`; Diário/Loja usam `FlatList`. O formulário do Diário
+permanece no cabeçalho, preservando rascunho e tratamento do teclado. Medições
+opcionais de desenvolvimento ficam fora das telas, sem conteúdo pessoal nos logs.
+
 ## 7. Componentes e telas
 
 - `screens/`: um componente por tela navegável, responsável por orquestrar
@@ -212,11 +255,11 @@ Proibidas:
 
 ## 11. Rastreabilidade
 
-| Origem | Uso neste documento |
-|---|---|
+| Origem                                                                            | Uso neste documento                                                                      |
+| --------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
 | `icarus-context/docs/implementation-design/platform/01-arquitetura-da-solucao.md` | Restrições de dependência, armazenamento seguro do token, acessibilidade e alvo Android. |
-| `icarus-context/docs/product-specification/04-requisitos.md` (RNF-06, RNF-07) | Critérios de acessibilidade e compatibilidade. |
-| `icarus-mobile/README.md` | Descrição geral do aplicativo. |
+| `icarus-context/docs/product-specification/04-requisitos.md` (RNF-06, RNF-07)     | Critérios de acessibilidade e compatibilidade.                                           |
+| `icarus-mobile/README.md`                                                         | Descrição geral do aplicativo.                                                           |
 
 ## 12. Próxima revisão
 

@@ -92,7 +92,7 @@ function renderApp(initialRouteName = 'Login', { initialMissions } = {}) {
           email: 'pessoa@exemplo.com',
           dataNascimento: '2000-01-01',
         };
-      if (!opcoes) return [...entradas];
+      if (!opcoes?.metodo || opcoes.metodo === 'GET') return [...entradas];
       const entrada = {
         ...opcoes.corpo,
         id: entradas.length + 1,
@@ -129,6 +129,7 @@ function renderApp(initialRouteName = 'Login', { initialMissions } = {}) {
 }
 
 beforeEach(() => {
+  jest.useFakeTimers();
   mockCriarEpico.mockReset();
   mockAtualizarEpico.mockReset();
   mockCriarCampanha.mockReset();
@@ -138,6 +139,11 @@ beforeEach(() => {
   mockConcluirEpico.mockReset();
   mockConcluirCampanha.mockReset();
   mockConcluirMissao.mockReset();
+});
+
+afterEach(() => {
+  jest.clearAllTimers();
+  jest.useRealTimers();
 });
 
 describe('fluxo de autenticação e missões', () => {
@@ -153,7 +159,7 @@ describe('fluxo de autenticação e missões', () => {
 
       fireEvent.press(screen.getByLabelText('Diário'));
       expect(screen.getByText('Diário de crescimento')).toBeTruthy();
-      await screen.findByLabelText('Atualizar histórico');
+      await screen.findByText('Seu diário começa aqui');
       fireEvent.press(screen.getByLabelText('Missões'));
       expect(screen.getByText('Campanhas')).toBeTruthy();
       fireEvent.press(screen.getByLabelText('Missões'));
@@ -316,7 +322,7 @@ describe('fluxo do diário', () => {
     fireEvent.press(screen.getByLabelText('Diário'));
     expect(screen.getByText('Diário de crescimento')).toBeTruthy();
 
-    await screen.findByLabelText('Atualizar histórico');
+    await screen.findByText('Seu diário começa aqui');
     fireEvent.changeText(screen.getByLabelText('Reflexão de hoje'), 'Hoje consegui avançar.');
     fireEvent.press(screen.getByLabelText('Registrar reflexão'));
 
@@ -546,8 +552,8 @@ describe('abas e pilhas independentes (MVP-23)', () => {
     renderApp('MissionList');
     fireEvent.press(screen.getAllByLabelText(/Fazer exercício de dados/)[0]);
     await screen.findByText('Detalhe da missão');
-    fireEvent.press(screen.getByRole('tab', { name: 'Diário' }));
-    await screen.findByLabelText('Atualizar histórico');
+    await act(async () => fireEvent.press(screen.getByRole('tab', { name: 'Diário' })));
+    await screen.findByText('Seu diário começa aqui');
     fireEvent.changeText(
       screen.getByLabelText('Reflexão de hoje'),
       'Rascunho ainda não registrado',
@@ -556,7 +562,7 @@ describe('abas e pilhas independentes (MVP-23)', () => {
     expect(await screen.findByText('Detalhe da missão')).toBeTruthy();
     fireEvent.press(screen.getByLabelText('Voltar'));
     expect(await screen.findByText('Seus próximos passos.')).toBeTruthy();
-    fireEvent.press(screen.getByRole('tab', { name: 'Diário' }));
+    await act(async () => fireEvent.press(screen.getByRole('tab', { name: 'Diário' })));
     expect(screen.getByLabelText('Reflexão de hoje').props.value).toBe(
       'Rascunho ainda não registrado',
     );

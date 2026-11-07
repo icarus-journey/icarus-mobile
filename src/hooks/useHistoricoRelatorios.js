@@ -104,6 +104,7 @@ export function useHistoricoRelatorios() {
       ocupado.current = false;
       if (consultado.current !== usuarioId) carregar();
       return () => {
+        if (ocupado.current) consultado.current = null;
         versao.current++;
         ocupado.current = false;
       };

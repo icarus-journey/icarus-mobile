@@ -63,7 +63,7 @@ it('entra pela Minha semana, pagina, consulta texto/configuração e retorna sem
   fireEvent.press(await screen.findByLabelText('Voltar'));
   await screen.findByText('Uma semana anterior');
   expect(mockRequisitar.mock.calls.filter(([r]) => r.includes('semanais?'))).toHaveLength(2);
-  expect(mockRequisitar.mock.calls.filter(([, o]) => o?.metodo === 'POST')).toHaveLength(1);
+  expect(mockRequisitar.mock.calls.filter(([, o]) => o?.metodo === 'POST')).toHaveLength(0);
   expect(
     mockRequisitar.mock.calls.every(
       ([r]) => !r.includes('referencias-publicas') && !r.includes('tentar-novamente'),

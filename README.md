@@ -46,6 +46,27 @@ nativas existentes; sem nova build. Consulte o
 MVP-23 verificado com 519 testes/73 suítes, lint/formatação e bundles
 Android/iOS; interação física e leitores de tela ainda pendentes.
 
+## Carregamento e fluidez
+
+As listas de planejamento, diário e loja renderizam os itens conforme a rolagem.
+Leituras de progresso/pesquisas respeitam a aba visível, descartam respostas de
+outro filtro/usuário e cancelam consultas abandonadas. Atualizar a mesma leitura
+mantém o conteúdo enquanto aguarda a API. O relatório salvo é consultado antes
+de solicitar geração; o resumo semanal permanece em memória entre os segmentos.
+Perfil mantém campos/foto durante a atualização e aplica a resposta completa,
+preservando edições não salvas da mesma sessão. Escritas seguem seus contratos de confirmação
+e idempotência. Consulte o [ciclo de leitura](docs/padroes-de-arquitetura.md#61-ciclo-de-leitura--mvp-24).
+
+Para medir HTTP e renderização durante o desenvolvimento:
+
+```bash
+EXPO_PUBLIC_MEDIR_FLUIDEZ=1 npm run start:nativo -- --localhost --port 8082
+```
+
+Os registros `[Icarus fluidez]` contêm tempos, método, rota sem identificadores
+e status; não incluem parâmetros, textos, fotos ou credenciais. A opção é
+desativada por padrão e não registra em produção. Não exige novo APK.
+
 ## Espaço útil e barra do sistema
 
 No Android, a barra inferior do sistema fica oculta durante o uso e reaparece

@@ -78,6 +78,30 @@ it('abre Meu progresso pelo início preservando a lista e permite voltar', async
   await screen.findByText('Reveja um próximo passo possível.');
 });
 
+it.each(['Campanha', 'Épico'])(
+  'mantém a semana visível ao voltar de %s para Missão enquanto revalida',
+  async (segmento) => {
+    render(aplicativo('MissionList'));
+    await screen.findByText('Reveja um próximo passo possível.');
+    const normal = mockRequisitar.getMockImplementation();
+    let concluir;
+    mockRequisitar.mockImplementation((rota, opcoes) =>
+      rota.endsWith('/relatorios/semanais/atual')
+        ? new Promise((resolver) => {
+            concluir = resolver;
+          })
+        : normal(rota, opcoes),
+    );
+    fireEvent.press(screen.getByLabelText(segmento));
+    fireEvent.press(screen.getByLabelText('Missão'));
+    expect(screen.getByText('Reveja um próximo passo possível.')).toBeTruthy();
+    expect(screen.queryByText('Consultando seus registros…')).toBeNull();
+    await waitFor(() => expect(concluir).toEqual(expect.any(Function)));
+    await act(async () => concluir(relatorioDeTeste()));
+    expect(screen.getByText('Reveja um próximo passo possível.')).toBeTruthy();
+  },
+);
+
 it('mostra progresso visual e separa pesquisas sem jargão ou avisos falsos de falta de dados', async () => {
   render(aplicativo());
   await screen.findByLabelText('2 missões feitas');
@@ -93,6 +117,7 @@ it('mostra progresso visual e separa pesquisas sem jargão ou avisos falsos de f
   await waitFor(() =>
     expect(mockRequisitar).toHaveBeenCalledWith(
       '/api/usuarios/pessoa-a/progresso?periodo=mesAnterior',
+      expect.objectContaining({ signal: expect.anything() }),
     ),
   );
   expect(
@@ -142,6 +167,7 @@ it('liga o avanço da meta às pesquisas da mesma área sem transformar pontos e
   await waitFor(() =>
     expect(mockRequisitar).toHaveBeenCalledWith(
       '/api/usuarios/pessoa-a/progresso?periodo=seisMeses',
+      expect.objectContaining({ signal: expect.anything() }),
     ),
   );
   expect(screen.getByLabelText('Aprender mensageria: 8 de 16 módulos')).toBeTruthy();
@@ -152,6 +178,7 @@ it('liga o avanço da meta às pesquisas da mesma área sem transformar pontos e
   await waitFor(() =>
     expect(mockRequisitar).toHaveBeenCalledWith(
       '/api/usuarios/pessoa-a/referencias-publicas?tipoDia=todos&areaDaVida=ESTUDOS_E_APRENDIZADO',
+      expect.objectContaining({ signal: expect.anything() }),
     ),
   );
   expect(screen.getByRole('tab', { name: 'Pesquisas' }).props.accessibilityState.selected).toBe(
@@ -270,9 +297,10 @@ it('exibe relatório persistido e identifica IA, período e reflexão opcional',
   expect(screen.queryByText('Qual ajuste faz sentido agora?')).toBeNull();
   fireEvent.press(screen.getByLabelText('Uma pergunta para refletir'));
   expect(screen.getByText('Qual ajuste faz sentido agora?')).toBeTruthy();
-  expect(mockRequisitar).toHaveBeenCalledWith('/api/usuarios/pessoa-a/relatorios/semanais', {
-    metodo: 'POST',
-  });
+  expect(mockRequisitar).toHaveBeenCalledWith(
+    '/api/usuarios/pessoa-a/relatorios/semanais/atual',
+    expect.objectContaining({ signal: expect.anything() }),
+  );
 });
 
 it('mostra o planejamento comparável e abre a atividade em separado sem nova geração', async () => {
@@ -298,7 +326,7 @@ it('mostra o planejamento comparável e abre a atividade em separado sem nova ge
   expect(screen.getByText('missões feitas')).toBeTruthy();
   expect(
     mockRequisitar.mock.calls.filter(([rota]) => rota.endsWith('/relatorios/semanais')),
-  ).toHaveLength(1);
+  ).toHaveLength(0);
 });
 
 it('processamento consulta sem iniciar nova geração e falha exige tentativa explícita', async () => {
@@ -319,6 +347,7 @@ it('processamento consulta sem iniciar nova geração e falha exige tentativa ex
   await screen.findByText('Não foi possível preparar.');
   expect(mockRequisitar).toHaveBeenLastCalledWith(
     '/api/usuarios/pessoa-a/relatorios/semanais/atual',
+    expect.objectContaining({ signal: expect.anything() }),
   );
   respostaRelatorio = relatorioDeTeste();
   fireEvent.press(screen.getByLabelText('Tentar gerar novamente'));

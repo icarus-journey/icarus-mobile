@@ -33,7 +33,10 @@ it('carrega o saldo e a sequência calculados pela API', async () => {
   const { result } = renderHook(() => useJornada(navigation));
   await waitFor(() => expect(result.current.dados?.sequencia.diasAtuais).toBe(3));
   expect(result.current.dados.saldoPontos).toBe(1270);
-  expect(mockRequisitar).toHaveBeenCalledWith('/api/usuarios/titular/jornada');
+  expect(mockRequisitar).toHaveBeenCalledWith(
+    '/api/usuarios/titular/jornada',
+    expect.objectContaining({ signal: expect.anything() }),
+  );
 });
 
 it('recupera uma falha sem deixar saldo ou sequência antigos na tela', async () => {
@@ -75,7 +78,7 @@ it('ignora respostas antigas ao trocar de conta e após desfocar', async () => {
   act(() => eventos.focus());
   act(() => eventos.blur());
   await act(async () => atrasada(jornadaDeTeste({ saldoPontos: 99999 })));
-  expect(result.current.dados).toBeNull();
+  expect(result.current.dados.saldoPontos).toBe(80);
 });
 
 it('atualiza ao voltar da conclusão ou loja e retomar o app, sem consultar fora de foco', async () => {

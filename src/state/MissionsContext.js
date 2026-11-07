@@ -1,4 +1,6 @@
-import { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useMemo } from 'react';
+
+import { useEstadoVersionado } from '../hooks/useEstadoVersionado';
 
 import {
   criarMissao,
@@ -49,7 +51,8 @@ function mapearMissaoDaApi(missao, campanha) {
 
 export function MissionsProvider({ children, initialMissions = MOCK_MISSIONS }) {
   const { sessao, requisitarAutenticado } = useSessao();
-  const [missoesCarregadas, setMissions] = useState(initialMissions);
+  const [missoesCarregadas, setMissions, carregarServidor, obterRevisao] =
+    useEstadoVersionado(initialMissions);
   const { exclusoes } = useExclusoesPlanejamento();
   const missions = useMemo(
     () =>
@@ -97,7 +100,7 @@ export function MissionsProvider({ children, initialMissions = MOCK_MISSIONS }) 
       setMissions((current) => [mission, ...current]);
       return mission;
     },
-    [sessao, requisitarAutenticado],
+    [sessao, requisitarAutenticado, setMissions],
   );
 
   const updateMission = useCallback(
@@ -140,27 +143,30 @@ export function MissionsProvider({ children, initialMissions = MOCK_MISSIONS }) 
         current.map((mission) => (mission.id === missionId ? camposAtualizados : mission)),
       );
     },
-    [missions, sessao, requisitarAutenticado],
+    [missions, sessao, requisitarAutenticado, setMissions],
   );
 
-  const aplicarExecucao = useCallback((missaoId, dados) => {
-    setMissions((atuais) =>
-      atuais.map((missao) =>
-        missao.id !== missaoId
-          ? missao
-          : {
-              ...missao,
-              execucao: dados.execucao,
-              inativa: dados.status === 'inativa',
-              concluidaEm: dados.recorrente
-                ? dados.execucao.concluida
-                  ? dados.execucao.concluidaEm
-                  : null
-                : dados.concluidaEm,
-            },
-      ),
-    );
-  }, []);
+  const aplicarExecucao = useCallback(
+    (missaoId, dados) => {
+      setMissions((atuais) =>
+        atuais.map((missao) =>
+          missao.id !== missaoId
+            ? missao
+            : {
+                ...missao,
+                execucao: dados.execucao,
+                inativa: dados.status === 'inativa',
+                concluidaEm: dados.recorrente
+                  ? dados.execucao.concluida
+                    ? dados.execucao.concluidaEm
+                    : null
+                  : dados.concluidaEm,
+              },
+        ),
+      );
+    },
+    [setMissions],
+  );
 
   const getMissionById = useCallback(
     (missionId) => missions.find((mission) => mission.id === missionId) ?? null,
@@ -171,12 +177,15 @@ export function MissionsProvider({ children, initialMissions = MOCK_MISSIONS }) 
   // status de execução (PENDENTE/ATRASADA/CONCLUIDA) é local; o ciclo que a API devolve
   // (RASCUNHO/ATIVA/INATIVA) é outra coisa (ver StatusMissao no backend), por isso não é
   // reaproveitado aqui — toda missão nasce PENDENTE, igual à criação manual.
-  const hidratarDoOnboarding = useCallback((missao, campanha) => {
-    const missaoHidratada = mapearMissaoDaApi(missao, campanha);
+  const hidratarDoOnboarding = useCallback(
+    (missao, campanha) => {
+      const missaoHidratada = mapearMissaoDaApi(missao, campanha);
 
-    setMissions((current) => [missaoHidratada, ...current]);
-    return missaoHidratada;
-  }, []);
+      setMissions((current) => [missaoHidratada, ...current]);
+      return missaoHidratada;
+    },
+    [setMissions],
+  );
 
   // Credita pontos ao usuário e, se a missão tiver campanha mensurável, soma ao valor atual
   // dela (RF-04.6). Idempotente no backend: concluir de novo não credita pontos de novo.
@@ -196,7 +205,7 @@ export function MissionsProvider({ children, initialMissions = MOCK_MISSIONS }) 
       );
       return resposta;
     },
-    [sessao, requisitarAutenticado],
+    [sessao, requisitarAutenticado, setMissions],
   );
 
   // Para uma missão recorrente (RF-04.6) — ela deixa de gerar novas ocorrências. Ocorrências
@@ -215,29 +224,32 @@ export function MissionsProvider({ children, initialMissions = MOCK_MISSIONS }) 
       );
       return resposta;
     },
-    [sessao, requisitarAutenticado],
+    [sessao, requisitarAutenticado, setMissions],
   );
 
   // Substitui a lista inteira pelas missões reais do usuário — chamado uma vez ao abrir o app.
   // epicosDoServidor traz as vinculadas (aninhadas em GET /usuarios/{id}/epicos);
   // missoesAvulsasDoServidor traz as sem campanha (GET /usuarios/{id}/missoes), que não
   // aparecem em nenhum grafo de épico.
-  const carregarLista = useCallback((epicosDoServidor, missoesAvulsasDoServidor = []) => {
-    const vinculadas = epicosDoServidor.flatMap((epico) =>
-      (epico.campanhas ?? []).flatMap((campanha) =>
-        (campanha.missoes ?? []).map((missao) =>
-          mapearMissaoDaApi(missao, {
-            id: campanha.id,
-            titulo: campanha.titulo,
-            epicoId: epico.id,
-          }),
+  const carregarLista = useCallback(
+    (epicosDoServidor, missoesAvulsasDoServidor = []) => {
+      const vinculadas = epicosDoServidor.flatMap((epico) =>
+        (epico.campanhas ?? []).flatMap((campanha) =>
+          (campanha.missoes ?? []).map((missao) =>
+            mapearMissaoDaApi(missao, {
+              id: campanha.id,
+              titulo: campanha.titulo,
+              epicoId: epico.id,
+            }),
+          ),
         ),
-      ),
-    );
-    const avulsas = missoesAvulsasDoServidor.map((missao) => mapearMissaoDaApi(missao, null));
+      );
+      const avulsas = missoesAvulsasDoServidor.map((missao) => mapearMissaoDaApi(missao, null));
 
-    setMissions([...avulsas, ...vinculadas]);
-  }, []);
+      carregarServidor([...avulsas, ...vinculadas]);
+    },
+    [carregarServidor],
+  );
 
   const value = useMemo(
     () => ({
@@ -248,6 +260,7 @@ export function MissionsProvider({ children, initialMissions = MOCK_MISSIONS }) 
       aplicarExecucao,
       hidratarDoOnboarding,
       carregarLista,
+      obterRevisao,
       concluirMissao,
       pararMissao,
     }),
@@ -259,6 +272,7 @@ export function MissionsProvider({ children, initialMissions = MOCK_MISSIONS }) 
       aplicarExecucao,
       hidratarDoOnboarding,
       carregarLista,
+      obterRevisao,
       concluirMissao,
       pararMissao,
     ],

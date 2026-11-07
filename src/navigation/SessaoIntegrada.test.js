@@ -120,7 +120,7 @@ it('limpa o diário e a navegação ao sair e entrar com outra conta', async () 
   await entrar();
   await screen.findByText('Seus próximos passos.');
   fireEvent.press(screen.getByLabelText('Diário'));
-  await screen.findByLabelText('Atualizar histórico');
+  await screen.findByText('Seu diário começa aqui');
   fireEvent.changeText(
     screen.getByLabelText('Reflexão de hoje'),
     'Reflexão privada da primeira conta',
@@ -139,7 +139,7 @@ it('limpa o diário e a navegação ao sair e entrar com outra conta', async () 
   await entrar();
   await screen.findByText('Seus próximos passos.');
   fireEvent.press(screen.getByLabelText('Diário'));
-  await screen.findByLabelText('Atualizar histórico');
+  await screen.findByText('Seu diário começa aqui');
   expect(screen.queryByText('Reflexão privada da primeira conta')).toBeNull();
   fireEvent.press(screen.getByLabelText('Perfil'));
   expect(await screen.findByLabelText('Nome: Pessoa b')).toBeTruthy();

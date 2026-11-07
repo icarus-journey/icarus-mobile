@@ -1,5 +1,8 @@
-export async function listarMissoesAvulsas({ usuarioId, requisitarAutenticado }) {
-  return requisitarAutenticado(`/api/usuarios/${usuarioId}/missoes`);
+export async function listarMissoesAvulsas({ usuarioId, requisitarAutenticado, signal }) {
+  return requisitarAutenticado(
+    `/api/usuarios/${usuarioId}/missoes`,
+    ...(signal ? [{ signal }] : []),
+  );
 }
 
 export async function criarMissao({ usuarioId, dados, requisitarAutenticado }) {
@@ -41,6 +44,9 @@ export async function excluirMissao({ usuarioId, id, requisitarAutenticado }) {
   return requisitarAutenticado(`/api/usuarios/${usuarioId}/missoes/${id}`, { metodo: 'DELETE' });
 }
 
-export async function consultarMissao({ usuarioId, missaoId, requisitarAutenticado }) {
-  return requisitarAutenticado(`/api/usuarios/${usuarioId}/missoes/${missaoId}`);
+export async function consultarMissao({ usuarioId, missaoId, requisitarAutenticado, signal }) {
+  return requisitarAutenticado(
+    `/api/usuarios/${usuarioId}/missoes/${missaoId}`,
+    ...(signal ? [{ signal }] : []),
+  );
 }

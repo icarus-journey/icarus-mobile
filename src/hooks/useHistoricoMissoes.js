@@ -10,7 +10,8 @@ export function useHistoricoMissoes(filtros) {
     () => criarServicoHistoricoMissoes({ usuarioId, requisitarAutenticado }),
     [usuarioId, requisitarAutenticado],
   );
-  const chave = JSON.stringify(filtros);
+  const chave = JSON.stringify(filtros ?? {});
+  const filtrosDaConsulta = useMemo(() => JSON.parse(chave), [chave]);
   const escopo = useRef({ usuarioId, chave });
   useLayoutEffect(() => {
     escopo.current = { usuarioId, chave };
@@ -54,7 +55,7 @@ export function useHistoricoMissoes(filtros) {
             },
       );
       try {
-        const dados = await servico.listar(filtros, cursor);
+        const dados = await servico.listar(filtrosDaConsulta, cursor);
         if (!valido()) return;
         ultimaConsulta.current = `${usuarioId}:${chave}`;
         setEstado((anterior) => {
@@ -106,13 +107,14 @@ export function useHistoricoMissoes(filtros) {
         if (valido()) ocupado.current = false;
       }
     },
-    [usuarioId, chave, filtros, servico],
+    [usuarioId, chave, filtrosDaConsulta, servico],
   );
   useFocusEffect(
     useCallback(() => {
       ocupado.current = false;
       if (ultimaConsulta.current !== `${usuarioId}:${chave}`) carregar();
       return () => {
+        if (ocupado.current) ultimaConsulta.current = null;
         versao.current += 1;
         ocupado.current = false;
       };

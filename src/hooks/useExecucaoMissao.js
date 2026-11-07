@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react';
 import { AppState } from 'react-native';
 
+import { useSincronizacaoFuso } from '../state/SincronizadorDeFuso';
+
 import { consultarMissao } from '../services/missoes';
 import { useSessao } from '../state/SessaoContext';
 
 export function useExecucaoMissao(missaoId, navigation, aoReceber) {
   const { sessao, requisitarAutenticado } = useSessao();
   const usuarioId = sessao?.usuarioId;
+  const sincronizarFuso = useSincronizacaoFuso();
   const chave = `${usuarioId}:${missaoId}`;
   const [tentativa, setTentativa] = useState(0);
   const [estado, setEstado] = useState({ chave, carregando: true, dados: null, erro: '' });
@@ -14,15 +17,21 @@ export function useExecucaoMissao(missaoId, navigation, aoReceber) {
     let ativa = true;
     let emFoco = navigation.isFocused?.() ?? true;
     let requisicao = 0;
+    let pendente = null;
     async function carregar() {
-      if (!emFoco || !usuarioId) return;
+      if (!emFoco || !usuarioId || pendente) return;
       setEstado({ chave, carregando: true, dados: null, erro: '' });
       const numero = ++requisicao;
+      const controlador = new AbortController();
+      pendente = controlador;
       try {
+        if (sincronizarFuso) await sincronizarFuso();
+        if (!ativa || numero !== requisicao) return;
         const dados = await consultarMissao({
           usuarioId,
           missaoId,
           requisitarAutenticado,
+          signal: controlador.signal,
         });
         if (!ativa || numero !== requisicao) return;
         if (!dados?.execucao) throw new Error('Disponibilidade ausente');
@@ -39,6 +48,8 @@ export function useExecucaoMissao(missaoId, navigation, aoReceber) {
                 ? 'Esta missão não está mais disponível.'
                 : 'Não foi possível carregar a execução. Tente novamente.',
           });
+      } finally {
+        if (pendente === controlador) pendente = null;
       }
     }
     carregar();
@@ -49,6 +60,8 @@ export function useExecucaoMissao(missaoId, navigation, aoReceber) {
     const desfoco = navigation.addListener?.('blur', () => {
       emFoco = false;
       requisicao++;
+      pendente?.abort();
+      pendente = null;
     });
     const assinatura = AppState.addEventListener('change', (estadoApp) => {
       if (estadoApp === 'active') carregar();
@@ -60,12 +73,23 @@ export function useExecucaoMissao(missaoId, navigation, aoReceber) {
     return () => {
       ativa = false;
       requisicao++;
+      pendente?.abort();
+      pendente = null;
       foco?.();
       desfoco?.();
       assinatura.remove();
       clearInterval(intervalo);
     };
-  }, [chave, missaoId, navigation, usuarioId, requisitarAutenticado, tentativa, aoReceber]);
+  }, [
+    chave,
+    missaoId,
+    navigation,
+    usuarioId,
+    requisitarAutenticado,
+    tentativa,
+    aoReceber,
+    sincronizarFuso,
+  ]);
 
   function atualizar() {
     setEstado({ chave, carregando: true, dados: null, erro: '' });

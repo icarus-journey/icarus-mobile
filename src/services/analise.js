@@ -4,12 +4,20 @@ import { validarRelatorioSemanal } from './validarRelatorioSemanal';
 export function criarServicoAnalise({ usuarioId, requisitarAutenticado }) {
   const base = `/api/usuarios/${usuarioId}`;
   return {
-    progresso: async (periodo = 'semanaAnterior') =>
+    progresso: async (periodo = 'semanaAnterior', signal) =>
       validarProgresso(
-        await requisitarAutenticado(`${base}/progresso?periodo=${encodeURIComponent(periodo)}`),
+        await requisitarAutenticado(
+          `${base}/progresso?periodo=${encodeURIComponent(periodo)}`,
+          ...(signal ? [{ signal }] : []),
+        ),
       ),
-    consultarRelatorio: async () =>
-      validarRelatorioSemanal(await requisitarAutenticado(`${base}/relatorios/semanais/atual`)),
+    consultarRelatorio: async (signal) =>
+      validarRelatorioSemanal(
+        await requisitarAutenticado(
+          `${base}/relatorios/semanais/atual`,
+          ...(signal ? [{ signal }] : []),
+        ),
+      ),
     solicitarRelatorio: async () =>
       validarRelatorioSemanal(
         await requisitarAutenticado(`${base}/relatorios/semanais`, { metodo: 'POST' }),
@@ -20,10 +28,13 @@ export function criarServicoAnalise({ usuarioId, requisitarAutenticado }) {
           metodo: 'POST',
         }),
       ),
-    referencias: (areaDaVida, tipoDia = 'todos') => {
+    referencias: (areaDaVida, tipoDia = 'todos', signal) => {
       const parametros = [`tipoDia=${encodeURIComponent(tipoDia)}`];
       if (areaDaVida) parametros.push(`areaDaVida=${encodeURIComponent(areaDaVida)}`);
-      return requisitarAutenticado(`${base}/referencias-publicas?${parametros.join('&')}`);
+      return requisitarAutenticado(
+        `${base}/referencias-publicas?${parametros.join('&')}`,
+        ...(signal ? [{ signal }] : []),
+      );
     },
   };
 }

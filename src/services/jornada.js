@@ -2,8 +2,11 @@ const estados = ['disponivel', 'sem_registros', 'historico_incompleto', 'fuso_na
 const dataCivil = (valor) => typeof valor === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(valor);
 const booleanoOuAusente = (valor) => typeof valor === 'boolean' || valor === null;
 
-export async function consultarJornada({ usuarioId, requisitarAutenticado }) {
-  const resposta = await requisitarAutenticado(`/api/usuarios/${usuarioId}/jornada`);
+export async function consultarJornada({ usuarioId, requisitarAutenticado, signal }) {
+  const resposta = await requisitarAutenticado(
+    `/api/usuarios/${usuarioId}/jornada`,
+    ...(signal ? [{ signal }] : []),
+  );
   const sequencia = resposta?.sequencia;
   if (
     !/^1\./.test(resposta?.versaoContrato ?? '') ||

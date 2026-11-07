@@ -47,6 +47,7 @@ it('troca de sessão esconde os dados anteriores e ignora resposta atrasada', as
   await waitFor(() => expect(result.current.dados).toBe(dadosB));
   expect(mockRequisitar).toHaveBeenLastCalledWith(
     '/api/usuarios/pessoa-b/progresso?periodo=semanaAnterior',
+    expect.objectContaining({ signal: expect.anything() }),
   );
 });
 

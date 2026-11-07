@@ -36,7 +36,10 @@ it('consulta a execução por HTTP autenticado e entrega metadados calculados pe
   const aoReceber = jest.fn();
   const { result } = renderHook(() => useExecucaoMissao(4, navigation, aoReceber));
   await waitFor(() => expect(result.current.dados).toEqual(disponivel));
-  expect(mockRequisitar).toHaveBeenCalledWith('/api/usuarios/titular/missoes/4');
+  expect(mockRequisitar).toHaveBeenCalledWith(
+    '/api/usuarios/titular/missoes/4',
+    expect.objectContaining({ signal: expect.anything() }),
+  );
   expect(aoReceber).toHaveBeenCalledWith(4, disponivel);
 });
 
@@ -72,7 +75,10 @@ it('descarta resposta da sessão anterior e limpa a execução na troca de conta
   await waitFor(() => expect(result.current.dados).toEqual({ execucao: { podeConcluir: false } }));
   await act(async () => responder(disponivel));
   expect(result.current.dados.execucao.podeConcluir).toBe(false);
-  expect(mockRequisitar).toHaveBeenLastCalledWith('/api/usuarios/outra-conta/missoes/4');
+  expect(mockRequisitar).toHaveBeenLastCalledWith(
+    '/api/usuarios/outra-conta/missoes/4',
+    expect.objectContaining({ signal: expect.anything() }),
+  );
 });
 
 it('consulta ao voltar para a tela e ao retornar do segundo plano, removendo assinaturas', async () => {

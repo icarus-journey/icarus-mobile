@@ -45,9 +45,9 @@ export function ProgressoScreen({ navigation, route }) {
   const [periodo, setPeriodo] = useState('semanaAnterior');
   const [seletor, setSeletor] = useState(false);
   const [detalhes, setDetalhes] = useState(false);
-  const pessoal = useProgresso(periodo);
+  const pessoal = useProgresso(periodo, aba === 'pessoal');
   const abrirObjetivo = useAbrirObjetivo(navigation);
-  const publico = useReferenciasPublicas(area);
+  const publico = useReferenciasPublicas(area, 'todos', aba === 'publico');
   const areaEfetiva = area ?? publico.dados?.areaDaVida;
   return (
     <View style={[estilosProgresso.tela, { paddingTop: insets.top }]}>
@@ -60,7 +60,7 @@ export function ProgressoScreen({ navigation, route }) {
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
-            refreshing={false}
+            refreshing={aba === 'pessoal' ? pessoal.atualizando : publico.atualizando}
             tintColor={colors.brand}
             onRefresh={aba === 'pessoal' ? pessoal.carregar : publico.carregar}
           />
@@ -84,7 +84,7 @@ export function ProgressoScreen({ navigation, route }) {
                 <IconeAnalise nome="info" />
               </Pressable>
             </View>
-            {pessoal.carregando ? (
+            {pessoal.carregando && !pessoal.dados ? (
               <View style={locais.carregando}>
                 <ActivityIndicator color={colors.brand} />
                 <Text style={estilos.texto} accessibilityLiveRegion="polite">
@@ -161,7 +161,7 @@ export function ProgressoScreen({ navigation, route }) {
               </View>
               <IconeAnalise nome="chevron" />
             </Pressable>
-            {publico.carregando ? (
+            {publico.carregando && !publico.dados ? (
               <View style={locais.carregando}>
                 <ActivityIndicator color={colors.brand} />
                 <Text style={estilos.texto} accessibilityLiveRegion="polite">

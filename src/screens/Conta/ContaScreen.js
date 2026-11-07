@@ -25,7 +25,12 @@ const SITUACOES = [
 
 const OPCOES_IMAGEM = { allowsEditing: true, aspect: [1, 1], quality: 0.7 };
 
-export function ContaScreen({ navigation }) {
+export function ContaScreen(props) {
+  const { sessao } = useSessao();
+  return <DadosDaConta key={sessao?.usuarioId ?? 'visitante'} {...props} />;
+}
+
+function DadosDaConta({ navigation }) {
   const { sessao, sair, requisitarAutenticado } = useSessao();
   const usuarioId = sessao?.usuarioId;
   const servico = useMemo(
@@ -45,54 +50,77 @@ export function ContaScreen({ navigation }) {
   const [erro, setErro] = useState('');
   const [sucesso, setSucesso] = useState('');
   const operacao = useRef(0);
+  const edicao = useRef(0);
   const ocupado = useRef(false);
+  const leitura = useRef(null);
+  const emFoco = useRef(false);
   const insets = useSafeAreaInsets();
 
   const carregar = useCallback(async () => {
+    leitura.current?.abort();
+    const controlador = new AbortController();
+    leitura.current = controlador;
     const atual = ++operacao.current;
+    const revisaoEdicao = edicao.current;
     ocupado.current = false;
     setCarregando(true);
     setSalvando(false);
     setEnviandoFoto(false);
-    setPerfil(null);
-    setUriFoto(null);
-    setFormulario(null);
     setErro('');
     setSucesso('');
     setErros({});
     try {
-      const resposta = await servico.consultar();
+      const resposta = await servico.consultar(controlador.signal);
       if (atual !== operacao.current) return;
-      setPerfil(resposta);
-      setFormulario(formularioDoPerfil(resposta));
+      let foto = resposta.temFoto ? undefined : null;
+      let erroFoto = '';
       if (resposta.temFoto) {
         try {
-          const foto = await obterFotoPerfil({ usuarioId, requisitarAutenticado });
-          if (atual === operacao.current) setUriFoto(foto);
+          foto = await obterFotoPerfil({
+            usuarioId,
+            requisitarAutenticado,
+            signal: controlador.signal,
+          });
         } catch {
-          if (atual === operacao.current)
-            setErro('Não foi possível carregar sua foto. Abra o perfil novamente para tentar.');
+          erroFoto = 'Não foi possível carregar sua foto. Abra o perfil novamente para tentar.';
         }
       }
-    } catch {
-      if (atual === operacao.current)
+      if (atual !== operacao.current) return;
+      setPerfil(resposta);
+      if (revisaoEdicao === 0 && edicao.current === 0) setFormulario(formularioDoPerfil(resposta));
+      if (foto !== undefined) setUriFoto(foto);
+      setErro(erroFoto);
+    } catch (falha) {
+      if (atual === operacao.current) {
+        if (falha.status === 401 || falha.status === 404) {
+          setPerfil(null);
+          setFormulario(null);
+          setUriFoto(null);
+        }
         setErro('Não foi possível carregar seu perfil. Confira a conexão e tente novamente.');
+      }
     } finally {
       if (atual === operacao.current) setCarregando(false);
+      if (leitura.current === controlador) leitura.current = null;
     }
   }, [servico, usuarioId, requisitarAutenticado]);
 
   useFocusEffect(
     useCallback(() => {
+      emFoco.current = true;
       carregar();
       return () => {
+        emFoco.current = false;
         operacao.current += 1;
+        leitura.current?.abort();
+        leitura.current = null;
       };
     }, [carregar]),
   );
 
   function alterar(campo, valor) {
     if (ocupado.current) return;
+    edicao.current++;
     setFormulario((anterior) => ({ ...anterior, [campo]: valor }));
     setErros({});
     setSucesso('');
@@ -107,12 +135,16 @@ export function ContaScreen({ navigation }) {
     setErro('');
     if (Object.keys(validacao.erros).length) return;
     ocupado.current = true;
+    leitura.current?.abort();
+    leitura.current = null;
+    const atual = ++operacao.current;
+    setCarregando(false);
     setSalvando(true);
-    const atual = operacao.current;
     try {
       const resposta = await servico.salvar(validacao.dados);
       if (atual !== operacao.current) return;
       setPerfil(resposta);
+      edicao.current = 0;
       setFormulario(formularioDoPerfil(resposta));
       setSucesso('Alterações salvas.');
     } catch (falha) {
@@ -131,9 +163,12 @@ export function ContaScreen({ navigation }) {
   }
 
   async function enviarImagem(resultado) {
-    if (resultado.canceled) return;
+    if (resultado.canceled || !emFoco.current) return;
     const imagem = resultado.assets[0];
-    const atual = operacao.current;
+    leitura.current?.abort();
+    leitura.current = null;
+    const atual = ++operacao.current;
+    setCarregando(false);
 
     setEnviandoFoto(true);
     setErro('');
@@ -204,7 +239,7 @@ export function ContaScreen({ navigation }) {
         <Text style={styles.title} accessibilityRole="header">
           Perfil e configurações
         </Text>
-        {carregando ? (
+        {carregando && !perfil ? (
           <ActivityIndicator color={colors.brand} accessibilityLabel="Carregando perfil" />
         ) : null}
         {perfil && formulario ? (
@@ -299,6 +334,7 @@ export function ContaScreen({ navigation }) {
         onClose={() => setSeletor(null)}
         onSelect={(item) => {
           if (!ocupado.current && seletor) {
+            edicao.current++;
             setFormulario((anterior) => ({
               ...anterior,
               [seletor.campo]: item.valor,

@@ -1,4 +1,6 @@
-import { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useMemo } from 'react';
+
+import { useEstadoVersionado } from '../hooks/useEstadoVersionado';
 
 import {
   criarEpico,
@@ -39,7 +41,8 @@ function mapearEpicoDaApi(epico) {
 
 export function EpicsProvider({ children, initialEpics = MOCK_EPICS }) {
   const { sessao, requisitarAutenticado } = useSessao();
-  const [epicosCarregados, setEpics] = useState(initialEpics);
+  const [epicosCarregados, setEpics, carregarServidor, obterRevisao] =
+    useEstadoVersionado(initialEpics);
   const { exclusoes } = useExclusoesPlanejamento();
   const epics = useMemo(
     () =>
@@ -73,7 +76,7 @@ export function EpicsProvider({ children, initialEpics = MOCK_EPICS }) {
       setEpics((current) => [...current, epic]);
       return epic;
     },
-    [sessao, requisitarAutenticado],
+    [sessao, requisitarAutenticado, setEpics],
   );
 
   const updateEpic = useCallback(
@@ -103,7 +106,7 @@ export function EpicsProvider({ children, initialEpics = MOCK_EPICS }) {
         ),
       );
     },
-    [epics, sessao, requisitarAutenticado],
+    [epics, sessao, requisitarAutenticado, setEpics],
   );
 
   const getEpicById = useCallback(
@@ -113,45 +116,51 @@ export function EpicsProvider({ children, initialEpics = MOCK_EPICS }) {
 
   // Épico gerado pela IA no onboarding (RF-01.5/RF-13) — já vem com id e pontuação reais do
   // backend, diferente de addEpic (formulário manual, id/pontos locais).
-  const hidratarDoOnboarding = useCallback((epico) => {
-    const epicHidratado = {
-      id: epico.id,
-      titulo: epico.titulo,
-      descricao: epico.descricao,
-      dataLimite: deDataIso(epico.prazoFim),
-      prazoLabel: deDataIso(epico.prazoFim),
-      prazoInicio: epico.prazoInicio,
-      areaDaVida: epico.areaDaVida,
-      dificuldade: epico.dificuldade.toUpperCase(),
-      pontos: epico.pontuacao,
-      recompensaLabel: `${epico.pontuacao} pontos`,
-      estado: epico.estado,
-      campanhasAtribuidas: [],
-      progresso: null,
-      corDestaque: colors.typeAccentB,
-    };
+  const hidratarDoOnboarding = useCallback(
+    (epico) => {
+      const epicHidratado = {
+        id: epico.id,
+        titulo: epico.titulo,
+        descricao: epico.descricao,
+        dataLimite: deDataIso(epico.prazoFim),
+        prazoLabel: deDataIso(epico.prazoFim),
+        prazoInicio: epico.prazoInicio,
+        areaDaVida: epico.areaDaVida,
+        dificuldade: epico.dificuldade.toUpperCase(),
+        pontos: epico.pontuacao,
+        recompensaLabel: `${epico.pontuacao} pontos`,
+        estado: epico.estado,
+        campanhasAtribuidas: [],
+        progresso: null,
+        corDestaque: colors.typeAccentB,
+      };
 
-    setEpics((current) => [...current, epicHidratado]);
-    return epicHidratado;
-  }, []);
+      setEpics((current) => [...current, epicHidratado]);
+      return epicHidratado;
+    },
+    [setEpics],
+  );
 
   // Chamado depois de hidratarDoOnboarding, quando a campanha gerada para este épico já existe
   // (a API devolve o épico antes da campanha, então o vínculo não pode nascer junto).
-  const vincularCampanha = useCallback((epicId, campanha) => {
-    setEpics((current) =>
-      current.map((epic) =>
-        epic.id === epicId
-          ? {
-              ...epic,
-              campanhasAtribuidas: [
-                ...epic.campanhasAtribuidas,
-                { id: campanha.id, titulo: campanha.titulo, progresso: null },
-              ],
-            }
-          : epic,
-      ),
-    );
-  }, []);
+  const vincularCampanha = useCallback(
+    (epicId, campanha) => {
+      setEpics((current) =>
+        current.map((epic) =>
+          epic.id === epicId
+            ? {
+                ...epic,
+                campanhasAtribuidas: [
+                  ...epic.campanhasAtribuidas,
+                  { id: campanha.id, titulo: campanha.titulo, progresso: null },
+                ],
+              }
+            : epic,
+        ),
+      );
+    },
+    [setEpics],
+  );
 
   // Conclusão manual e irreversível (RF-03.8) — não altera o estado das campanhas do épico.
   const concluirEpico = useCallback(
@@ -166,14 +175,17 @@ export function EpicsProvider({ children, initialEpics = MOCK_EPICS }) {
       );
       return resposta;
     },
-    [sessao, requisitarAutenticado],
+    [sessao, requisitarAutenticado, setEpics],
   );
 
   // Substitui a lista inteira pelos épicos reais do usuário (GET /usuarios/{id}/epicos), com
-  // campanhas e missões já aninhadas — chamado uma vez ao abrir o app (ver CarregadorDeDados).
-  const carregarLista = useCallback((epicosDoServidor) => {
-    setEpics(epicosDoServidor.map(mapearEpicoDaApi));
-  }, []);
+  // campanhas e missões já aninhadas — chamado uma vez ao abrir o app (ver CarregadorPlanejamento).
+  const carregarLista = useCallback(
+    (epicosDoServidor) => {
+      carregarServidor(epicosDoServidor.map(mapearEpicoDaApi));
+    },
+    [carregarServidor],
+  );
 
   const value = useMemo(
     () => ({
@@ -184,6 +196,7 @@ export function EpicsProvider({ children, initialEpics = MOCK_EPICS }) {
       hidratarDoOnboarding,
       vincularCampanha,
       carregarLista,
+      obterRevisao,
       concluirEpico,
     }),
     [
@@ -194,6 +207,7 @@ export function EpicsProvider({ children, initialEpics = MOCK_EPICS }) {
       hidratarDoOnboarding,
       vincularCampanha,
       carregarLista,
+      obterRevisao,
       concluirEpico,
     ],
   );

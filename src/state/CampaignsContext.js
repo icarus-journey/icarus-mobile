@@ -1,4 +1,6 @@
-import { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useMemo } from 'react';
+
+import { useEstadoVersionado } from '../hooks/useEstadoVersionado';
 
 import {
   criarCampanha,
@@ -49,7 +51,8 @@ export function CampaignsProvider({ children, initialCampaigns = MOCK_CAMPAIGNS 
 
 function DadosDasCampanhas({ children, initialCampaigns }) {
   const { sessao, requisitarAutenticado } = useSessao();
-  const [campanhasCarregadas, setCampaigns] = useState(initialCampaigns);
+  const [campanhasCarregadas, setCampaigns, carregarServidor, obterRevisao] =
+    useEstadoVersionado(initialCampaigns);
   const { exclusoes } = useExclusoesPlanejamento();
   const campaigns = useMemo(
     () =>
@@ -83,7 +86,7 @@ function DadosDasCampanhas({ children, initialCampaigns }) {
       setCampaigns((current) => [...current, campaign]);
       return campaign;
     },
-    [sessao, requisitarAutenticado],
+    [sessao, requisitarAutenticado, setCampaigns],
   );
 
   const updateCampaign = useCallback(
@@ -120,7 +123,7 @@ function DadosDasCampanhas({ children, initialCampaigns }) {
         ),
       );
     },
-    [campaigns, sessao, requisitarAutenticado],
+    [campaigns, sessao, requisitarAutenticado, setCampaigns],
   );
 
   const getCampaignById = useCallback(
@@ -129,12 +132,15 @@ function DadosDasCampanhas({ children, initialCampaigns }) {
   );
 
   // Campanha gerada pela IA no onboarding — já vem com id e pontuação reais do backend.
-  const hidratarDoOnboarding = useCallback((campanha, epico) => {
-    const campanhaHidratada = mapearCampanhaDaApi(campanha, epico);
+  const hidratarDoOnboarding = useCallback(
+    (campanha, epico) => {
+      const campanhaHidratada = mapearCampanhaDaApi(campanha, epico);
 
-    setCampaigns((current) => [...current, campanhaHidratada]);
-    return campanhaHidratada;
-  }, []);
+      setCampaigns((current) => [...current, campanhaHidratada]);
+      return campanhaHidratada;
+    },
+    [setCampaigns],
+  );
 
   // Conclusão manual (RF-03.7) — atingir o valor mensurado não conclui por si só.
   const concluirCampanha = useCallback(
@@ -151,51 +157,60 @@ function DadosDasCampanhas({ children, initialCampaigns }) {
       );
       return resposta;
     },
-    [sessao, requisitarAutenticado],
+    [sessao, requisitarAutenticado, setCampaigns],
   );
 
   // Reflete, sem round-trip à API, o crédito que ConcluirMissaoUseCase já aplicou no backend
   // ao valor_atual da campanha (RF-03.5) — chamado pela tela de missão na mesma ação de
   // concluir, já que missão e campanha vivem em Contexts separados. Somente a unidade
   // pontos é contador de gamificação; outras medidas não recebem crédito de pontos.
-  const incrementarValorAtual = useCallback((campaignId, pontos) => {
-    setCampaigns((current) =>
-      current.map((campaign) =>
-        campaign.id === campaignId &&
-        campaign.valorMensurado != null &&
-        campaign.unidade?.toLowerCase() === 'pontos'
-          ? { ...campaign, valorAtual: (campaign.valorAtual ?? 0) + pontos }
-          : campaign,
-      ),
-    );
-  }, []);
+  const incrementarValorAtual = useCallback(
+    (campaignId, pontos) => {
+      setCampaigns((current) =>
+        current.map((campaign) =>
+          campaign.id === campaignId &&
+          campaign.valorMensurado != null &&
+          campaign.unidade?.toLowerCase() === 'pontos'
+            ? { ...campaign, valorAtual: (campaign.valorAtual ?? 0) + pontos }
+            : campaign,
+        ),
+      );
+    },
+    [setCampaigns],
+  );
 
   // Substitui a lista inteira pelas campanhas reais do usuário, extraídas do grafo aninhado
   // devolvido por GET /usuarios/{id}/epicos — chamado uma vez ao abrir o app.
-  const carregarLista = useCallback((epicosDoServidor) => {
-    const campanhasMapeadas = epicosDoServidor.flatMap((epico) =>
-      (epico.campanhas ?? []).map((campanha) =>
-        mapearCampanhaDaApi(campanha, { id: epico.id, titulo: epico.titulo }),
-      ),
-    );
-    setCampaigns(campanhasMapeadas);
-  }, []);
+  const carregarLista = useCallback(
+    (epicosDoServidor) => {
+      const campanhasMapeadas = epicosDoServidor.flatMap((epico) =>
+        (epico.campanhas ?? []).map((campanha) =>
+          mapearCampanhaDaApi(campanha, { id: epico.id, titulo: epico.titulo }),
+        ),
+      );
+      carregarServidor(campanhasMapeadas);
+    },
+    [carregarServidor],
+  );
 
-  const aplicarProgresso = useCallback((campanhaId, progresso) => {
-    setCampaigns((atuais) =>
-      atuais.map((campanha) =>
-        campanha.id === campanhaId
-          ? {
-              ...campanha,
-              valorAtual: progresso.valorAtual,
-              valorMensurado: progresso.valorMensurado,
-              unidade: progresso.unidade,
-              estado: progresso.estado,
-            }
-          : campanha,
-      ),
-    );
-  }, []);
+  const aplicarProgresso = useCallback(
+    (campanhaId, progresso) => {
+      setCampaigns((atuais) =>
+        atuais.map((campanha) =>
+          campanha.id === campanhaId
+            ? {
+                ...campanha,
+                valorAtual: progresso.valorAtual,
+                valorMensurado: progresso.valorMensurado,
+                unidade: progresso.unidade,
+                estado: progresso.estado,
+              }
+            : campanha,
+        ),
+      );
+    },
+    [setCampaigns],
+  );
 
   const value = useMemo(
     () => ({
@@ -205,6 +220,7 @@ function DadosDasCampanhas({ children, initialCampaigns }) {
       getCampaignById,
       hidratarDoOnboarding,
       carregarLista,
+      obterRevisao,
       concluirCampanha,
       incrementarValorAtual,
       aplicarProgresso,
@@ -216,6 +232,7 @@ function DadosDasCampanhas({ children, initialCampaigns }) {
       getCampaignById,
       hidratarDoOnboarding,
       carregarLista,
+      obterRevisao,
       concluirCampanha,
       incrementarValorAtual,
       aplicarProgresso,

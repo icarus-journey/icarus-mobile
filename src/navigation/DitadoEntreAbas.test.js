@@ -50,7 +50,7 @@ async function abrirDiario() {
     </NavigationContainer>,
   );
   fireEvent.press(screen.getByRole('tab', { name: 'Diário' }));
-  await screen.findByLabelText('Atualizar histórico');
+  await screen.findByText('Seu diário começa aqui');
 }
 
 it('trocar de aba aborta o microfone, ignora eventos tardios e preserva o rascunho', async () => {
@@ -67,7 +67,7 @@ it('trocar de aba aborta o microfone, ignora eventos tardios e preserva o rascun
   expect(ouvintes.result).toBeUndefined();
   act(() => resultadoAntigo({ results: [{ transcript: 'Evento recebido depois de sair' }] }));
   fireEvent.press(screen.getByRole('tab', { name: 'Diário' }));
-  await screen.findByLabelText('Atualizar histórico');
+  await screen.findByText('Seu diário começa aqui');
   act(() => resultadoAntigo({ results: [{ transcript: 'Evento do foco anterior' }] }));
   expect(screen.getByLabelText('Reflexão de hoje').props.value).toBe('Rascunho ditado');
   expect(screen.getByLabelText('Ditar texto')).toBeTruthy();

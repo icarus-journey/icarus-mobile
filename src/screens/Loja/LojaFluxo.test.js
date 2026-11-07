@@ -17,7 +17,13 @@ jest.mock('../../state/SessaoContext', () => ({
 let mockLoja;
 let mockFalhar;
 
+afterEach(() => {
+  jest.clearAllTimers();
+  jest.useRealTimers();
+});
+
 beforeEach(() => {
+  jest.useFakeTimers();
   mockFalhar = false;
   mockLoja = {
     saldoPontos: 300,

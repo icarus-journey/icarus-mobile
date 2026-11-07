@@ -1,5 +1,4 @@
-import { useCallback, useEffect } from 'react';
-import { AppState } from 'react-native';
+import { useCallback } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -12,15 +11,16 @@ import {
   useFonts,
 } from '@expo-google-fonts/inter';
 
+import { CarregadorPlanejamento } from './src/state/CarregadorPlanejamento';
+
 import { ExclusoesPlanejamentoProvider } from './src/state/ExclusoesPlanejamentoContext';
+import { MedidorFluidez } from './src/components/MedidorFluidez';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { OpcoesDaJanelaProvider } from './src/navigation/OpcoesDaJanela';
-import { listarEpicos } from './src/services/epicos';
-import { listarMissoesAvulsas } from './src/services/missoes';
-import { CampaignsProvider, useCampaigns } from './src/state/CampaignsContext';
+import { CampaignsProvider } from './src/state/CampaignsContext';
 import { DiariosProvider } from './src/state/DiariosContext';
-import { EpicsProvider, useEpics } from './src/state/EpicsContext';
-import { MissionsProvider, useMissions } from './src/state/MissionsContext';
+import { EpicsProvider } from './src/state/EpicsContext';
+import { MissionsProvider } from './src/state/MissionsContext';
 import { OnboardingProvider } from './src/state/OnboardingContext';
 import { SessaoProvider, useSessao } from './src/state/SessaoContext';
 import { SincronizadorDeFuso } from './src/state/SincronizadorDeFuso';
@@ -70,13 +70,17 @@ export function ConteudoDaSessao() {
           <EpicsProvider initialEpics={[]}>
             <CampaignsProvider initialCampaigns={[]}>
               <DiariosProvider>
-                <CarregadorDeDados />
-                <SincronizadorDeFuso />
-                <LojaProvider>
-                  <NavigationContainer>
-                    <RootNavigator />
-                  </NavigationContainer>
-                </LojaProvider>
+                <SincronizadorDeFuso>
+                  <CarregadorPlanejamento>
+                    <LojaProvider>
+                      <NavigationContainer>
+                        <MedidorFluidez>
+                          <RootNavigator />
+                        </MedidorFluidez>
+                      </NavigationContainer>
+                    </LojaProvider>
+                  </CarregadorPlanejamento>
+                </SincronizadorDeFuso>
               </DiariosProvider>
             </CampaignsProvider>
           </EpicsProvider>
@@ -84,55 +88,4 @@ export function ConteudoDaSessao() {
       </ExclusoesPlanejamentoProvider>
     </OnboardingProvider>
   );
-}
-
-// Busca a jornada ao abrir a sessão e ao voltar ao aplicativo (GET
-// /usuarios/{id}/epicos já devolve o grafo inteiro aninhado). Sem isso, tudo que não veio do
-// onboarding ou foi criado nesta mesma sessão desapareceria a cada reabertura do app.
-function CarregadorDeDados() {
-  const { sessao, requisitarAutenticado } = useSessao();
-  const { carregarLista: carregarEpicos } = useEpics();
-  const { carregarLista: carregarCampanhas } = useCampaigns();
-  const { carregarLista: carregarMissoes } = useMissions();
-
-  useEffect(() => {
-    if (!sessao?.usuarioId) return;
-    let ativo = true;
-
-    let requisicao = 0;
-    function atualizar() {
-      const numero = ++requisicao;
-      Promise.all([
-        listarEpicos({ usuarioId: sessao.usuarioId, requisitarAutenticado }),
-        listarMissoesAvulsas({ usuarioId: sessao.usuarioId, requisitarAutenticado }),
-      ])
-        .then(([epicosDoServidor, missoesAvulsasDoServidor]) => {
-          if (!ativo || numero !== requisicao) return;
-          carregarEpicos(epicosDoServidor);
-          carregarCampanhas(epicosDoServidor);
-          carregarMissoes(epicosDoServidor, missoesAvulsasDoServidor);
-        })
-        .catch(() => {
-          // Falha ao carregar não bloqueia o app — o usuário segue com a lista vazia e pode
-          // tentar novamente mais tarde (ex.: criando um novo épico, que recarrega a tela).
-        });
-    }
-    atualizar();
-    const assinatura = AppState.addEventListener('change', (estado) => {
-      if (estado === 'active') atualizar();
-    });
-
-    return () => {
-      ativo = false;
-      assinatura.remove();
-    };
-  }, [
-    sessao?.usuarioId,
-    requisitarAutenticado,
-    carregarEpicos,
-    carregarCampanhas,
-    carregarMissoes,
-  ]);
-
-  return null;
 }

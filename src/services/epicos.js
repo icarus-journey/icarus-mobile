@@ -1,5 +1,8 @@
-export async function listarEpicos({ usuarioId, requisitarAutenticado }) {
-  return requisitarAutenticado(`/api/usuarios/${usuarioId}/epicos`);
+export async function listarEpicos({ usuarioId, requisitarAutenticado, signal }) {
+  return requisitarAutenticado(
+    `/api/usuarios/${usuarioId}/epicos`,
+    ...(signal ? [{ signal }] : []),
+  );
 }
 
 export async function criarEpico({ usuarioId, dados, requisitarAutenticado }) {
