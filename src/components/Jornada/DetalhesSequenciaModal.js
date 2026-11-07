@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 
 import { SecondaryButton } from '../Button';
-import IconeProtecao from '../../assets/icons/icone-protecao.svg';
+import { IlustracaoRecompensa } from '../IlustracaoRecompensa';
 import { colors } from '../../theme/colors';
 import { fontFamily } from '../../theme/typography';
 import { nomeDoFuso, periodoCurto } from '../../utils/formatarProgresso';
@@ -131,7 +131,7 @@ export function DetalhesSequenciaModal({ jornada, aoFechar, espacoInferior = 0 }
                           </View>
                           {dia.protegida && !dia.realizada ? (
                             <View style={styles.marcaProtecao} accessible={false}>
-                              <IconeProtecao color={colors.brand} />
+                              <IlustracaoRecompensa deveMostrarProtecao tamanho={20} />
                             </View>
                           ) : (
                             <Text style={[styles.legenda, dia.realizada && styles.marcador]}>
@@ -243,5 +243,5 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   marcador: { color: colors.brand },
-  marcaProtecao: { minHeight: 16, justifyContent: 'center', alignItems: 'center' },
+  marcaProtecao: { minHeight: 20, justifyContent: 'center', alignItems: 'center' },
 });

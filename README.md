@@ -46,6 +46,13 @@ nativas existentes; sem nova build. Consulte o
 MVP-23 verificado com 519 testes/73 suítes, lint/formatação e bundles
 Android/iOS; interação física e leitores de tela ainda pendentes.
 
+## Ilustrações da Loja
+
+Escudo e vale escolhidos para a Loja ficam em `src/assets/loja/`, com
+transparência preservada. `IlustracaoRecompensa` compartilha as artes entre
+cartões, prévia, detalhes, resgates e dias protegidos do calendário. Imagens
+decorativas acompanham os rótulos acessíveis existentes; não exige nova build.
+
 ## Carregamento e fluidez
 
 As listas de planejamento, diário e loja renderizam os itens conforme a rolagem.

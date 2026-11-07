@@ -13,6 +13,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PrimaryButton, SecondaryButton } from '../../components/Button';
+import { IlustracaoRecompensa } from '../../components/IlustracaoRecompensa';
 import { useLoja } from '../../state/LojaContext';
 import { colors } from '../../theme/colors';
 import { fontFamily } from '../../theme/typography';
@@ -136,6 +137,7 @@ export function LojaScreen({ navigation }) {
       return (
         <CartaoRecompensa
           titulo={loja.protecao.titulo}
+          deveMostrarProtecao
           descricao="Uma proteção cobre um dia sem conclusão. Consumo automático pela sequência."
           custo={loja.protecao.custo}
           estado={`${loja.protecao.quantidade} de ${loja.protecao.limite} proteções no inventário`}
@@ -150,7 +152,10 @@ export function LojaScreen({ navigation }) {
     return (
       <View key={item.id} style={styles.historico}>
         <Text style={styles.data}>{new Date(item.resgatadoEm).toLocaleDateString('pt-BR')}</Text>
-        <Text style={styles.rotulo}>{item.titulo}</Text>
+        <View style={styles.identidadeRecompensa}>
+          <IlustracaoRecompensa deveMostrarProtecao={item.protecao} tamanho={32} />
+          <Text style={[styles.rotulo, styles.tituloRecompensa]}>{item.titulo}</Text>
+        </View>
         <Text style={styles.texto}>
           {item.estado === 'estornado'
             ? 'Resgate desfeito'
@@ -282,7 +287,12 @@ export function LojaScreen({ navigation }) {
               </>
             ) : selecionada ? (
               <>
-                <Text style={styles.subtitulo}>{selecionada.titulo}</Text>
+                <View style={styles.identidadeRecompensa}>
+                  <IlustracaoRecompensa deveMostrarProtecao={selecao.protecao} tamanho={48} />
+                  <Text style={[styles.subtitulo, styles.tituloRecompensa]}>
+                    {selecionada.titulo}
+                  </Text>
+                </View>
                 {selecionada.descricao ? (
                   <Text style={styles.texto}>{selecionada.descricao}</Text>
                 ) : null}
@@ -377,6 +387,8 @@ export function LojaScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
+  identidadeRecompensa: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  tituloRecompensa: { flex: 1 },
   cabecalhoLista: { gap: 16 },
   tela: { flex: 1, backgroundColor: colors.surface },
   conteudo: { paddingHorizontal: 24, paddingBottom: 24, gap: 16 },
