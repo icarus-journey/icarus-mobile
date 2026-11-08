@@ -169,9 +169,9 @@ export function LojaScreen({ navigation }) {
               : 'Resgatado'}
         </Text>
         <ValorComMoeda valor={item.custo} comSinal={item.estado === 'estornado'} />
-        {item.protecao && item.estado === 'resgatado' ? (
+        {item.estado === 'resgatado' ? (
           <SecondaryButton
-            label="Desfazer resgate da proteção"
+            label={item.protecao ? 'Desfazer resgate da proteção' : 'Desfazer resgate'}
             disabled={enviando}
             onPress={() =>
               setConfirmacao({

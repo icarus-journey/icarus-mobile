@@ -71,6 +71,11 @@ beforeEach(() => {
     } else if (caminho.endsWith('/utilizar')) {
       mockLoja.recompensas[0].estado = 'utilizada';
       mockLoja.resgates[0].estado = 'utilizado';
+    } else if (caminho.endsWith('/desfazer')) {
+      mockLoja.saldoPontos += mockLoja.resgates[0].custo;
+      mockLoja.resgates[0].estado = 'estornado';
+      mockLoja.recompensas[0].estado = 'disponivel';
+      mockLoja.recompensas[0].resgateId = null;
     }
     return JSON.parse(JSON.stringify(mockLoja));
   });
@@ -150,6 +155,89 @@ describe('loja integrada ao contrato da API', () => {
     });
     expect(await screen.findByText('Utilizadas')).toBeTruthy();
     expect(screen.queryByLabelText('Desfazer resgate')).toBeNull();
+  });
+
+  it('desfaz pelo histórico somente após confirmar e apresenta o saldo devolvido pela API', async () => {
+    mockLoja.recompensas[0] = {
+      ...mockLoja.recompensas[0],
+      estado: 'resgatada',
+      resgateId: 9,
+      imutavel: true,
+    };
+    mockLoja.resgates = [
+      {
+        id: 9,
+        titulo: 'Pausa sem culpa',
+        custo: 120,
+        estado: 'resgatado',
+        protecao: false,
+        resgatadoEm: '2026-10-19T12:00:00Z',
+      },
+    ];
+    await abrir();
+    fireEvent.press(screen.getByLabelText('Desfazer resgate'));
+    expect(screen.getByText('O valor será devolvido ao seu saldo.')).toBeTruthy();
+    expect(screen.getByLabelText('Devolução: mais 120 pontos')).toBeTruthy();
+    expect(mockRequisitar.mock.calls.some(([rota]) => rota.endsWith('/desfazer'))).toBe(false);
+    fireEvent.press(screen.getByLabelText('Cancelar'));
+    expect(mockRequisitar.mock.calls.some(([rota]) => rota.endsWith('/desfazer'))).toBe(false);
+    fireEvent.press(screen.getByLabelText('Desfazer resgate'));
+    await act(async () => {
+      fireEvent.press(screen.getAllByLabelText('Desfazer resgate').at(-1));
+    });
+    expect(mockRequisitar).toHaveBeenCalledWith('/api/usuarios/pessoa/loja/resgates/9/desfazer', {
+      metodo: 'POST',
+    });
+    expect(await screen.findByLabelText('Saldo disponível agora: 420 pontos')).toBeTruthy();
+    expect(screen.getByText('Resgate desfeito')).toBeTruthy();
+    expect(screen.queryByLabelText('Desfazer resgate')).toBeNull();
+  });
+
+  it('preserva o resgate e o saldo quando desfazer pelo histórico falha', async () => {
+    mockLoja.recompensas[0] = {
+      ...mockLoja.recompensas[0],
+      estado: 'resgatada',
+      resgateId: 9,
+      imutavel: true,
+    };
+    mockLoja.resgates = [
+      {
+        id: 9,
+        titulo: 'Pausa sem culpa',
+        custo: 120,
+        estado: 'resgatado',
+        protecao: false,
+        resgatadoEm: '2026-10-19T12:00:00Z',
+      },
+    ];
+    await abrir();
+    fireEvent.press(screen.getByLabelText('Desfazer resgate'));
+    mockRequisitar.mockRejectedValueOnce(new Error('Sem rede'));
+    await act(async () => {
+      fireEvent.press(screen.getAllByLabelText('Desfazer resgate').at(-1));
+    });
+    expect(await screen.findByText(/Não foi possível concluir a operação/)).toBeTruthy();
+    expect(screen.getByText('Desfazer resgate?')).toBeTruthy();
+    fireEvent.press(screen.getByLabelText('Cancelar'));
+    expect(screen.getByText('Resgatado')).toBeTruthy();
+    expect(screen.getByLabelText('Saldo disponível agora: 300 pontos')).toBeTruthy();
+    expect(screen.getByLabelText('Desfazer resgate')).toBeEnabled();
+  });
+
+  it.each(['utilizado', 'estornado'])('não oferece desfazer no histórico %s', async (estado) => {
+    mockLoja.resgates = [
+      {
+        id: 9,
+        titulo: 'Pausa sem culpa',
+        custo: 120,
+        estado,
+        protecao: false,
+        resgatadoEm: '2026-10-19T12:00:00Z',
+      },
+    ];
+    await abrir();
+    expect(screen.queryByLabelText('Desfazer resgate')).toBeNull();
+    expect(mockRequisitar.mock.calls.some(([rota]) => rota.endsWith('/desfazer'))).toBe(false);
   });
 
   it('uma falha não debita localmente nem fecha a confirmação como sucesso', async () => {
