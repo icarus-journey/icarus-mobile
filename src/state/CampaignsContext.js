@@ -31,7 +31,6 @@ function mapearCampanhaDaApi(campanha, epico) {
     valorMensurado: campanha.valorMensurado ?? null,
     unidade: campanha.unidade ?? null,
     recompensaCurta: null,
-    recompensaLabel: `${campanha.pontuacao} pontos`,
     estado: campanha.estado,
     missoesAtribuidas: [],
     progresso: null,

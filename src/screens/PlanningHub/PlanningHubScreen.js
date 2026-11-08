@@ -1,4 +1,6 @@
 import { ResumoInicial } from './ResumoInicial';
+import { CabecalhoSecaoMissoes } from './CabecalhoSecaoMissoes';
+import { agruparMissoesPorDia } from './agruparMissoesPorDia';
 import { SecondaryButton } from '../../components/Button';
 import { useMemo, useRef, useState } from 'react';
 import {
@@ -27,11 +29,26 @@ import { useEpics } from '../../state/EpicsContext';
 import { useMissions } from '../../state/MissionsContext';
 import { colors } from '../../theme/colors';
 import { fontFamily, fontSize } from '../../theme/typography';
-import { isDataLimiteVencida } from '../../utils/dateInput';
+import {
+  formatDateDaysFromNow,
+  isDataLimiteVencida,
+  isValidDateString,
+  paraDataIso,
+} from '../../utils/dateInput';
 import { focarElemento } from '../../utils/focarElemento';
 
-function isMissaoAtrasada(mission) {
-  return mission.status === 'ATRASADA' || isDataLimiteVencida(mission.dataLimite);
+function isMissaoAtrasada(mission, referencia) {
+  return mission.status === 'ATRASADA' || isDataLimiteVencida(mission.dataLimite, referencia);
+}
+
+function compararMissoesPorData(primeira, segunda) {
+  const primeiraData = isValidDateString(primeira.dataLimite)
+    ? paraDataIso(primeira.dataLimite)
+    : '9999-99-99';
+  const segundaData = isValidDateString(segunda.dataLimite)
+    ? paraDataIso(segunda.dataLimite)
+    : '9999-99-99';
+  return primeiraData.localeCompare(segundaData);
 }
 
 const HEADERS = {
@@ -52,6 +69,10 @@ const ADD_ROUTES = {
   EPICO: 'EpicForm',
 };
 
+function SeparadorMissoes() {
+  return <View style={styles.separadorMissoes} />;
+}
+
 export function PlanningHubScreen({ navigation, route }) {
   const { missions } = useMissions();
   const planejamento = useCarregamentoPlanejamento();
@@ -61,6 +82,7 @@ export function PlanningHubScreen({ navigation, route }) {
   const [segment, setSegment] = useState(route.params?.initialSegment ?? 'MISSAO');
   const relatorio = useRelatorioSemanal(segment === 'MISSAO');
   const jornada = useJornada(navigation);
+  const hoje = formatDateDaysFromNow(0);
   const [sequenciaAberta, setSequenciaAberta] = useState(false);
   const referenciaSequencia = useRef(null);
   const { width, fontScale } = useWindowDimensions();
@@ -88,11 +110,14 @@ export function PlanningHubScreen({ navigation, route }) {
     atrasadas: missoesAtrasadas,
     concluidas: missoesConcluidas,
   } = useMemo(() => {
-    const concluidas = missions.filter((m) => m.concluidaEm);
-    const atrasadas = missions.filter((m) => !m.concluidaEm && isMissaoAtrasada(m));
-    const ativas = missions.filter((m) => !m.concluidaEm && !isMissaoAtrasada(m));
+    const [dia, mes, ano] = hoje.split('/').map(Number);
+    const referencia = new Date(ano, mes - 1, dia);
+    const ordenadas = [...missions].sort(compararMissoesPorData);
+    const concluidas = ordenadas.filter((m) => m.concluidaEm);
+    const atrasadas = ordenadas.filter((m) => !m.concluidaEm && isMissaoAtrasada(m, referencia));
+    const ativas = ordenadas.filter((m) => !m.concluidaEm && !isMissaoAtrasada(m, referencia));
     return { ativas, atrasadas, concluidas };
-  }, [missions]);
+  }, [missions, hoje]);
 
   const {
     ativas: campanhasAtivas,
@@ -125,27 +150,29 @@ export function PlanningHubScreen({ navigation, route }) {
   }, [epics]);
 
   const secoes = useMemo(() => {
+    if (segment === 'MISSAO') {
+      return [
+        ...agruparMissoesPorDia(missoesAtivas, hoje),
+        { key: 'atrasadas', titulo: 'Atrasados', tipo: 'estado', data: missoesAtrasadas },
+        { key: 'concluidas', titulo: 'Concluídos', tipo: 'estado', data: missoesConcluidas },
+      ].filter((secao) => secao.data.length);
+    }
     const grupos =
-      segment === 'MISSAO'
+      segment === 'CAMPANHA'
         ? [
-            ['', missoesAtivas],
-            ['Atrasados', missoesAtrasadas],
-            ['Concluídos', missoesConcluidas],
+            ['', campanhasAtivas],
+            ['Atrasados', campanhasAtrasadas],
+            ['Concluídos', campanhasConcluidas],
           ]
-        : segment === 'CAMPANHA'
-          ? [
-              ['', campanhasAtivas],
-              ['Atrasados', campanhasAtrasadas],
-              ['Concluídos', campanhasConcluidas],
-            ]
-          : [
-              ['', epicosAtivos],
-              ['Atrasados', epicosAtrasados],
-              ['Concluídos', epicosConcluidos],
-            ];
+        : [
+            ['', epicosAtivos],
+            ['Atrasados', epicosAtrasados],
+            ['Concluídos', epicosConcluidos],
+          ];
     return grupos.filter(([, itens]) => itens.length).map(([titulo, data]) => ({ titulo, data }));
   }, [
     segment,
+    hoje,
     missoesAtivas,
     missoesAtrasadas,
     missoesConcluidas,
@@ -227,7 +254,12 @@ export function PlanningHubScreen({ navigation, route }) {
           key={segment}
           sections={secoes}
           keyExtractor={(item) => String(item.id)}
-          contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + 16 }]}
+          contentContainerStyle={[
+            styles.list,
+            segment === 'MISSAO' && styles.listaMissoes,
+            { paddingBottom: insets.bottom + 16 },
+          ]}
+          ItemSeparatorComponent={segment === 'MISSAO' ? SeparadorMissoes : undefined}
           stickySectionHeadersEnabled={false}
           initialNumToRender={8}
           maxToRenderPerBatch={8}
@@ -242,7 +274,15 @@ export function PlanningHubScreen({ navigation, route }) {
             ) : null
           }
           renderSectionHeader={({ section }) =>
-            section.titulo ? <Text style={styles.extraTitle}>{section.titulo}</Text> : null
+            !section.titulo ? null : segment === 'MISSAO' ? (
+              <CabecalhoSecaoMissoes
+                titulo={section.titulo}
+                tipo={section.tipo}
+                primeira={section.key === secoes[0]?.key}
+              />
+            ) : (
+              <Text style={styles.extraTitle}>{section.titulo}</Text>
+            )
           }
           renderItem={({ item }) =>
             segment === 'MISSAO' ? (
@@ -365,6 +405,8 @@ const styles = StyleSheet.create({
     gap: 16,
     flexGrow: 1,
   },
+  listaMissoes: { gap: 0 },
+  separadorMissoes: { height: 12 },
   extraTitle: {
     marginTop: 24,
     fontFamily: fontFamily.semiBold,

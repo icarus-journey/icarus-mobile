@@ -45,7 +45,6 @@ function mapearMissaoDaApi(missao, campanha) {
     campanha,
     corDestaque: colors.typeAccentB,
     progresso: null,
-    recompensaLabel: `${missao.pontuacao} pontos`,
   };
 }
 

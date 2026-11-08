@@ -173,7 +173,8 @@ export function MissionDetailScreen({ route, navigation }) {
                     textColor: colors.brandDark,
                   },
             {
-              label: `+${execucao?.pontuacao ?? mission.pontos} pts`,
+              label: 'Recompensa',
+              pontos: execucao?.pontuacao ?? mission.pontos,
               backgroundColor: colors.softPurpleAlt,
               textColor: colors.brandDark,
             },
@@ -223,9 +224,7 @@ export function MissionDetailScreen({ route, navigation }) {
 
         <DetailRewardCard
           label={mission.recorrente ? 'Pontos desta execução' : 'Recompensa'}
-          value={
-            execucao?.pontuacao != null ? `${execucao.pontuacao} pontos` : mission.recompensaLabel
-          }
+          valor={execucao?.pontuacao ?? mission.pontos}
         />
 
         {erro ? (

@@ -94,7 +94,8 @@ export function EpicDetailScreen({ route, navigation }) {
                 },
             epic.pontos
               ? {
-                  label: `+${epic.pontos} pts`,
+                  label: 'Recompensa',
+                  pontos: epic.pontos,
                   backgroundColor: colors.softPurpleAlt,
                   textColor: colors.brandDark,
                 }
@@ -125,7 +126,7 @@ export function EpicDetailScreen({ route, navigation }) {
           />
         ) : null}
 
-        <DetailRewardCard value={epic.recompensaLabel} />
+        <DetailRewardCard valor={epic.pontos} />
 
         {erro ? (
           <Text style={styles.errorText} accessibilityRole="alert">

@@ -7,6 +7,7 @@ import { useSessao } from '../../state/SessaoContext';
 import { criarServicoHistoricoMissoes } from '../../services/historicoMissoes';
 import { nomeDoFuso } from '../../utils/formatarProgresso';
 import { colors } from '../../theme/colors';
+import { ValorComMoeda } from '../../components/Pontos/ValorComMoeda';
 import { dataDoRegistro, momentoDoRegistro, ROTULOS_ESTADO } from './apresentacaoHistorico';
 import { estilos as e } from './styles';
 
@@ -114,9 +115,13 @@ function RegistroDaSessao({ navigation, route }) {
             <View style={e.suave}>
               <Text style={[e.rotulo, e.marca]}>{ROTULOS_ESTADO[r.estado]}</Text>
               {r.pontosRecebidos !== null ? (
-                <Text style={[e.titulo, e.marca]}>
-                  +{r.pontosRecebidos.toLocaleString('pt-BR')} pts recebidos
-                </Text>
+                <ValorComMoeda
+                  valor={r.pontosRecebidos}
+                  comSinal
+                  tamanho="medio"
+                  cor={colors.brand}
+                  rotulo="Recebidos"
+                />
               ) : r.estado.startsWith('feita') ? (
                 <Text style={e.legenda}>Pontos não disponíveis neste registro.</Text>
               ) : null}

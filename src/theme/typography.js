@@ -6,6 +6,7 @@ export const fontFamily = {
 };
 
 export const fontSize = {
+  diaMissao: 11.5,
   xs: 10,
   sm: 11,
   base: 12,

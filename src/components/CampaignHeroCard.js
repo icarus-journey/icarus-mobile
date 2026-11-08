@@ -3,18 +3,17 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors } from '../theme/colors';
 import { fontFamily, fontSize } from '../theme/typography';
 import { isDataLimiteVencida } from '../utils/dateInput';
+import { ValorComMoeda } from './Pontos/ValorComMoeda';
 
 export function CampaignHeroCard({ campaign, onPress }) {
   const concluida = campaign.estado === 'concluida';
   const atrasada = !concluida && isDataLimiteVencida(campaign.dataLimite);
-  const subtitle = campaign.valorMensurado != null
-    ? `${campaign.valorAtual ?? 'Não informado'} de ${campaign.valorMensurado} ${campaign.unidade ?? 'unidade não informada'}`
-    : campaign.progresso
-      ? `${campaign.progresso.concluidas} de ${campaign.progresso.total} missões concluídas`
-      : 'Sua campanha está começando agora.';
-  const recompensaLabel = campaign.recompensaCurta
-    ? `Recompensa final: ${campaign.recompensaCurta}`
-    : null;
+  const subtitle =
+    campaign.valorMensurado != null
+      ? `${campaign.valorAtual ?? 'Não informado'} de ${campaign.valorMensurado} ${campaign.unidade ?? 'unidade não informada'}`
+      : campaign.progresso
+        ? `${campaign.progresso.concluidas} de ${campaign.progresso.total} missões concluídas`
+        : 'Sua campanha está começando agora.';
 
   return (
     <Pressable
@@ -30,7 +29,16 @@ export function CampaignHeroCard({ campaign, onPress }) {
       ) : null}
       <Text style={styles.title}>{campaign.titulo}</Text>
       <Text style={styles.subtitle}>{subtitle}</Text>
-      {recompensaLabel ? <Text style={styles.reward}>{recompensaLabel}</Text> : null}
+      {campaign.recompensaCurta != null ? (
+        <View style={styles.recompensa}>
+          <Text style={styles.reward}>Recompensa final:</Text>
+          <ValorComMoeda
+            valor={campaign.recompensaCurta}
+            rotulo="Recompensa final"
+            cor={colors.brand}
+          />
+        </View>
+      ) : null}
     </Pressable>
   );
 }
@@ -64,6 +72,7 @@ const styles = StyleSheet.create({
     fontSize: fontSize.input,
     color: colors.brand,
   },
+  recompensa: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
   accent: {
     position: 'absolute',
     left: 6,

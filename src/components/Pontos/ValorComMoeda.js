@@ -3,7 +3,12 @@ import { colors } from '../../theme/colors';
 import { fontFamily } from '../../theme/typography';
 
 const moeda = require('../../assets/jornada/moeda-com-asa.png');
-const TAMANHOS = { pequeno: [16, 14, 20, 4], medio: [20, 20, 28, 8], grande: [36, 32, 40, 12] };
+const TAMANHOS = {
+  compacto: [16, 11, 16, 4],
+  pequeno: [16, 14, 20, 4],
+  medio: [20, 20, 28, 8],
+  grande: [36, 32, 40, 12],
+};
 export function ValorComMoeda({
   valor,
   acessivel = true,

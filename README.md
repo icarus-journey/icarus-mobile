@@ -55,6 +55,17 @@ decorativas acompanham os rótulos acessíveis existentes; não exige nova build
 
 ## Carregamento e fluidez
 
+Em Missões, as pendentes são agrupadas pelo prazo: Hoje e Amanhã com dia/mês,
+depois as datas seguintes. Dias vazios não aparecem; prazos ausentes ficam em
+Sem data. Atrasados e Concluídos mantêm grupos próprios, com título mais forte
+e linha lateral alinhada à base do texto. O resumo semanal permanece antes da lista.
+
+Valores de recompensa nas missões, campanhas e épicos, inclusive no histórico,
+usam a moeda com asa e o número, sem os sufixos pts, pontos ou XP. O componente
+compartilhado preserva sinal, formatação e descrição por extenso para leitores
+de tela; o detalhe da missão usa o valor da execução retornado pela API.
+Nos cartões da lista de missões, o valor fica no canto inferior direito.
+
 As listas de planejamento, diário e loja renderizam os itens conforme a rolagem.
 Leituras de progresso/pesquisas respeitam a aba visível, descartam respostas de
 outro filtro/usuário e cancelam consultas abandonadas. Atualizar a mesma leitura

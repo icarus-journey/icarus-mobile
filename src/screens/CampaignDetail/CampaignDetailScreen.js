@@ -114,7 +114,8 @@ export function CampaignDetailScreen({ route, navigation }) {
                 },
             campaign.recompensaCurta
               ? {
-                  label: `+${campaign.recompensaCurta}`,
+                  label: 'Recompensa final',
+                  pontos: campaign.recompensaCurta,
                   backgroundColor: colors.softPurpleAlt,
                   textColor: colors.brandDark,
                 }
@@ -158,7 +159,7 @@ export function CampaignDetailScreen({ route, navigation }) {
           />
         ) : null}
 
-        <DetailRewardCard value={campaign.recompensaLabel} />
+        <DetailRewardCard valor={campaign.pontos} />
 
         {erro ? (
           <Text style={styles.errorText} accessibilityRole="alert">

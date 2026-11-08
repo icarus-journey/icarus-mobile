@@ -62,7 +62,7 @@ it('abre pela entrada compacta, pagina, vê detalhe somente leitura e volta sem 
   await screen.findByLabelText('Ver registro: Ler um capítulo, Feita com atraso');
   fireEvent.press(screen.getByLabelText('Ver registro: Estudar redes, Feita'));
   await screen.findByText('Registro da missão');
-  await screen.findByText('+30 pts recebidos');
+  await screen.findByLabelText('Recebidos: mais 30 pontos');
   expect(screen.getByText('Realizada em')).toBeTruthy();
   expect(screen.getByText('Registrada em')).toBeTruthy();
   expect(screen.queryByLabelText('Concluir agora')).toBeNull();
@@ -103,7 +103,7 @@ it('vazio, falha e recuperação não mostram créditos inventados', async () =>
   await screen.findByText(/Não foi possível carregar/);
   fireEvent.press(screen.getByLabelText('Tentar novamente'));
   await screen.findByText('Sua história começa aqui');
-  expect(screen.queryByText('+0 pts')).toBeNull();
+  expect(screen.queryByLabelText('0 pontos')).toBeNull();
 });
 it('o período do seletor é enviado com início e fim explícitos', async () => {
   render(app());
@@ -142,7 +142,7 @@ it('o detalhe de legado preserva ausência e vínculo removido sem oferecer aç�
   await screen.findByText('Nome atual da missão.');
   expect(screen.getByText('Curso antigo · Removida')).toBeTruthy();
   expect(screen.getByText('Pontos não disponíveis neste registro.')).toBeTruthy();
-  expect(screen.queryByText('+0 pts recebidos')).toBeNull();
+  expect(screen.queryByLabelText('Recebidos: 0 pontos')).toBeNull();
   expect(screen.queryByLabelText('Excluir missão')).toBeNull();
 });
 it('erro no detalhe permite tentar novamente sem manter o registro anterior', async () => {
@@ -158,7 +158,7 @@ it('erro no detalhe permite tentar novamente sem manter o registro anterior', as
   await screen.findByText('Não foi possível carregar este registro.');
   falhar = false;
   fireEvent.press(screen.getByLabelText('Tentar novamente'));
-  await screen.findByText('+30 pts recebidos');
+  await screen.findByLabelText('Recebidos: mais 30 pontos');
 });
 it('permite consultar outro período e rejeita datas inválidas antes do envio', async () => {
   render(app());

@@ -27,7 +27,6 @@ function mapearEpicoDaApi(epico) {
     areaDaVida: epico.areaDaVida,
     dificuldade: epico.dificuldade.toUpperCase(),
     pontos: epico.pontuacao,
-    recompensaLabel: `${epico.pontuacao} pontos`,
     estado: epico.estado,
     campanhasAtribuidas: (epico.campanhas ?? []).map((campanha) => ({
       id: campanha.id,
@@ -128,7 +127,6 @@ export function EpicsProvider({ children, initialEpics = MOCK_EPICS }) {
         areaDaVida: epico.areaDaVida,
         dificuldade: epico.dificuldade.toUpperCase(),
         pontos: epico.pontuacao,
-        recompensaLabel: `${epico.pontuacao} pontos`,
         estado: epico.estado,
         campanhasAtribuidas: [],
         progresso: null,

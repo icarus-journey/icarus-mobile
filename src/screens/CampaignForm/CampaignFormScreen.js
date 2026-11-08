@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PrimaryButton } from '../../components/Button';
+import { ValorComMoeda } from '../../components/Pontos/ValorComMoeda';
 import { DifficultySelector } from '../../components/DifficultySelector';
 import { InputField } from '../../components/InputField';
 import { KeyboardAwareScrollView } from '../../components/KeyboardAwareScrollView';
@@ -226,7 +227,13 @@ export function CampaignFormScreen({ navigation, route }) {
                 <Text style={styles.assignedItemLabel} numberOfLines={1}>
                   {missao.titulo}
                 </Text>
-                <Text style={styles.assignedItemFraction}>+{missao.pontos} XP</Text>
+                <ValorComMoeda
+                  valor={missao.pontos}
+                  comSinal
+                  tamanho="compacto"
+                  cor={colors.brandDark}
+                  rotulo="Recompensa"
+                />
               </View>
             ))}
           </>
@@ -329,10 +336,5 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.semiBold,
     fontSize: fontSize.base,
     color: colors.textPrimaryStrong,
-  },
-  assignedItemFraction: {
-    fontFamily: fontFamily.semiBold,
-    fontSize: fontSize.base,
-    color: colors.brandDark,
   },
 });

@@ -212,8 +212,11 @@ export function LojaScreen({ navigation }) {
               </Pressable>
             </View>
             <Text style={styles.texto}>Escolha uma recompensa para você.</Text>
-            <CartaoSaldo saldo={loja?.saldoPontos} carregando={carregando} />
-            <SecondaryButton label="Ver extrato" onPress={() => navigation.navigate('Extrato')} />
+            <CartaoSaldo
+              saldo={loja?.saldoPontos}
+              carregando={carregando}
+              aoVerExtrato={() => navigation.navigate('Extrato')}
+            />
             {erro && !selecao && !confirmacao ? (
               <View style={styles.aviso}>
                 <Text accessibilityRole="alert" style={styles.erro}>
