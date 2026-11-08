@@ -262,9 +262,11 @@ function DadosDaConta({ navigation }) {
             <Text style={styles.section} accessibilityRole="header">
               Estudo e trabalho
             </Text>
-            <Text style={styles.text}>
-              Esses dados são opcionais. Você pode alterá-los ou deixá-los sem informar.
-            </Text>
+            {formulario.estuda == null || formulario.trabalha == null ? (
+              <Text style={styles.text}>
+                Esses dados são opcionais. Você pode alterá-los ou deixá-los sem informar.
+              </Text>
+            ) : null}
             {[
               ['estuda', 'Você estuda?', 'cargaHorariaEstudoSemanal', 'Horas de estudo por semana'],
               [
@@ -290,7 +292,7 @@ function DadosDaConta({ navigation }) {
                     keyboardType="decimal-pad"
                     maxLength={6}
                     placeholder="Não informada"
-                    helper="Opcional · de 0 a 168 horas"
+                    helper={formulario[carga].trim() ? undefined : 'Opcional · de 0 a 168 horas'}
                     error={erros[carga]}
                   />
                 ) : null}

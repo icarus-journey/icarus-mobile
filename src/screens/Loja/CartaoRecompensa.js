@@ -16,6 +16,7 @@ export function CartaoRecompensa({
   estado,
   previa = false,
   deveMostrarProtecao = false,
+  deveMostrarUtilizada = false,
 }) {
   const [exclusaoVisivel, setExclusaoVisivel] = useState(false);
   return (
@@ -35,7 +36,10 @@ export function CartaoRecompensa({
           pressed && { opacity: 0.8 },
         ]}
       >
-        <IlustracaoRecompensa deveMostrarProtecao={deveMostrarProtecao} />
+        <IlustracaoRecompensa
+          deveMostrarProtecao={deveMostrarProtecao}
+          deveMostrarUtilizada={deveMostrarUtilizada}
+        />
         <View style={styles.conteudo}>
           <View style={styles.cabecalho}>
             <Text style={styles.titulo}>{titulo}</Text>

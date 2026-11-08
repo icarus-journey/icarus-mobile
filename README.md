@@ -52,6 +52,9 @@ Escudo e vale escolhidos para a Loja ficam em `src/assets/loja/`, com
 transparência preservada. `IlustracaoRecompensa` compartilha as artes entre
 cartões, prévia, detalhes, resgates e dias protegidos do calendário. Imagens
 decorativas acompanham os rótulos acessíveis existentes; não exige nova build.
+Recompensas utilizadas usam `vale-recompensa-usado.png`, com o canhoto destacado,
+nos cartões, detalhes e histórico. Disponíveis, resgatadas e resgates desfeitos
+mantêm o ticket inteiro; proteções mantêm o escudo em todos os estados.
 
 ## Carregamento e fluidez
 

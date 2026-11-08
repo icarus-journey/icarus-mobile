@@ -2,8 +2,13 @@ import { Image, StyleSheet, View } from 'react-native';
 
 const protecao = require('../assets/loja/protecao-sequencia.png');
 const recompensa = require('../assets/loja/vale-recompensa.png');
+const recompensaUtilizada = require('../assets/loja/vale-recompensa-usado.png');
 
-export function IlustracaoRecompensa({ deveMostrarProtecao = false, tamanho = 56 }) {
+export function IlustracaoRecompensa({
+  deveMostrarProtecao = false,
+  deveMostrarUtilizada = false,
+  tamanho = 56,
+}) {
   return (
     <View
       accessible={false}
@@ -12,7 +17,9 @@ export function IlustracaoRecompensa({ deveMostrarProtecao = false, tamanho = 56
       style={[styles.quadro, { width: tamanho, height: tamanho }]}
     >
       <Image
-        source={deveMostrarProtecao ? protecao : recompensa}
+        source={
+          deveMostrarProtecao ? protecao : deveMostrarUtilizada ? recompensaUtilizada : recompensa
+        }
         accessible={false}
         style={[
           styles.imagem,

@@ -71,6 +71,7 @@ export function LojaScreen({ navigation }) {
     <CartaoRecompensa
       key={item.id}
       {...item}
+      deveMostrarUtilizada={item.estado === 'utilizada'}
       estado={item.estado === 'disponivel' ? undefined : ESTADOS[item.estado]}
       onPress={() => {
         setSelecao({ id: item.id });
@@ -153,7 +154,11 @@ export function LojaScreen({ navigation }) {
       <View key={item.id} style={styles.historico}>
         <Text style={styles.data}>{new Date(item.resgatadoEm).toLocaleDateString('pt-BR')}</Text>
         <View style={styles.identidadeRecompensa}>
-          <IlustracaoRecompensa deveMostrarProtecao={item.protecao} tamanho={32} />
+          <IlustracaoRecompensa
+            deveMostrarProtecao={item.protecao}
+            deveMostrarUtilizada={item.estado === 'utilizado'}
+            tamanho={32}
+          />
           <Text style={[styles.rotulo, styles.tituloRecompensa]}>{item.titulo}</Text>
         </View>
         <Text style={styles.texto}>
@@ -291,7 +296,11 @@ export function LojaScreen({ navigation }) {
             ) : selecionada ? (
               <>
                 <View style={styles.identidadeRecompensa}>
-                  <IlustracaoRecompensa deveMostrarProtecao={selecao.protecao} tamanho={48} />
+                  <IlustracaoRecompensa
+                    deveMostrarProtecao={selecao.protecao}
+                    deveMostrarUtilizada={selecionada.estado === 'utilizada'}
+                    tamanho={48}
+                  />
                   <Text style={[styles.subtitulo, styles.tituloRecompensa]}>
                     {selecionada.titulo}
                   </Text>
