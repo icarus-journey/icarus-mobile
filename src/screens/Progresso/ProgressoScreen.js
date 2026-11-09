@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import {
   ActivityIndicator,
-  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -11,11 +10,15 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AbasDeProgresso } from '../../components/Analise/AbasDeProgresso';
-import { DetalhesDosIndicadores } from '../../components/Analise/DetalhesDosIndicadores';
+import { AcessoPesquisa } from '../../components/Analise/AcessoPesquisa';
+import { FatoCampanhaPesquisa } from '../../components/Analise/FatoCampanhaPesquisa';
+import { PesquisasDaRotina } from '../../components/Analise/PesquisasDaRotina';
+import { PlanejamentoProgresso } from '../../components/Analise/PlanejamentoProgresso';
 import { DistribuicaoPorArea } from '../../components/Analise/DistribuicaoPorArea';
 import { IconeAnalise } from '../../components/Analise/IconeAnalise';
 import { MetaEmFoco } from '../../components/Analise/MetaEmFoco';
-import { ReferenciasEmDestaque } from '../../components/Analise/ReferenciasEmDestaque';
+import { ResumoObjetivos } from '../../components/Analise/Objetivos/ResumoObjetivos';
+import { useAbrirObjetivo } from '../../hooks/useAbrirObjetivo';
 import { ResumoEvolucaoPessoal } from '../../components/Analise/ResumoEvolucaoPessoal';
 import { SeletorPeriodoProgresso } from '../../components/Analise/SeletorPeriodoProgresso';
 import { estilosPainel as estilos } from '../../components/Analise/estilosPainel';
@@ -29,7 +32,7 @@ import { colors } from '../../theme/colors';
 import { periodoCurto } from '../../utils/formatarProgresso';
 import { AREA_DA_VIDA_OPTIONS } from '../EpicForm/areaDaVidaOptions';
 import { estilosProgresso } from './estilosProgresso';
-import { ProximoPassoDaSemana } from './ProximoPassoDaSemana';
+import { EvolucaoDaMetaEmFoco } from './EvolucaoDaMetaEmFoco';
 
 const codigoDaArea = (area) => area?.replace(/([A-Z])/g, '_$1').toUpperCase();
 const areas = AREA_DA_VIDA_OPTIONS.map((area) => ({ ...area, id: codigoDaArea(area.id) }));
@@ -41,9 +44,22 @@ export function ProgressoScreen({ navigation, route }) {
   const [area, setArea] = useState(null);
   const [periodo, setPeriodo] = useState('semanaAnterior');
   const [seletor, setSeletor] = useState(false);
-  const [detalhes, setDetalhes] = useState(false);
+  const [selecaoCampanha, setSelecaoCampanha] = useState(null);
   const pessoal = useProgresso(periodo);
-  const publico = useReferenciasPublicas(area);
+  const abrirObjetivo = useAbrirObjetivo(navigation);
+  const campanhas = pessoal.dados?.objetivos?.campanhas ?? [];
+  const campanhaId =
+    selecaoCampanha?.usuarioId === pessoal.usuarioId ? selecaoCampanha.campanhaId : null;
+  const campanha =
+    campanhas.find((c) => c.id === campanhaId) ??
+    campanhas.find((c) => c.id === pessoal.dados?.objetivos?.campanhaEmDestaqueId);
+  const podeConsultarPesquisas = !!pessoal.dados && (!campanhas.length || !!campanha);
+  const publico = useReferenciasPublicas(
+    campanha ? null : area,
+    'todos',
+    aba === 'publico' && podeConsultarPesquisas,
+    campanha?.id,
+  );
   const areaEfetiva = area ?? publico.dados?.areaDaVida;
   return (
     <View style={[estilosProgresso.tela, { paddingTop: insets.top }]}>
@@ -56,9 +72,15 @@ export function ProgressoScreen({ navigation, route }) {
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
-            refreshing={false}
+            refreshing={
+              aba === 'pessoal' ? pessoal.atualizando : publico.atualizando || pessoal.atualizando
+            }
             tintColor={colors.brand}
-            onRefresh={aba === 'pessoal' ? pessoal.carregar : publico.carregar}
+            onRefresh={
+              aba === 'pessoal'
+                ? pessoal.carregar
+                : () => Promise.all([pessoal.carregar(), publico.carregar()])
+            }
           />
         }
         contentContainerStyle={[estilosProgresso.conteudo, { paddingBottom: insets.bottom + 24 }]}
@@ -71,16 +93,8 @@ export function ProgressoScreen({ navigation, route }) {
                 <IconeAnalise nome="calendario" tamanho={16} />
                 <Text style={estilos.pequeno}>{periodoCurto(pessoal.dados?.periodo)}</Text>
               </View>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Sobre estes números"
-                onPress={() => setDetalhes(true)}
-                style={locais.info}
-              >
-                <IconeAnalise nome="info" />
-              </Pressable>
             </View>
-            {pessoal.carregando ? (
+            {pessoal.carregando && !pessoal.dados ? (
               <View style={locais.carregando}>
                 <ActivityIndicator color={colors.brand} />
                 <Text style={estilos.texto} accessibilityLiveRegion="polite">
@@ -96,50 +110,82 @@ export function ProgressoScreen({ navigation, route }) {
                 <SecondaryButton label="Atualizar meus registros" onPress={pessoal.carregar} />
               </View>
             ) : null}
-            {pessoal.dados ? <ResumoEvolucaoPessoal dados={pessoal.dados} /> : null}
-            <MetaEmFoco
-              campanhas={campaigns}
-              onAbrir={(campaignId) => navigation.navigate('CampaignDetail', { campaignId })}
-              onVerPesquisas={(codigo) => {
-                setArea(codigoDaArea(codigo));
-                setAba('publico');
-              }}
-            />
-            <ProximoPassoDaSemana
-              onVerSemana={() => navigation.navigate('RelatorioSemanalScreen')}
-            />
-            {pessoal.dados?.indicadores ? (
-              <DistribuicaoPorArea indicadores={pessoal.dados.indicadores} />
+
+            {pessoal.dados?.objetivos ? (
+              <ResumoObjetivos
+                key={`${pessoal.usuarioId}:${periodo}`}
+                dados={pessoal.dados.objetivos}
+                periodo={pessoal.dados.periodo}
+                campanhaSelecionadaId={
+                  selecaoCampanha?.usuarioId === pessoal.usuarioId
+                    ? selecaoCampanha.campanhaId
+                    : null
+                }
+                aoSelecionarCampanha={(campanhaId) =>
+                  setSelecaoCampanha({ usuarioId: pessoal.usuarioId, campanhaId })
+                }
+                aoAbrirCampanha={abrirObjetivo.abrirCampanha}
+                aoVerMeta={(campanhaId) =>
+                  navigation.navigate('DetalheMetaProgressoScreen', { campanhaId, periodo })
+                }
+                erroAbertura={abrirObjetivo.erro}
+                abrindo={abrirObjetivo.carregando}
+              />
+            ) : (pessoal.dados || pessoal.carregando) &&
+              /^1\.[012]\./.test(pessoal.dados?.versaoContrato ?? pessoal.versaoContrato) ? (
+              <MetaEmFoco
+                campanhas={campaigns}
+                renderEvolucao={(campanhaId) => <EvolucaoDaMetaEmFoco campanhaId={campanhaId} />}
+                onAbrir={(campaignId) => navigation.navigate('CampaignDetail', { campaignId })}
+                onVerPesquisas={(codigo) => {
+                  setArea(codigoDaArea(codigo));
+                  setAba('publico');
+                }}
+              />
             ) : null}
-            <Text style={[estilos.pequeno, locais.rodape]}>
-              Cada registro conta uma parte da sua jornada.
-            </Text>
+            {pessoal.dados ? (
+              <PlanejamentoProgresso
+                dados={pessoal.dados}
+                aoComparar={() => navigation.navigate('RelatorioSemanalScreen')}
+              />
+            ) : null}
+            {pessoal.dados?.estado === 'sem_registros' ? (
+              <Text style={estilos.texto}>{pessoal.dados.mensagem}</Text>
+            ) : null}
+            {pessoal.dados ? (
+              <>
+                <ResumoEvolucaoPessoal
+                  dados={{ ...pessoal.dados, adesao: null }}
+                  deveExibirMetricas={false}
+                />
+                <DistribuicaoPorArea indicadores={pessoal.dados.indicadores} />
+              </>
+            ) : null}
           </>
         ) : (
           <>
-            <View style={estilos.secao}>
-              <Text style={estilos.titulo} accessibilityRole="header">
-                Um olhar para sua rotina
-              </Text>
-            </View>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Escolher área das pesquisas"
-              accessibilityValue={{
-                text: areas.find((item) => item.id === areaEfetiva)?.titulo ?? 'Escolher área',
-              }}
-              onPress={() => setSeletor(true)}
-              style={[estilos.cartao, estilos.entre, locais.escolhaArea]}
-            >
-              <View style={estilos.textoFlexivel}>
-                <Text style={estilos.pequeno}>Escolha uma área</Text>
-                <Text style={estilos.marca}>
-                  {areas.find((item) => item.id === areaEfetiva)?.titulo ?? 'Explorar pesquisas'}
-                </Text>
-              </View>
-              <IconeAnalise nome="chevron" />
-            </Pressable>
-            {publico.carregando ? (
+            <AcessoPesquisa
+              acessibilidade={
+                campanhas.length ? 'Escolher campanha das pesquisas' : 'Escolher área das pesquisas'
+              }
+              rotulo={
+                campanhas.length
+                  ? (campanha?.titulo ?? 'Escolha uma campanha')
+                  : (areas.find((item) => item.id === areaEfetiva)?.titulo ?? 'Explorar pesquisas')
+              }
+              valor={
+                campanhas.length
+                  ? (campanha?.titulo ?? 'Escolha uma campanha')
+                  : (areas.find((item) => item.id === areaEfetiva)?.titulo ?? 'Escolher área')
+              }
+              aoAbrir={() => setSeletor(true)}
+              estilo={[estilos.cartao, locais.escolhaArea]}
+            />
+            {campanha ? (
+              <FatoCampanhaPesquisa campanha={campanha} periodo={pessoal.dados?.periodo} />
+            ) : null}
+            {(pessoal.carregando && !pessoal.dados) ||
+            (podeConsultarPesquisas && publico.carregando && !publico.dados) ? (
               <View style={locais.carregando}>
                 <ActivityIndicator color={colors.brand} />
                 <Text style={estilos.texto} accessibilityLiveRegion="polite">
@@ -147,54 +193,47 @@ export function ProgressoScreen({ navigation, route }) {
                 </Text>
               </View>
             ) : null}
-            {publico.erro ? (
+            {publico.erro || pessoal.erro ? (
               <View style={estilos.cartao}>
                 <Text style={estilos.erro} accessibilityRole="alert">
-                  {publico.erro}
+                  {publico.erro || pessoal.erro}
                 </Text>
-                <SecondaryButton label="Tentar novamente" onPress={publico.carregar} />
+                <SecondaryButton
+                  label="Tentar novamente"
+                  onPress={() => Promise.all([pessoal.carregar(), publico.carregar()])}
+                />
               </View>
             ) : null}
-            {publico.dados?.referencias?.length ? (
-              <ReferenciasEmDestaque
-                key={`${areaEfetiva}:${publico.dados.versaoGold}`}
-                referencias={publico.dados.referencias}
-                onEntender={(referencia) =>
-                  navigation.navigate('DetalhesDaReferenciaScreen', { referencia })
+            {podeConsultarPesquisas && publico.dados ? (
+              <PesquisasDaRotina
+                key={`${pessoal.usuarioId}:${campanha?.id}:${areaEfetiva}`}
+                dados={publico.dados}
+                aoVerReferencia={(leitura) =>
+                  navigation.navigate('DetalhesDaReferenciaScreen', { leitura })
                 }
               />
-            ) : publico.dados && !publico.carregando ? (
-              <View style={estilos.cartao}>
-                <IconeAnalise nome="globo" tamanho={28} />
-                <Text style={estilos.texto} accessibilityLiveRegion="polite">
-                  {publico.dados.mensagem}
-                </Text>
-                {publico.dados.estado === 'indisponivel' ? (
-                  <SecondaryButton label="Atualizar referências" onPress={publico.carregar} />
-                ) : null}
-              </View>
+            ) : campanhas.length && !campanha ? (
+              <Text style={estilos.texto}>
+                Escolha uma campanha para conhecer as pesquisas relacionadas.
+              </Text>
             ) : null}
-            <Text style={estilos.pequeno}>
-              Dados de outras pessoas, em pesquisas de 2024. Não são uma avaliação dos seus hábitos
-              nem uma meta para você seguir.
-            </Text>
           </>
         )}
       </ScrollView>
       <PickerModal
         visible={seletor}
-        title="Escolha uma área"
-        items={areas}
+        title={campanhas.length ? 'Escolha uma campanha' : 'Escolha uma área'}
+        items={
+          campanhas.length ? campanhas.map((c) => ({ id: String(c.id), titulo: c.titulo })) : areas
+        }
         onClose={() => setSeletor(false)}
         onSelect={(item) => {
-          setArea(item.id);
+          if (campanhas.length) {
+            setSelecaoCampanha({ usuarioId: pessoal.usuarioId, campanhaId: Number(item.id) });
+            setArea(null);
+          } else setArea(item.id);
           setSeletor(false);
         }}
-      />
-      <DetalhesDosIndicadores
-        visivel={detalhes}
-        onFechar={() => setDetalhes(false)}
-        dados={pessoal.dados}
       />
     </View>
   );
@@ -205,5 +244,4 @@ const locais = StyleSheet.create({
   info: { width: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
   carregando: { gap: 12, alignItems: 'center', padding: 24 },
   escolhaArea: { paddingVertical: 14, borderRadius: 18 },
-  rodape: { textAlign: 'center', paddingVertical: 4 },
 });

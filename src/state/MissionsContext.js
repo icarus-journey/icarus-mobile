@@ -1,4 +1,6 @@
-import { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useMemo } from 'react';
+
+import { useEstadoVersionado } from '../hooks/useEstadoVersionado';
 
 import {
   criarMissao,
@@ -9,6 +11,7 @@ import {
 import { colors } from '../theme';
 import { deDataIso, paraDataIso } from '../utils/dateInput';
 import { useSessao } from './SessaoContext';
+import { useExclusoesPlanejamento } from './ExclusoesPlanejamentoContext';
 import { MOCK_MISSIONS } from './mockData';
 
 const MissionsContext = createContext(null);
@@ -24,6 +27,7 @@ function mapearMissaoDaApi(missao, campanha) {
     id: missao.id,
     titulo: missao.titulo,
     descricao: missao.descricao,
+    beneficio: missao.beneficio,
     status: 'PENDENTE',
     dataLimite: deDataIso(missao.dataLimite),
     prazoLabel: deDataIso(missao.dataLimite),
@@ -33,17 +37,33 @@ function mapearMissaoDaApi(missao, campanha) {
     horarioIso: missao.horario,
     concluidaEm: missao.concluidaEm ?? null,
     recorrente: missao.recorrente ?? false,
+    versao: missao.versao,
+    configuracaoRecorrencia: missao.configuracaoRecorrencia ?? null,
+    execucao: missao.execucao ?? null,
     inativa: missao.status === 'inativa',
+    excluida: missao.status === 'excluida',
     campanha,
     corDestaque: colors.typeAccentB,
     progresso: null,
-    recompensaLabel: `${missao.pontuacao} pontos`,
   };
 }
 
 export function MissionsProvider({ children, initialMissions = MOCK_MISSIONS }) {
   const { sessao, requisitarAutenticado } = useSessao();
-  const [missions, setMissions] = useState(initialMissions);
+  const [missoesCarregadas, setMissions, carregarServidor, obterRevisao] =
+    useEstadoVersionado(initialMissions);
+  const { exclusoes } = useExclusoesPlanejamento();
+  const missions = useMemo(
+    () =>
+      missoesCarregadas.filter(
+        (item) =>
+          !exclusoes.missoes.includes(item.id) &&
+          !exclusoes.campanhas.includes(item.campanha?.id) &&
+          !exclusoes.epicos.includes(item.campanha?.epicoId ?? item.campanha?.epico?.id) &&
+          !item.excluida,
+      ),
+    [missoesCarregadas, exclusoes],
+  );
 
   const addMission = useCallback(
     async (formValues) => {
@@ -56,23 +76,30 @@ export function MissionsProvider({ children, initialMissions = MOCK_MISSIONS }) 
           descricao: formValues.descricao || null,
           beneficio: null,
           dificuldade: formValues.dificuldade.toLowerCase(),
+          pontuacao: Number(formValues.pontos),
           dataLimite: formValues.dataLimite ? paraDataIso(formValues.dataLimite) : null,
           horario: null,
-          recorrencia: formValues.recorrente === 'Sim' ? formValues.tipoRecorrencia.toLowerCase() : null,
-          diasSemana: formValues.recorrente === 'Sim' && formValues.tipoRecorrencia === 'SEMANAL'
-            ? formValues.diasSemana
-            : null,
-          dataFimRecorrencia: formValues.recorrente === 'Sim' && formValues.dataFimRecorrencia
-            ? paraDataIso(formValues.dataFimRecorrencia)
-            : null,
+          recorrencia:
+            formValues.recorrente === 'Sim' ? formValues.tipoRecorrencia.toLowerCase() : null,
+          diasSemana:
+            formValues.recorrente === 'Sim' && formValues.tipoRecorrencia === 'SEMANAL'
+              ? formValues.diasSemana
+              : null,
+          dataFimRecorrencia:
+            formValues.recorrente === 'Sim' && formValues.dataFimRecorrencia
+              ? paraDataIso(formValues.dataFimRecorrencia)
+              : null,
         },
       });
-      const mission = mapearMissaoDaApi(resposta, formValues.atribuirCampanha === 'Sim' ? formValues.campanha : null);
+      const mission = mapearMissaoDaApi(
+        resposta,
+        formValues.atribuirCampanha === 'Sim' ? formValues.campanha : null,
+      );
 
       setMissions((current) => [mission, ...current]);
       return mission;
     },
-    [sessao, requisitarAutenticado],
+    [sessao, requisitarAutenticado, setMissions],
   );
 
   const updateMission = useCallback(
@@ -85,22 +112,59 @@ export function MissionsProvider({ children, initialMissions = MOCK_MISSIONS }) 
         dados: {
           titulo: formValues.titulo,
           descricao: formValues.descricao || null,
-          beneficio: null,
+          beneficio: formValues.beneficio ?? missaoAtual?.beneficio ?? null,
           dificuldade: formValues.dificuldade.toLowerCase(),
+          pontuacao: Number(formValues.pontos),
           dataLimite: formValues.dataLimite ? paraDataIso(formValues.dataLimite) : null,
           // Sem campo de horário no formulário: reenvia o horário já existente, senão a API
           // resetaria para 09:00 por omissão.
-          horario: horarioParaApi(missaoAtual?.horarioIso),
+          horario: horarioParaApi(formValues.horarioIso ?? missaoAtual?.horarioIso),
+          ...(missaoAtual?.recorrente
+            ? {
+                recorrencia: formValues.tipoRecorrencia.toLowerCase(),
+                diasSemana: formValues.tipoRecorrencia === 'SEMANAL' ? formValues.diasSemana : null,
+                dataFimRecorrencia: formValues.dataFimRecorrencia
+                  ? paraDataIso(formValues.dataFimRecorrencia)
+                  : null,
+                diaDoMes:
+                  formValues.tipoRecorrencia === 'MENSAL' ? Number(formValues.diaDoMes) : null,
+                versaoEsperada: formValues.versao,
+              }
+            : {}),
         },
       });
       // Edição não re-vincula a campanha (fora de escopo aqui): mantém a já carregada localmente.
       const camposAtualizados = mapearMissaoDaApi(resposta, missaoAtual?.campanha ?? null);
+      // Editar a regra não desfaz a conclusão já mostrada nesta sessão para a execução atual.
+      if (missaoAtual?.recorrente) camposAtualizados.concluidaEm = missaoAtual.concluidaEm ?? null;
 
       setMissions((current) =>
         current.map((mission) => (mission.id === missionId ? camposAtualizados : mission)),
       );
     },
-    [missions, sessao, requisitarAutenticado],
+    [missions, sessao, requisitarAutenticado, setMissions],
+  );
+
+  const aplicarExecucao = useCallback(
+    (missaoId, dados) => {
+      setMissions((atuais) =>
+        atuais.map((missao) =>
+          missao.id !== missaoId
+            ? missao
+            : {
+                ...missao,
+                execucao: dados.execucao,
+                inativa: dados.status === 'inativa',
+                concluidaEm: dados.recorrente
+                  ? dados.execucao.concluida
+                    ? dados.execucao.concluidaEm
+                    : null
+                  : dados.concluidaEm,
+              },
+        ),
+      );
+    },
+    [setMissions],
   );
 
   const getMissionById = useCallback(
@@ -112,59 +176,105 @@ export function MissionsProvider({ children, initialMissions = MOCK_MISSIONS }) 
   // status de execução (PENDENTE/ATRASADA/CONCLUIDA) é local; o ciclo que a API devolve
   // (RASCUNHO/ATIVA/INATIVA) é outra coisa (ver StatusMissao no backend), por isso não é
   // reaproveitado aqui — toda missão nasce PENDENTE, igual à criação manual.
-  const hidratarDoOnboarding = useCallback((missao, campanha) => {
-    const missaoHidratada = mapearMissaoDaApi(missao, campanha);
+  const hidratarDoOnboarding = useCallback(
+    (missao, campanha) => {
+      const missaoHidratada = mapearMissaoDaApi(missao, campanha);
 
-    setMissions((current) => [missaoHidratada, ...current]);
-    return missaoHidratada;
-  }, []);
+      setMissions((current) => [missaoHidratada, ...current]);
+      return missaoHidratada;
+    },
+    [setMissions],
+  );
 
   // Credita pontos ao usuário e, se a missão tiver campanha mensurável, soma ao valor atual
   // dela (RF-04.6). Idempotente no backend: concluir de novo não credita pontos de novo.
   const concluirMissao = useCallback(
-    async (missionId) => {
-      const resposta = await concluirMissaoNaApi({ usuarioId: sessao.usuarioId, missaoId: missionId, requisitarAutenticado });
+    async (missionId, ocorrenciaId, realizacao) => {
+      const resposta = await concluirMissaoNaApi({
+        ocorrenciaId,
+        realizacao,
+        usuarioId: sessao.usuarioId,
+        missaoId: missionId,
+        requisitarAutenticado,
+      });
       setMissions((current) =>
-        current.map((mission) => (mission.id === missionId ? { ...mission, concluidaEm: resposta.concluidaEm } : mission)),
+        current.map((mission) =>
+          mission.id === missionId ? { ...mission, concluidaEm: resposta.concluidaEm } : mission,
+        ),
       );
       return resposta;
     },
-    [sessao, requisitarAutenticado],
+    [sessao, requisitarAutenticado, setMissions],
   );
 
   // Para uma missão recorrente (RF-04.6) — ela deixa de gerar novas ocorrências. Ocorrências
   // pendentes futuras são canceladas no backend; as atrasadas ficam preservadas como histórico.
   const pararMissao = useCallback(
     async (missionId) => {
-      const resposta = await inativarMissaoNaApi({ usuarioId: sessao.usuarioId, missaoId: missionId, requisitarAutenticado });
+      const resposta = await inativarMissaoNaApi({
+        usuarioId: sessao.usuarioId,
+        missaoId: missionId,
+        requisitarAutenticado,
+      });
       setMissions((current) =>
-        current.map((mission) => (mission.id === missionId ? { ...mission, inativa: true } : mission)),
+        current.map((mission) =>
+          mission.id === missionId ? { ...mission, inativa: true } : mission,
+        ),
       );
       return resposta;
     },
-    [sessao, requisitarAutenticado],
+    [sessao, requisitarAutenticado, setMissions],
   );
 
   // Substitui a lista inteira pelas missões reais do usuário — chamado uma vez ao abrir o app.
   // epicosDoServidor traz as vinculadas (aninhadas em GET /usuarios/{id}/epicos);
   // missoesAvulsasDoServidor traz as sem campanha (GET /usuarios/{id}/missoes), que não
   // aparecem em nenhum grafo de épico.
-  const carregarLista = useCallback((epicosDoServidor, missoesAvulsasDoServidor = []) => {
-    const vinculadas = epicosDoServidor.flatMap((epico) =>
-      (epico.campanhas ?? []).flatMap((campanha) =>
-        (campanha.missoes ?? []).map((missao) =>
-          mapearMissaoDaApi(missao, { id: campanha.id, titulo: campanha.titulo }),
+  const carregarLista = useCallback(
+    (epicosDoServidor, missoesAvulsasDoServidor = []) => {
+      const vinculadas = epicosDoServidor.flatMap((epico) =>
+        (epico.campanhas ?? []).flatMap((campanha) =>
+          (campanha.missoes ?? []).map((missao) =>
+            mapearMissaoDaApi(missao, {
+              id: campanha.id,
+              titulo: campanha.titulo,
+              epicoId: epico.id,
+            }),
+          ),
         ),
-      ),
-    );
-    const avulsas = missoesAvulsasDoServidor.map((missao) => mapearMissaoDaApi(missao, null));
+      );
+      const avulsas = missoesAvulsasDoServidor.map((missao) => mapearMissaoDaApi(missao, null));
 
-    setMissions([...avulsas, ...vinculadas]);
-  }, []);
+      carregarServidor([...avulsas, ...vinculadas]);
+    },
+    [carregarServidor],
+  );
 
   const value = useMemo(
-    () => ({ missions, addMission, updateMission, getMissionById, hidratarDoOnboarding, carregarLista, concluirMissao, pararMissao }),
-    [missions, addMission, updateMission, getMissionById, hidratarDoOnboarding, carregarLista, concluirMissao, pararMissao],
+    () => ({
+      missions,
+      addMission,
+      updateMission,
+      getMissionById,
+      aplicarExecucao,
+      hidratarDoOnboarding,
+      carregarLista,
+      obterRevisao,
+      concluirMissao,
+      pararMissao,
+    }),
+    [
+      missions,
+      addMission,
+      updateMission,
+      getMissionById,
+      aplicarExecucao,
+      hidratarDoOnboarding,
+      carregarLista,
+      obterRevisao,
+      concluirMissao,
+      pararMissao,
+    ],
   );
 
   return <MissionsContext.Provider value={value}>{children}</MissionsContext.Provider>;

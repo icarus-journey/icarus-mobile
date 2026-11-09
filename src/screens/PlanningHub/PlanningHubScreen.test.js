@@ -1,5 +1,5 @@
 import { NavigationContainer } from '@react-navigation/native';
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen, within } from '@testing-library/react-native';
 
 import { CampaignsProvider } from '../../state/CampaignsContext';
 import { MOCK_CAMPAIGNS } from '../../state/campaignMockData';
@@ -11,6 +11,9 @@ import { PlanningHubScreen } from './PlanningHubScreen';
 
 jest.mock('../../hooks/useRelatorioSemanal', () => ({
   useRelatorioSemanal: () => ({ dados: null, carregando: false }),
+}));
+jest.mock('../../hooks/useJornada', () => ({
+  useJornada: () => ({ dados: null, carregando: false, erro: '', atualizar: jest.fn() }),
 }));
 
 const mockRequisitarAnalise = jest.fn(async () => ({
@@ -46,6 +49,94 @@ function renderScreen({
 }
 
 describe('PlanningHubScreen — aba Missão', () => {
+  it('divide apenas as pendentes por dia, preserva estados e abre a missão selecionada', async () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date(2026, 10, 8, 12));
+    try {
+      renderScreen({
+        initialMissions: [
+          ['hoje-1', '08/11/2026', null],
+          ['amanha', '09/11/2026', null],
+          ['hoje-2', '08/11/2026', null],
+          ['atrasada', '07/11/2026', null],
+        ].map(([id, dataLimite, concluidaEm]) => ({
+          ...MOCK_MISSIONS[1],
+          id,
+          titulo: `Missão ${id}`,
+          dataLimite,
+          prazoLabel: dataLimite,
+          concluidaEm,
+        })),
+      });
+
+      await screen.findByRole('header', { name: 'Atrasados' });
+      expect(
+        screen.getAllByRole('header').map((titulo) => within(titulo).getByText(/./).props.children),
+      ).toEqual(['Hoje · 08/11', 'Amanhã · 09/11', 'Atrasados']);
+      expect(screen.getAllByText('Hoje · 08/11')).toHaveLength(1);
+      fireEvent.press(screen.getByRole('button', { name: /^Missão hoje-2,/ }));
+      expect(navigation.navigate).toHaveBeenCalledWith('MissionDetail', { missionId: 'hoje-2' });
+
+      fireEvent.press(screen.getByLabelText('Campanha'));
+      expect(screen.queryByText('Hoje · 08/11')).toBeNull();
+      fireEvent.press(screen.getByLabelText('Missão'));
+      expect(screen.getByRole('header', { name: 'Hoje · 08/11' })).toBeTruthy();
+    } finally {
+      jest.clearAllTimers();
+      jest.useRealTimers();
+    }
+  });
+
+  it.each([
+    ['pendentes', {}, ['01/01/2099', '02/02/2098', '15/01/2098']],
+    ['atrasadas', { status: 'ATRASADA' }, ['01/01/2021', '02/02/2020', '15/01/2020']],
+    [
+      'concluídas',
+      { concluidaEm: '2026-11-08T09:00:00Z' },
+      ['01/01/2021', '02/02/2020', '15/01/2020'],
+    ],
+  ])('ordena as missões %s pela data prevista, cruzando meses e anos', (_, estado, datas) => {
+    const missoes = datas.map((dataLimite, indice) => ({
+      ...MOCK_MISSIONS[1],
+      id: `missao-ordenada-${indice}`,
+      titulo: `Missão de teste ${indice}`,
+      dataLimite,
+      prazoLabel: dataLimite,
+      ...estado,
+    }));
+    renderScreen({ initialMissions: missoes });
+
+    expect(
+      screen
+        .getAllByRole('button', { name: /^Missão de teste/ })
+        .map((botao) => botao.props.accessibilityLabel.split(',')[0]),
+    ).toEqual(['Missão de teste 2', 'Missão de teste 1', 'Missão de teste 0']);
+    expect(missoes.map((missao) => missao.id)).toEqual([
+      'missao-ordenada-0',
+      'missao-ordenada-1',
+      'missao-ordenada-2',
+    ]);
+  });
+
+  it('coloca missões sem data válida no fim e preserva a ordem dos empates', () => {
+    const datas = [null, '15/01/2098', 'data inválida', '15/01/2098'];
+    renderScreen({
+      initialMissions: datas.map((dataLimite, indice) => ({
+        ...MOCK_MISSIONS[1],
+        id: `missao-ordenada-${indice}`,
+        titulo: `Missão de teste ${indice}`,
+        dataLimite,
+        prazoLabel: dataLimite,
+      })),
+    });
+
+    expect(
+      screen
+        .getAllByRole('button', { name: /^Missão de teste/ })
+        .map((botao) => botao.props.accessibilityLabel.split(',')[0]),
+    ).toEqual(['Missão de teste 1', 'Missão de teste 3', 'Missão de teste 0', 'Missão de teste 2']);
+  });
+
   it('lista as missões atrasadas antes das pendentes', () => {
     renderScreen();
 
@@ -120,7 +211,7 @@ describe('PlanningHubScreen — aba Épico', () => {
     renderScreen({ params: { initialSegment: 'EPICO' } });
 
     expect(screen.getByText('Épicos')).toBeTruthy();
-    expect(screen.getByText('Objetivos que movem sua jornada.')).toBeTruthy();
+    expect(screen.getByLabelText('Adicionar épico')).toBeTruthy();
   });
 
   it('mostra todos os épicos como cards grandes', () => {
@@ -208,7 +299,7 @@ describe('PlanningHubScreen — aba Campanha', () => {
     expect(screen.getByText('Campanhas')).toBeTruthy();
     expect(screen.getByText('Capacitação em Python')).toBeTruthy();
     expect(screen.getByText('4 de 5 missões concluídas')).toBeTruthy();
-    expect(screen.getByText('Recompensa final: 300 pontos')).toBeTruthy();
+    expect(screen.getByLabelText('Recompensa final: 300 pontos')).toBeTruthy();
     expect(screen.getByText('Leitura de 12 livros')).toBeTruthy();
   });
 

@@ -1,25 +1,30 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
-import { isDataLimiteVencida } from '../../utils/dateInput';
 import { colors } from '../../theme/colors';
 import { fontFamily } from '../../theme/typography';
 import { IconeAnalise } from './IconeAnalise';
 import { estilosPainel as estilos } from './estilosPainel';
 import { numeroPublico } from './formatarReferencia';
 
-export function MetaEmFoco({ campanhas, onAbrir, onVerPesquisas }) {
+export function MetaEmFoco({
+  campanhas,
+  onAbrir,
+  renderEvolucao,
+  titulo = 'Sua meta em foco',
+  estadosPermitidos = ['emAndamento'],
+}) {
   const { width, fontScale } = useWindowDimensions();
   const acoesEmpilhadas = width < 380 || fontScale > 1.3;
   const [indice, setIndice] = useState(0);
   const metas = campanhas
     .filter(
       (campanha) =>
-        campanha.estado === 'emAndamento' &&
+        estadosPermitidos.includes(campanha.estado) &&
         campanha.valorMensurado > 0 &&
         campanha.valorAtual != null &&
         campanha.unidade &&
-        campanha.unidade.trim().toLowerCase() !== 'pontos',
+        !['ponto', 'pontos', 'xp'].includes(campanha.unidade.trim().toLowerCase()),
     )
     .sort(
       (a, b) =>
@@ -32,7 +37,7 @@ export function MetaEmFoco({ campanhas, onAbrir, onVerPesquisas }) {
     <View style={estilos.cartao}>
       <View style={estilos.entre}>
         <Text style={[estilos.titulo, estilos.textoFlexivel]} accessibilityRole="header">
-          Sua meta em foco
+          {titulo}
         </Text>
         {metas.length > 1 ? (
           <Pressable
@@ -59,7 +64,7 @@ export function MetaEmFoco({ campanhas, onAbrir, onVerPesquisas }) {
           {numeroPublico(meta.valorAtual)}
           <Text style={locais.alvo}>
             {' '}
-            / {numeroPublico(meta.valorMensurado)} {meta.unidade}
+            de {numeroPublico(meta.valorMensurado)} {meta.unidade}
           </Text>
         </Text>
       </View>
@@ -73,10 +78,7 @@ export function MetaEmFoco({ campanhas, onAbrir, onVerPesquisas }) {
           ]}
         />
       </View>
-      <Text style={estilos.pequeno}>Como está sua meta agora, pelo último valor registrado.</Text>
-      {isDataLimiteVencida(meta.dataLimite) ? (
-        <Text style={locais.prazo}>O prazo passou. Que tal rever o planejamento?</Text>
-      ) : null}
+      {renderEvolucao?.(meta.id)}
       <View style={estilos.divisor} />
       <View style={locais.acoes}>
         <Pressable
@@ -88,15 +90,6 @@ export function MetaEmFoco({ campanhas, onAbrir, onVerPesquisas }) {
           <Text style={[estilos.marca, estilos.textoFlexivel]}>Ver minha meta</Text>
           <IconeAnalise nome="seta" tamanho={18} />
         </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Ver pesquisas desta área"
-          onPress={() => onVerPesquisas(meta.areaDaVida)}
-          style={[estilos.botaoTexto, locais.acao, acoesEmpilhadas && locais.acaoInteira]}
-        >
-          <IconeAnalise nome="globo" tamanho={18} />
-          <Text style={[estilos.marca, estilos.textoFlexivel]}>Ver pesquisas</Text>
-        </Pressable>
       </View>
     </View>
   );
@@ -107,7 +100,7 @@ const locais = StyleSheet.create({
   acoes: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   acao: { flex: 1, flexBasis: '45%', minWidth: 110 },
   acaoInteira: { flexBasis: '100%' },
-  valor: { fontFamily: fontFamily.bold, fontSize: 36, color: colors.brandDark },
+  valor: { fontFamily: fontFamily.bold, fontSize: 32, color: colors.brandDark },
   alvo: { fontFamily: fontFamily.medium, fontSize: 16, color: colors.textSecondary },
   trilho: {
     height: 10,

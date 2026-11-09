@@ -22,6 +22,7 @@ function juntarTexto(textoAtual, transcricao) {
 
 export function DitadoPorVoz({ textoAtual, onTextoChange }) {
   const emFoco = useRef(false);
+  const cicloDeFoco = useRef(0);
   const textoAntesDoDitado = useRef('');
   const onTextoChangeRef = useRef(onTextoChange);
   const [isEscutando, setIsEscutando] = useState(false);
@@ -33,16 +34,21 @@ export function DitadoPorVoz({ textoAtual, onTextoChange }) {
   useFocusEffect(
     useCallback(() => {
       emFoco.current = true;
+      const ciclo = ++cicloDeFoco.current;
       if (!moduloReconhecimentoVoz) {
         return undefined;
       }
 
       const ouvintes = [
         moduloReconhecimentoVoz.addListener('start', () => {
+          if (!emFoco.current || ciclo !== cicloDeFoco.current) return;
           setIsEscutando(true);
         }),
-        moduloReconhecimentoVoz.addListener('end', () => setIsEscutando(false)),
+        moduloReconhecimentoVoz.addListener('end', () => {
+          if (emFoco.current && ciclo === cicloDeFoco.current) setIsEscutando(false);
+        }),
         moduloReconhecimentoVoz.addListener('result', (evento) => {
+          if (!emFoco.current || ciclo !== cicloDeFoco.current) return;
           const transcricao = evento.results[0]?.transcript;
 
           if (transcricao) {
@@ -50,6 +56,7 @@ export function DitadoPorVoz({ textoAtual, onTextoChange }) {
           }
         }),
         moduloReconhecimentoVoz.addListener('error', (evento) => {
+          if (!emFoco.current || ciclo !== cicloDeFoco.current) return;
           setIsEscutando(false);
 
           if (evento.error !== 'aborted') {
@@ -80,6 +87,7 @@ export function DitadoPorVoz({ textoAtual, onTextoChange }) {
       return;
     }
 
+    const ciclo = cicloDeFoco.current;
     try {
       if (
         !moduloReconhecimentoVoz.isRecognitionAvailable() ||
@@ -90,7 +98,7 @@ export function DitadoPorVoz({ textoAtual, onTextoChange }) {
       }
 
       const permissao = await moduloReconhecimentoVoz.requestMicrophonePermissionsAsync();
-      if (!emFoco.current) return;
+      if (!emFoco.current || ciclo !== cicloDeFoco.current) return;
 
       if (!permissao.granted) {
         exibirErro('Permita o acesso ao microfone para usar o ditado.');
@@ -106,6 +114,7 @@ export function DitadoPorVoz({ textoAtual, onTextoChange }) {
         requiresOnDeviceRecognition: true,
       });
     } catch {
+      if (!emFoco.current || ciclo !== cicloDeFoco.current) return;
       exibirErro('Não foi possível iniciar o ditado. Tente novamente.');
     }
   }

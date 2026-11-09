@@ -1,9 +1,16 @@
 import { useCallback, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  FlatList,
+  Alert,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { BottomNav } from '../../components/BottomNav';
 import { InputField } from '../../components/InputField';
 import { KeyboardAwareScrollView } from '../../components/KeyboardAwareScrollView';
 import { PrimaryButton, SecondaryButton } from '../../components/Button';
@@ -39,6 +46,7 @@ export function DiarioScreen({ navigation }) {
     atualizarEntrada,
     excluirEntrada,
     carregando,
+    historicoCarregado,
     enviando,
     erro: erroServico,
     recarregar,
@@ -122,156 +130,144 @@ export function DiarioScreen({ navigation }) {
     <View style={styles.screen}>
       <KeyboardAwareScrollView
         contentContainerStyle={[styles.content, { paddingTop: insets.top + 20, paddingBottom: 28 }]}
-      >
-        <View style={styles.header}>
-          <Text style={styles.title}>Diário de crescimento</Text>
-          <Text style={styles.subtitle}>{conteudo.subtitle}</Text>
-        </View>
-
-        <SeletorTipoDiario value={tipo} onChange={handleTipoChange} />
-
-        <InputField
-          label={conteudo.label}
-          value={texto}
-          onChangeText={(value) => {
-            if (enviando) return;
-            setTexto(value);
-            setSucesso('');
-            setErro('');
-          }}
-          placeholder={conteudo.placeholder}
-          editable={!enviando}
-          maxLength={10000}
-          multiline
-          acaoNoCampo={
-            !enviando && (
-              <DitadoPorVoz
-                textoAtual={texto}
-                onTextoChange={(valor) => {
-                  setTexto(valor);
-                  setErro('');
-                }}
-              />
-            )
-          }
-          error={erro}
-        />
-
-        <View style={styles.actions}>
-          <View style={styles.primaryAction}>
-            <PrimaryButton
-              label={
-                enviando ? 'Salvando…' : entradaEmEdicao ? 'Salvar alterações' : conteudo.button
-              }
-              disabled={enviando || carregando}
-              onPress={handleSave}
-              showIcon={!entradaEmEdicao}
-            />
-          </View>
-          {entradaEmEdicao ? (
-            <View style={styles.secondaryAction}>
-              <SecondaryButton
-                label="Cancelar edição"
-                disabled={enviando}
-                onPress={limparFormulario}
-              />
-            </View>
-          ) : null}
-        </View>
-
-        {sucesso ? (
-          <Text accessibilityLiveRegion="polite" style={styles.successText}>
-            {sucesso}
-          </Text>
-        ) : null}
-        <View style={styles.history}>
-          <Text style={styles.historyTitle}>Histórico</Text>
-          {erroServico ? (
-            <View accessibilityLiveRegion="polite">
-              <Text style={styles.deleteText}>{erroServico}</Text>
-              <SecondaryButton
-                label="Tentar novamente"
-                disabled={enviando || carregando}
-                onPress={recarregar}
-              />
-            </View>
-          ) : null}
-          {carregando ? (
-            <View accessibilityLiveRegion="polite">
-              <ActivityIndicator color={colors.brand} />
-              <Text style={styles.emptyText}>Carregando histórico…</Text>
-            </View>
-          ) : null}
-          {!erroServico && !carregando ? (
-            <Pressable
-              onPress={recarregar}
-              disabled={enviando}
-              accessibilityRole="button"
-              accessibilityLabel="Atualizar histórico"
-              style={styles.textButton}
-            >
-              <Text style={styles.editText}>Atualizar histórico</Text>
-            </Pressable>
-          ) : null}
-          {entradas.length === 0 && !carregando && !erroServico ? (
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyTitle}>Seu diário começa aqui</Text>
-              <Text style={styles.emptyText}>
-                Registre uma reflexão ou um deslize quando quiser encerrar o dia com mais clareza.
-              </Text>
-            </View>
-          ) : (
-            entradas.map((entrada) => (
-              <View key={entrada.id} style={styles.historyCard}>
-                <View style={styles.historyCardHeader}>
-                  <View style={styles.historyCardText}>
-                    <Text style={styles.historyDate}>
-                      {formatarDataCurta(entrada.dataRegistro)}
-                    </Text>
-                    <Text style={styles.historyType}>
-                      {CONTEUDO_POR_TIPO[entrada.tipo].history}
-                    </Text>
-                  </View>
-                  <View style={styles.historyActions}>
-                    <Pressable
-                      disabled={enviando}
-                      onPress={() => handleEdit(entrada)}
-                      accessibilityRole="button"
-                      accessibilityLabel={`Editar entrada de ${formatarDataCurta(entrada.dataRegistro)}`}
-                      style={styles.textButton}
-                    >
-                      <Text style={styles.editText}>Editar</Text>
-                    </Pressable>
-                    <Pressable
-                      disabled={enviando}
-                      onPress={() => handleDelete(entrada)}
-                      accessibilityRole="button"
-                      accessibilityLabel={`Excluir entrada de ${formatarDataCurta(entrada.dataRegistro)}`}
-                      style={styles.textButton}
-                    >
-                      <Text style={styles.deleteText}>Excluir</Text>
-                    </Pressable>
-                  </View>
-                </View>
-                {entrada.texto ? <Text style={styles.historyBody}>{entrada.texto}</Text> : null}
+        componenteRolagem={FlatList}
+        data={entradas}
+        keyExtractor={(entrada) => String(entrada.id)}
+        initialNumToRender={6}
+        maxToRenderPerBatch={6}
+        windowSize={5}
+        renderItem={({ item: entrada }) => (
+          <View key={entrada.id} style={styles.historyCard}>
+            <View style={styles.historyCardHeader}>
+              <View style={styles.historyCardText}>
+                <Text style={styles.historyDate}>{formatarDataCurta(entrada.dataRegistro)}</Text>
+                <Text style={styles.historyType}>{CONTEUDO_POR_TIPO[entrada.tipo].history}</Text>
               </View>
-            ))
-          )}
-        </View>
-      </KeyboardAwareScrollView>
+              <View style={styles.historyActions}>
+                <Pressable
+                  disabled={enviando}
+                  onPress={() => handleEdit(entrada)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Editar entrada de ${formatarDataCurta(entrada.dataRegistro)}`}
+                  style={styles.textButton}
+                >
+                  <Text style={styles.editText}>Editar</Text>
+                </Pressable>
+                <Pressable
+                  disabled={enviando}
+                  onPress={() => handleDelete(entrada)}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Excluir entrada de ${formatarDataCurta(entrada.dataRegistro)}`}
+                  style={styles.textButton}
+                >
+                  <Text style={styles.deleteText}>Excluir</Text>
+                </Pressable>
+              </View>
+            </View>
+            {entrada.texto ? <Text style={styles.historyBody}>{entrada.texto}</Text> : null}
+          </View>
+        )}
+        ListHeaderComponentStyle={styles.cabecalhoLista}
+        ListHeaderComponent={
+          <>
+            <View style={styles.header}>
+              <Text style={styles.title}>Diário de crescimento</Text>
+              <Text style={styles.subtitle}>{conteudo.subtitle}</Text>
+            </View>
 
-      <BottomNav
-        onPressLoja={() => navigation.navigate('Loja')}
-        activeItem="diario"
-        onPressMissoes={() => navigation.navigate('MissionList')}
-        onPressPerfil={() => navigation.navigate('Conta')}
-        onPressDiario={() => {}}
+            <SeletorTipoDiario value={tipo} onChange={handleTipoChange} />
+
+            <InputField
+              label={conteudo.label}
+              value={texto}
+              onChangeText={(value) => {
+                if (enviando) return;
+                setTexto(value);
+                setSucesso('');
+                setErro('');
+              }}
+              placeholder={conteudo.placeholder}
+              editable={!enviando}
+              maxLength={10000}
+              multiline
+              acaoNoCampo={
+                !enviando && (
+                  <DitadoPorVoz
+                    textoAtual={texto}
+                    onTextoChange={(valor) => {
+                      setTexto(valor);
+                      setErro('');
+                    }}
+                  />
+                )
+              }
+              error={erro}
+            />
+
+            <View style={styles.actions}>
+              <View style={styles.primaryAction}>
+                <PrimaryButton
+                  label={
+                    enviando ? 'Salvando…' : entradaEmEdicao ? 'Salvar alterações' : conteudo.button
+                  }
+                  disabled={enviando}
+                  onPress={handleSave}
+                  showIcon={!entradaEmEdicao}
+                />
+              </View>
+              {entradaEmEdicao ? (
+                <View style={styles.secondaryAction}>
+                  <SecondaryButton
+                    label="Cancelar edição"
+                    disabled={enviando}
+                    onPress={limparFormulario}
+                  />
+                </View>
+              ) : null}
+            </View>
+
+            {sucesso ? (
+              <Text accessibilityLiveRegion="polite" style={styles.successText}>
+                {sucesso}
+              </Text>
+            ) : null}
+            <View style={styles.history}>
+              <Text style={styles.historyTitle}>Histórico</Text>
+              {erroServico ? (
+                <View accessibilityLiveRegion="polite">
+                  <Text style={styles.deleteText}>{erroServico}</Text>
+                  <SecondaryButton
+                    label="Tentar novamente"
+                    disabled={enviando || carregando}
+                    onPress={recarregar}
+                  />
+                </View>
+              ) : null}
+              {carregando && !historicoCarregado && entradas.length === 0 ? (
+                <View accessibilityLiveRegion="polite">
+                  <ActivityIndicator color={colors.brand} />
+                  <Text style={styles.emptyText}>Carregando histórico…</Text>
+                </View>
+              ) : null}
+              {entradas.length === 0 && historicoCarregado && !erroServico ? (
+                <View style={styles.emptyState}>
+                  <Text style={styles.emptyTitle}>Seu diário começa aqui</Text>
+                  <Text style={styles.emptyText}>
+                    Registre uma reflexão ou um deslize quando quiser encerrar o dia com mais
+                    clareza.
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+          </>
+        }
       />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  cabecalhoLista: { gap: 18 },
   screen: {
     flex: 1,
     backgroundColor: colors.surface,

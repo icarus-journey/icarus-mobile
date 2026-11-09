@@ -2,7 +2,10 @@ import { isFormValid, validateCampaignForm } from './validateCampaignForm';
 
 const VALID_VALUES = {
   titulo: 'Capacitação em Python',
+  valorMensurado: '12',
+  unidade: 'módulos',
   descricao: '',
+  dataInicio: '01/09/2026',
   dataLimite: '30/09/2026',
   dificuldade: 'MEDIA',
   epico: { id: 1, titulo: 'Ser promovido' },
@@ -38,4 +41,17 @@ describe('validateCampaignForm', () => {
     const errors = validateCampaignForm({ ...VALID_VALUES, epico: null });
     expect(errors.epico).toBeDefined();
   });
+});
+
+it('exige início válido e fim igual ou posterior ao início', () => {
+  expect(
+    validateCampaignForm({ ...VALID_VALUES, dataInicio: '31/02/2026' }).dataInicio,
+  ).toBeTruthy();
+  expect(validateCampaignForm({ ...VALID_VALUES, dataInicio: '' }).dataInicio).toBeTruthy();
+  expect(
+    validateCampaignForm({ ...VALID_VALUES, dataInicio: '01/10/2026' }).dataLimite,
+  ).toBeTruthy();
+  expect(
+    isFormValid(validateCampaignForm({ ...VALID_VALUES, dataInicio: VALID_VALUES.dataLimite })),
+  ).toBe(true);
 });

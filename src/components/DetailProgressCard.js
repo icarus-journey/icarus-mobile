@@ -10,7 +10,13 @@ export function DetailProgressCard({ title, subtitle, current, total }) {
     <View style={styles.card}>
       <Text style={styles.title}>{title}</Text>
       <Text style={styles.subtitle}>{subtitle}</Text>
-      <View style={styles.track}>
+      <View
+        style={styles.track}
+        accessible
+        accessibilityRole="progressbar"
+        accessibilityLabel={title}
+        accessibilityValue={{ min: 0, max: 100, now: percent, text: subtitle }}
+      >
         <View style={[styles.fill, { width: `${percent}%` }]} />
       </View>
     </View>

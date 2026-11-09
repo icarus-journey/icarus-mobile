@@ -1,3 +1,5 @@
+import { iniciarMedicaoHttp } from '../utils/medirFluidez';
+
 export class ErroApi extends Error {
   constructor(mensagem, status = 0, erros = {}) {
     super(mensagem);
@@ -14,7 +16,7 @@ export function criarApi({
 } = {}) {
   return async function requisitar(
     caminho,
-    { metodo = 'GET', corpo, corpoFormData, token, formatoResposta = 'json' } = {},
+    { metodo = 'GET', corpo, corpoFormData, token, formatoResposta = 'json', signal } = {},
   ) {
     if (!urlBase) {
       throw new ErroApi(
@@ -22,6 +24,11 @@ export function criarApi({
       );
     }
     const controlador = new AbortController();
+    const cancelar = () => controlador.abort();
+    signal?.addEventListener('abort', cancelar);
+    if (signal?.aborted) cancelar();
+    const terminarMedicao = iniciarMedicaoHttp(caminho, metodo);
+    let status = 0;
     const limite = setTimeout(() => controlador.abort(), tempoLimite);
     try {
       const resposta = await executarFetch(`${urlBase.replace(/\/+$/, '')}${caminho}`, {
@@ -37,6 +44,7 @@ export function criarApi({
         ...(corpoFormData ? { body: corpoFormData } : {}),
         signal: controlador.signal,
       });
+      status = resposta.status;
       if (resposta.ok && formatoResposta === 'binario') {
         return {
           conteudo: new Uint8Array(await resposta.arrayBuffer()),
@@ -62,6 +70,11 @@ export function criarApi({
       }
       return dados;
     } catch (erro) {
+      if (signal?.aborted) {
+        const cancelada = new ErroApi('Requisição cancelada.');
+        cancelada.codigo = 'requisicao_cancelada';
+        throw cancelada;
+      }
       if (erro instanceof ErroApi) throw erro;
       throw new ErroApi(
         erro.name === 'AbortError'
@@ -70,6 +83,8 @@ export function criarApi({
       );
     } finally {
       clearTimeout(limite);
+      signal?.removeEventListener('abort', cancelar);
+      terminarMedicao(status, controlador.signal.aborted);
     }
   };
 }

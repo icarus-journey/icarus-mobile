@@ -28,7 +28,8 @@ function tela() {
 async function abrir(entradas = []) {
   servidor = entradas.map((entrada) => ({ ...entrada, tipo: entrada.tipo.toLowerCase() }));
   const resultado = render(tela());
-  await screen.findByLabelText('Atualizar histórico');
+  await waitFor(() => expect(mockRequisitar).toHaveBeenCalledTimes(1));
+  await waitFor(() => expect(screen.queryByText('Carregando histórico…')).toBeNull());
   return resultado;
 }
 const entradaAntiga = {
@@ -40,11 +41,13 @@ const entradaAntiga = {
   atualizadaEm: '2026-09-15T20:00:00Z',
 };
 beforeEach(() => {
+  jest.useFakeTimers();
   servidor = [];
   sequencia = 5;
   mockUsuarioId = 'pessoa-a';
   mockRequisitar.mockReset().mockImplementation(async (caminho, opcoes) => {
-    if (!opcoes) return servidor.filter((e) => !e.excluidaEm).map((e) => ({ ...e }));
+    if (!opcoes?.metodo || opcoes.metodo === 'GET')
+      return servidor.filter((e) => !e.excluidaEm).map((e) => ({ ...e }));
     const id = Number(caminho.split('/').pop());
     if (opcoes.metodo === 'POST') {
       const entrada = {
@@ -66,7 +69,11 @@ beforeEach(() => {
     return null;
   });
 });
-afterEach(() => jest.restoreAllMocks());
+afterEach(() => {
+  jest.clearAllTimers();
+  jest.useRealTimers();
+  jest.restoreAllMocks();
+});
 
 it('carrega o histórico da conta e permite digitação sem módulo nativo', async () => {
   await abrir();
@@ -74,7 +81,10 @@ it('carrega o histórico da conta e permite digitação sem módulo nativo', asy
   expect(screen.getByLabelText('Reflexão de hoje')).toBeTruthy();
   expect(screen.queryByLabelText('Ditar texto')).toBeNull();
   expect(screen.getByText('Seu diário começa aqui')).toBeTruthy();
-  expect(mockRequisitar).toHaveBeenCalledWith('/api/usuarios/pessoa-a/diario');
+  expect(mockRequisitar).toHaveBeenCalledWith(
+    '/api/usuarios/pessoa-a/diario',
+    expect.objectContaining({ signal: expect.anything() }),
+  );
 });
 
 it('salva na API e recupera a entrada ao reabrir a tela', async () => {
@@ -188,5 +198,8 @@ it('descarta o histórico atrasado da conta anterior', async () => {
     responder([{ ...entradaAntiga, tipo: 'reflexao', texto: 'Privado da pessoa A' }]),
   );
   await waitFor(() => expect(screen.queryByText('Privado da pessoa A')).toBeNull());
-  expect(mockRequisitar).toHaveBeenCalledWith('/api/usuarios/pessoa-b/diario');
+  expect(mockRequisitar).toHaveBeenCalledWith(
+    '/api/usuarios/pessoa-b/diario',
+    expect.objectContaining({ signal: expect.anything() }),
+  );
 });

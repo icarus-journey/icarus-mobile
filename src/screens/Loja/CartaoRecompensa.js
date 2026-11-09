@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { ValorComMoeda } from '../../components/Pontos/ValorComMoeda';
+import { IlustracaoRecompensa } from '../../components/IlustracaoRecompensa';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import IconeExcluir from '../../assets/icons/icone-excluir-loja.svg';
@@ -13,6 +15,8 @@ export function CartaoRecompensa({
   onExcluir,
   estado,
   previa = false,
+  deveMostrarProtecao = false,
+  deveMostrarUtilizada = false,
 }) {
   const [exclusaoVisivel, setExclusaoVisivel] = useState(false);
   return (
@@ -32,15 +36,14 @@ export function CartaoRecompensa({
           pressed && { opacity: 0.8 },
         ]}
       >
-        {!previa ? (
-          <View style={styles.icone}>
-            <Text style={styles.estrela}>✦</Text>
-          </View>
-        ) : null}
+        <IlustracaoRecompensa
+          deveMostrarProtecao={deveMostrarProtecao}
+          deveMostrarUtilizada={deveMostrarUtilizada}
+        />
         <View style={styles.conteudo}>
           <View style={styles.cabecalho}>
             <Text style={styles.titulo}>{titulo}</Text>
-            <Text style={styles.custo}>{custo} pts</Text>
+            <ValorComMoeda valor={custo} cor={colors.lojaTexto} />
           </View>
           {descricao ? <Text style={styles.descricao}>{descricao}</Text> : null}
           {estado ? <Text style={styles.estado}>{estado}</Text> : null}
@@ -75,15 +78,6 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     backgroundColor: colors.surface,
   },
-  icone: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    backgroundColor: colors.lojaSuave,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  estrela: { fontFamily: fontFamily.bold, fontSize: 24, color: colors.loja },
   conteudo: { flex: 1, gap: 4 },
   cabecalho: { flexDirection: 'row', gap: 8, alignItems: 'flex-start' },
   titulo: {

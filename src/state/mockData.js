@@ -21,7 +21,6 @@ export const MOCK_MISSIONS = [
     campanha: MOCK_CAMPANHAS[0],
     corDestaque: colors.typeAccentA,
     progresso: { concluidos: 3, total: 5 },
-    recompensaLabel: '20 XP + 10 pontos',
   },
   {
     id: 'missao-2',
@@ -37,7 +36,6 @@ export const MOCK_MISSIONS = [
     campanha: MOCK_CAMPANHAS[0],
     corDestaque: colors.typeAccentB,
     progresso: { concluidos: 3, total: 5 },
-    recompensaLabel: '20 XP + 10 pontos',
   },
 ];
 
