@@ -9,6 +9,8 @@ import { EpicFormScreen } from '../screens/EpicForm/EpicFormScreen';
 import { EpicDetailScreen } from '../screens/EpicDetail/EpicDetailScreen';
 import { CampaignFormScreen } from '../screens/CampaignForm/CampaignFormScreen';
 import { CampaignDetailScreen } from '../screens/CampaignDetail/CampaignDetailScreen';
+import { DetalhesPesquisaScreen } from '../screens/Progresso/DetalhesPesquisaScreen';
+import { DetalheMetaProgressoScreen } from '../screens/Progresso/DetalheMetaProgressoScreen';
 import { ProgressoScreen } from '../screens/Progresso/ProgressoScreen';
 import { HistoricoRelatoriosScreen } from '../screens/HistoricoRelatorios/HistoricoRelatoriosScreen';
 import { RelatorioSalvoScreen } from '../screens/HistoricoRelatorios/RelatorioSalvoScreen';
@@ -37,6 +39,8 @@ export function NavegadorMissoes({ route }) {
       <Stack.Screen name="CampaignForm" component={CampaignFormScreen} />
       <Stack.Screen name="CampaignDetail" component={CampaignDetailScreen} />
       <Stack.Screen name="ProgressoScreen" component={ProgressoScreen} />
+      <Stack.Screen name="DetalheMetaProgressoScreen" component={DetalheMetaProgressoScreen} />
+      <Stack.Screen name="DetalhesPesquisaScreen" component={DetalhesPesquisaScreen} />
       <Stack.Screen name="HistoricoRelatoriosScreen" component={HistoricoRelatoriosScreen} />
       <Stack.Screen name="RelatorioSalvoScreen" component={RelatorioSalvoScreen} />
       <Stack.Screen name="OrigemRelatorioScreen" component={OrigemRelatorioScreen} />

@@ -4,7 +4,7 @@ import { colors } from '../../theme/colors';
 import { estilosPainel as estilos } from './estilosPainel';
 import { numeroPublico } from './formatarReferencia';
 
-export function BarraReferencia({ rotulo, percentual }) {
+export function BarraReferencia({ rotulo, percentual, cor = colors.brandAccent }) {
   const valido = percentual != null && Number.isFinite(Number(percentual));
   const valor = valido ? `${numeroPublico(percentual)}%` : 'Sem valor publicado';
   return (
@@ -22,7 +22,10 @@ export function BarraReferencia({ rotulo, percentual }) {
       <View style={locais.trilho}>
         {valido ? (
           <View
-            style={[locais.barra, { width: `${Math.max(0, Math.min(100, Number(percentual)))}%` }]}
+            style={[
+              locais.barra,
+              { backgroundColor: cor, width: `${Math.max(0, Math.min(100, Number(percentual)))}%` },
+            ]}
           />
         ) : null}
       </View>

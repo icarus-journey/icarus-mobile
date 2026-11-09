@@ -38,4 +38,14 @@ describe('serviço analítico autenticado', () => {
     await expect(servico.referencias()).rejects.toMatchObject({ status: 401 });
     await expect(servico.consultarRelatorio()).rejects.toMatchObject({ status: 401 });
   });
+  it('consulta a campanha pelo identificador sem enviar uma área conflitante', async () => {
+    const requisitarAutenticado = jest.fn(async () => ({ versaoContrato: '1.2.0', leituras: [] }));
+    const servico = criarServicoAnalise({ usuarioId: 'pessoa', requisitarAutenticado });
+    const signal = new AbortController().signal;
+    await servico.referencias('SONO_E_RECUPERACAO', 'todos', signal, 12);
+    expect(requisitarAutenticado).toHaveBeenCalledWith(
+      '/api/usuarios/pessoa/referencias-publicas?tipoDia=todos&campanhaId=12',
+      { signal },
+    );
+  });
 });

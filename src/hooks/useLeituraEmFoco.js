@@ -34,7 +34,15 @@ export function useLeituraEmFoco({ chave, consultar, mensagemErro, ativo = true,
         if (valido()) setEstado({ chave, dados, carregando: false, erro: '' });
       } catch (falha) {
         if (valido())
-          setEstado({ chave, dados: null, carregando: false, erro: mensagemErro(falha) });
+          setEstado((anterior) => ({
+            chave,
+            dados:
+              ![401, 404].includes(falha.status) && anterior.chave === chave
+                ? anterior.dados
+                : null,
+            carregando: false,
+            erro: mensagemErro(falha),
+          }));
       } finally {
         if (pendente.current === leitura) pendente.current = null;
       }

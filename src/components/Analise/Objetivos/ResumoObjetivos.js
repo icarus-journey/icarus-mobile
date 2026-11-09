@@ -1,46 +1,50 @@
 import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 
+import { PickerModal } from '../../PickerModal';
 import { MetaEmFoco } from '../MetaEmFoco';
 import { DadosResultadoObjetivo } from './DadosResultadoObjetivo';
 import { IconeAnalise } from '../IconeAnalise';
 import { estilosPainel as estilos } from '../estilosPainel';
-import { PainelObjetivos } from './PainelObjetivos';
-import { colors } from '../../../theme/colors';
+
+const estados = { planejada: 'Planejada', emAndamento: 'Em andamento', concluida: 'Concluída' };
+const tituloDaCampanha = (c) =>
+  c.estado === 'emAndamento' ? c.titulo : `${c.titulo} · ${estados[c.estado]}`;
 
 export function ResumoObjetivos({
   dados,
   periodo,
+  campanhaSelecionadaId = null,
+  aoSelecionarCampanha,
   aoAbrirCampanha,
-  aoAbrirEpico,
-  aoVerPesquisas,
+  aoVerMeta,
   erroAbertura,
   abrindo,
 }) {
-  const [aberto, setAberto] = useState(false);
-  if (!dados || (dados.campanhas.length === 0 && dados.epicos.length === 0)) return null;
-  const destaque = dados.campanhas.find((c) => c.id === dados.campanhaEmDestaqueId);
-  const meta = destaque?.resultado;
+  const [seletorAberto, setSeletorAberto] = useState(false);
+  if (!dados?.campanhas?.length) return null;
+  // A API escolhe a entrada automática; a pessoa pode trocar somente a visualização.
+  const campanha =
+    dados.campanhas.find((c) => c.id === campanhaSelecionadaId) ??
+    dados.campanhas.find((c) => c.id === dados.campanhaEmDestaqueId);
+  const meta = campanha?.resultado;
   const mensurada = meta?.valorAtual != null && meta.valorMensurado > 0 && meta.unidade;
-  function abrir(callback, id) {
-    setAberto(false);
-    callback(id);
-  }
   return (
     <View style={estilos.secao}>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Ver meus objetivos"
-        onPress={() => setAberto(true)}
-        style={[estilos.cartao, locais.resumo]}
+        accessibilityLabel="Escolher campanha do progresso"
+        accessibilityState={{ expanded: seletorAberto }}
+        accessibilityValue={{
+          text: campanha ? tituloDaCampanha(campanha) : 'Escolha uma campanha',
+        }}
+        onPress={() => setSeletorAberto(true)}
+        style={[estilos.cartao, estilos.entre]}
       >
         <View style={estilos.textoFlexivel}>
-          <Text style={estilos.rotulo}>Seus objetivos · Agora</Text>
-          <Text style={estilos.texto}>
-            {dados.campanhasEmAndamento}{' '}
-            {dados.campanhasEmAndamento === 1 ? 'campanha' : 'campanhas'} ·{' '}
-            {dados.epicosEmAndamento} {dados.epicosEmAndamento === 1 ? 'épico' : 'épicos'} em
-            andamento
+          <Text style={estilos.pequeno}>Campanha em foco</Text>
+          <Text style={estilos.marca}>
+            {campanha ? tituloDaCampanha(campanha) : 'Escolha uma campanha'}
           </Text>
         </View>
         <IconeAnalise nome="chevron" tamanho={20} />
@@ -50,71 +54,59 @@ export function ResumoObjetivos({
           {erroAbertura}
         </Text>
       ) : null}
-      {destaque ? (
+      {campanha ? (
         mensurada ? (
-          <View style={estilos.secao}>
-            <Text style={estilos.pequeno}>Destaque dos últimos 7 dias · Valor da meta agora</Text>
-            <MetaEmFoco
-              titulo="Sua campanha em destaque"
-              campanhas={[
-                {
-                  id: destaque.id,
-                  titulo: destaque.titulo,
-                  estado: destaque.estado,
-                  valorAtual: meta.valorAtual,
-                  valorMensurado: meta.valorMensurado,
-                  unidade: meta.unidade,
-                  areaDaVida: destaque.areaDaVida,
-                  dataLimite: destaque.prazoFim.split('-').reverse().join('/'),
-                },
-              ]}
-              onAbrir={aoAbrirCampanha}
-              onVerPesquisas={aoVerPesquisas}
-              renderEvolucao={() => (
-                <DadosResultadoObjetivo campanha={destaque} periodo={periodo} />
-              )}
-            />
-          </View>
+          <MetaEmFoco
+            titulo="Sua meta em foco"
+            estadosPermitidos={['planejada', 'emAndamento', 'concluida']}
+            campanhas={[
+              {
+                id: campanha.id,
+                titulo: campanha.titulo,
+                estado: campanha.estado,
+                valorAtual: meta.valorAtual,
+                valorMensurado: meta.valorMensurado,
+                unidade: meta.unidade,
+                areaDaVida: campanha.areaDaVida,
+              },
+            ]}
+            onAbrir={aoVerMeta ?? aoAbrirCampanha}
+            renderEvolucao={() => (
+              <DadosResultadoObjetivo campanha={campanha} periodo={periodo} compacto />
+            )}
+          />
         ) : (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`Ver campanha em destaque: ${destaque.titulo}`}
-            onPress={() => aoAbrirCampanha(destaque.id)}
-            style={estilos.cartao}
-            disabled={abrindo}
-          >
-            <Text style={estilos.rotulo}>Sua campanha em destaque</Text>
-            <Text style={estilos.titulo}>{destaque.titulo}</Text>
+          <View style={estilos.cartao}>
+            <Text style={estilos.rotulo}>Sua meta em foco</Text>
+            <Text style={estilos.titulo}>{campanha.titulo}</Text>
             <Text style={estilos.texto}>
-              {destaque.atividade.concluidasNosUltimosSeteDias}{' '}
-              {destaque.atividade.concluidasNosUltimosSeteDias === 1
-                ? 'missão registrada'
-                : 'missões registradas'}{' '}
-              nos últimos 7 dias
+              Esta campanha ainda não tem um resultado mensurado para exibir.
             </Text>
-            <Text style={estilos.marca}>Ver campanha</Text>
-          </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Ver campanha: ${campanha.titulo}`}
+              style={estilos.botaoTexto}
+              onPress={() => aoAbrirCampanha(campanha.id)}
+              disabled={abrindo}
+            >
+              <Text style={estilos.marca}>Ver campanha</Text>
+              <IconeAnalise nome="seta" tamanho={18} />
+            </Pressable>
+          </View>
         )
-      ) : null}
-      <PainelObjetivos
-        key={`${dados.consultadoEm}:${periodo?.inicio}:${periodo?.fim}`}
-        visivel={aberto}
-        dados={dados}
-        periodo={periodo}
-        aoFechar={() => setAberto(false)}
-        aoAbrirCampanha={(id) => abrir(aoAbrirCampanha, id)}
-        aoAbrirEpico={(id) => abrir(aoAbrirEpico, id)}
+      ) : (
+        <Text style={estilos.texto}>Escolha a campanha que você quer acompanhar.</Text>
+      )}
+      <PickerModal
+        visible={seletorAberto}
+        title="Escolha uma campanha"
+        items={dados.campanhas.map((c) => ({ id: String(c.id), titulo: tituloDaCampanha(c) }))}
+        onClose={() => setSeletorAberto(false)}
+        onSelect={(item) => {
+          aoSelecionarCampanha(Number(item.id));
+          setSeletorAberto(false);
+        }}
       />
     </View>
   );
 }
-const locais = StyleSheet.create({
-  resumo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    padding: 16,
-    borderRadius: 20,
-    borderColor: colors.borderDefaultAlt,
-  },
-});

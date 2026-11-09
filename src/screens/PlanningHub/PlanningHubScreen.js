@@ -1,4 +1,3 @@
-import { ResumoInicial } from './ResumoInicial';
 import { CabecalhoSecaoMissoes } from './CabecalhoSecaoMissoes';
 import { agruparMissoesPorDia } from './agruparMissoesPorDia';
 import { SecondaryButton } from '../../components/Button';
@@ -17,11 +16,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { IndicadoresJornada } from '../../components/Jornada/IndicadoresJornada';
 import { DetalhesSequenciaModal } from '../../components/Jornada/DetalhesSequenciaModal';
 import { useJornada } from '../../hooks/useJornada';
-import { useRelatorioSemanal } from '../../hooks/useRelatorioSemanal';
 import { CampaignHeroCard } from '../../components/CampaignHeroCard';
 import { EmptyState } from '../../components/EmptyState';
 import { EpicHeroCard } from '../../components/EpicHeroCard';
 import { SegmentedControl } from '../../components/SegmentedControl';
+import IconeAcessoProgresso from '../../assets/icons/icone-acesso-progresso.svg';
+import IconeAcessoHistorico from '../../assets/icons/icone-acesso-historico.svg';
 import { TaskCard } from '../../components/TaskCard';
 import { useCampaigns } from '../../state/CampaignsContext';
 import { useCarregamentoPlanejamento } from '../../state/CarregadorPlanejamento';
@@ -52,9 +52,9 @@ function compararMissoesPorData(primeira, segunda) {
 }
 
 const HEADERS = {
-  MISSAO: { title: 'Missões', subtitle: 'Seus próximos passos.' },
-  CAMPANHA: { title: 'Campanhas', subtitle: 'Progresso das suas campanhas.' },
-  EPICO: { title: 'Épicos', subtitle: 'Objetivos que movem sua jornada.' },
+  MISSAO: { title: 'Missões' },
+  CAMPANHA: { title: 'Campanhas' },
+  EPICO: { title: 'Épicos' },
 };
 
 const ADD_LABELS = {
@@ -80,7 +80,6 @@ export function PlanningHubScreen({ navigation, route }) {
   const { epics } = useEpics();
   const insets = useSafeAreaInsets();
   const [segment, setSegment] = useState(route.params?.initialSegment ?? 'MISSAO');
-  const relatorio = useRelatorioSemanal(segment === 'MISSAO');
   const jornada = useJornada(navigation);
   const hoje = formatDateDaysFromNow(0);
   const [sequenciaAberta, setSequenciaAberta] = useState(false);
@@ -221,26 +220,31 @@ export function PlanningHubScreen({ navigation, route }) {
           </Pressable>
         </View>
         {cabecalhoCompacto ? <View style={styles.indicadoresCompactos}>{indicadores}</View> : null}
-        <Text style={styles.subtitle}>{header.subtitle}</Text>
 
+        <SegmentedControl value={segment} onChange={setSegment} />
         <View style={styles.acessos}>
-          <View style={styles.acesso}>
-            <SecondaryButton
-              label="Meu progresso"
-              onPress={() => navigation.navigate('ProgressoScreen')}
-            />
-          </View>
+          <Pressable
+            style={styles.acesso}
+            accessibilityRole="button"
+            accessibilityLabel="Meu progresso"
+            onPress={() => navigation.navigate('ProgressoScreen')}
+          >
+            <IconeAcessoProgresso accessible={false} />
+            <Text style={styles.textoAcesso}>Meu progresso</Text>
+          </Pressable>
           {segment === 'MISSAO' ? (
-            <View style={styles.acessoHistorico}>
-              <SecondaryButton
-                label="Histórico"
-                accessibilityHint="Consultar os registros de missões"
-                onPress={() => navigation.navigate('HistoricoMissoes')}
-              />
-            </View>
+            <Pressable
+              style={styles.acesso}
+              accessibilityRole="button"
+              accessibilityLabel="Histórico"
+              accessibilityHint="Consultar os registros de missões"
+              onPress={() => navigation.navigate('HistoricoMissoes')}
+            >
+              <IconeAcessoHistorico accessible={false} />
+              <Text style={styles.textoAcesso}>Histórico</Text>
+            </Pressable>
           ) : null}
         </View>
-        <SegmentedControl value={segment} onChange={setSegment} />
 
         {planejamento.erro ? (
           <View>
@@ -264,15 +268,6 @@ export function PlanningHubScreen({ navigation, route }) {
           initialNumToRender={8}
           maxToRenderPerBatch={8}
           windowSize={5}
-          ListHeaderComponent={
-            segment === 'MISSAO' ? (
-              <ResumoInicial
-                dados={relatorio.dados}
-                carregando={relatorio.carregando}
-                onVerSemana={() => navigation.navigate('RelatorioSemanalScreen')}
-              />
-            ) : null
-          }
           renderSectionHeader={({ section }) =>
             !section.titulo ? null : segment === 'MISSAO' ? (
               <CabecalhoSecaoMissoes
@@ -347,9 +342,30 @@ export function PlanningHubScreen({ navigation, route }) {
 }
 
 const styles = StyleSheet.create({
-  acessos: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  acesso: { flexGrow: 1, flexBasis: 180 },
-  acessoHistorico: { flexGrow: 1, flexBasis: 120 },
+  acessos: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    columnGap: 16,
+    rowGap: 4,
+    marginTop: -8,
+    marginBottom: -8,
+  },
+  acesso: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    minHeight: 44,
+    paddingHorizontal: 4,
+    paddingVertical: 8,
+    maxWidth: '100%',
+  },
+  textoAcesso: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: fontSize.input,
+    color: colors.brand,
+    flexShrink: 1,
+  },
   screen: {
     flex: 1,
     backgroundColor: colors.surface,

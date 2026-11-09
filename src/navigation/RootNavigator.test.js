@@ -174,7 +174,7 @@ describe('fluxo de autenticação e missões', () => {
 
     expect(screen.getByLabelText('Icarus')).toBeTruthy();
 
-    expect(screen.queryByText('Seus próximos passos.')).toBeNull();
+    expect(screen.queryByLabelText('Adicionar missão')).toBeNull();
   });
 
   it('abre o formulário a partir da lista e volta para a lista ao tocar em uma missão', () => {
@@ -184,7 +184,7 @@ describe('fluxo de autenticação e missões', () => {
     expect(screen.getByText('Nova missão')).toBeTruthy();
 
     fireEvent.press(screen.getByLabelText('Voltar'));
-    expect(screen.getByText('Seus próximos passos.')).toBeTruthy();
+    expect(screen.getByLabelText('Adicionar missão')).toBeTruthy();
   });
 
   it('cria uma missão válida e volta para a lista com o novo item', async () => {
@@ -212,7 +212,7 @@ describe('fluxo de autenticação e missões', () => {
       fireEvent.press(screen.getByLabelText('Salvar missão'));
     });
 
-    expect(screen.getByText('Seus próximos passos.')).toBeTruthy();
+    expect(screen.getByLabelText('Adicionar missão')).toBeTruthy();
     expect(screen.getByText('Ler dez páginas')).toBeTruthy();
   });
 
@@ -225,7 +225,7 @@ describe('fluxo de autenticação e missões', () => {
     expect(screen.getByText('3 de 5 registros concluídos')).toBeTruthy();
 
     fireEvent.press(screen.getByLabelText('Voltar'));
-    expect(screen.getByText('Seus próximos passos.')).toBeTruthy();
+    expect(screen.getByLabelText('Adicionar missão')).toBeTruthy();
   });
 
   it('edita uma missão existente a partir do detalhe e reflete a mudança ao voltar', async () => {
@@ -277,7 +277,7 @@ describe('fluxo de autenticação e missões', () => {
     expect(screen.getByText('Fazer exercício de dados avançado')).toBeTruthy();
 
     fireEvent.press(screen.getByLabelText('Voltar'));
-    expect(screen.getByText('Seus próximos passos.')).toBeTruthy();
+    expect(screen.getByLabelText('Adicionar missão')).toBeTruthy();
     expect(screen.getByText('Fazer exercício de dados avançado')).toBeTruthy();
   });
 
@@ -561,7 +561,7 @@ describe('abas e pilhas independentes (MVP-23)', () => {
     fireEvent.press(screen.getByRole('tab', { name: 'Missões' }));
     expect(await screen.findByText('Detalhe da missão')).toBeTruthy();
     fireEvent.press(screen.getByLabelText('Voltar'));
-    expect(await screen.findByText('Seus próximos passos.')).toBeTruthy();
+    expect(await screen.findByLabelText('Adicionar missão')).toBeTruthy();
     await act(async () => fireEvent.press(screen.getByRole('tab', { name: 'Diário' })));
     expect(screen.getByLabelText('Reflexão de hoje').props.value).toBe(
       'Rascunho ainda não registrado',
@@ -573,7 +573,7 @@ describe('abas e pilhas independentes (MVP-23)', () => {
     fireEvent.press(screen.getAllByLabelText(/Fazer exercício de dados/)[0]);
     await screen.findByText('Detalhe da missão');
     fireEvent.press(screen.getByRole('tab', { name: 'Missões' }));
-    await screen.findByText('Seus próximos passos.');
+    await screen.findByLabelText('Adicionar missão');
     expect(screen.queryByText('Detalhe da missão')).toBeNull();
     expect(referenciaNavegacao.canGoBack()).toBe(false);
   });
@@ -598,13 +598,13 @@ describe('abas e pilhas independentes (MVP-23)', () => {
     expect(await screen.findByText('Nova missão')).toBeTruthy();
     expect(screen.queryByLabelText('Navegação principal')).toBeNull();
     fireEvent.press(screen.getByLabelText('Voltar'));
-    expect(await screen.findByText('Seus próximos passos.')).toBeTruthy();
+    expect(await screen.findByLabelText('Adicionar missão')).toBeTruthy();
     expect(within(screen.getByLabelText('Navegação principal')).getAllByRole('tab').length).toBe(4);
     fireEvent.press(screen.getByLabelText('Histórico'));
     expect(await screen.findByText('Histórico de missões')).toBeTruthy();
     expect(screen.queryByLabelText('Navegação principal')).toBeNull();
     fireEvent.press(screen.getByLabelText('Voltar'));
-    expect(await screen.findByText('Seus próximos passos.')).toBeTruthy();
+    expect(await screen.findByLabelText('Adicionar missão')).toBeTruthy();
     expect(within(screen.getByLabelText('Navegação principal')).getAllByRole('tab').length).toBe(4);
   });
 });

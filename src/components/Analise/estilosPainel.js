@@ -9,9 +9,9 @@ export const estilosPainel = StyleSheet.create({
   entre: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   cartao: {
     backgroundColor: colors.surface,
-    borderRadius: 24,
-    padding: 20,
-    gap: 18,
+    borderRadius: 16,
+    padding: 16,
+    gap: 8,
     borderWidth: 1,
     borderColor: colors.borderDefaultAlt,
   },

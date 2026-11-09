@@ -109,16 +109,16 @@ it('bloqueia credenciais incorretas e abre as telas privadas somente após a res
   iniciar();
   await entrar('errada');
   expect(await screen.findByText('E-mail ou senha inválidos.')).toBeTruthy();
-  expect(screen.queryByText('Seus próximos passos.')).toBeNull();
+  expect(screen.queryByLabelText('Adicionar missão')).toBeNull();
   await entrar();
-  expect(await screen.findByText('Seus próximos passos.')).toBeTruthy();
+  expect(await screen.findByLabelText('Adicionar missão')).toBeTruthy();
   expect(screen.queryByLabelText('Senha')).toBeNull();
 });
 
 it('limpa o diário e a navegação ao sair e entrar com outra conta', async () => {
   const { outraConta } = iniciar();
   await entrar();
-  await screen.findByText('Seus próximos passos.');
+  await screen.findByLabelText('Adicionar missão');
   fireEvent.press(screen.getByLabelText('Diário'));
   await screen.findByText('Seu diário começa aqui');
   fireEvent.changeText(
@@ -137,7 +137,7 @@ it('limpa o diário e a navegação ao sair e entrar com outra conta', async () 
   await screen.findByLabelText('E-mail');
   outraConta();
   await entrar();
-  await screen.findByText('Seus próximos passos.');
+  await screen.findByLabelText('Adicionar missão');
   fireEvent.press(screen.getByLabelText('Diário'));
   await screen.findByText('Seu diário começa aqui');
   expect(screen.queryByText('Reflexão privada da primeira conta')).toBeNull();
@@ -158,13 +158,13 @@ it('permite tentar novamente sem liberar telas privadas se a restauração estiv
     },
   });
   await waitFor(() => expect(screen.getByLabelText('Tentar novamente')).toBeTruthy());
-  expect(screen.queryByText('Seus próximos passos.')).toBeNull();
+  expect(screen.queryByLabelText('Adicionar missão')).toBeNull();
 });
 
 it('confirma a saída e volta ao login mesmo sem rede', async () => {
   const { ficarSemConexao } = iniciar();
   await entrar();
-  await screen.findByText('Seus próximos passos.');
+  await screen.findByLabelText('Adicionar missão');
   ficarSemConexao();
   fireEvent.press(screen.getByLabelText('Perfil'));
   await screen.findByText(/Não foi possível carregar seu perfil/);
@@ -177,7 +177,7 @@ it('confirma a saída e volta ao login mesmo sem rede', async () => {
 it('encerra a sessão se a análise recusar o acesso e a renovação também expirar', async () => {
   const { expirarAnalise, executarFetch } = iniciar();
   await entrar();
-  await screen.findByText('Seus próximos passos.');
+  await screen.findByLabelText('Adicionar missão');
   expirarAnalise();
   fireEvent.press(screen.getByLabelText('Meu progresso'));
   expect(await screen.findByLabelText('Entrar na minha jornada')).toBeTruthy();
@@ -196,7 +196,7 @@ it('atualiza a jornada ao voltar ao app, para receber as transições automátic
   try {
     const { executarFetch } = iniciar();
     await entrar();
-    await screen.findByText('Seus próximos passos.');
+    await screen.findByLabelText('Adicionar missão');
     const leituras = () =>
       executarFetch.mock.calls.filter(([url]) => url.endsWith('/epicos')).length;
     await waitFor(() => expect(leituras()).toBe(1));

@@ -211,7 +211,7 @@ describe('PlanningHubScreen — aba Épico', () => {
     renderScreen({ params: { initialSegment: 'EPICO' } });
 
     expect(screen.getByText('Épicos')).toBeTruthy();
-    expect(screen.getByText('Objetivos que movem sua jornada.')).toBeTruthy();
+    expect(screen.getByLabelText('Adicionar épico')).toBeTruthy();
   });
 
   it('mostra todos os épicos como cards grandes', () => {

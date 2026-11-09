@@ -42,13 +42,15 @@ function LeituraDaSessao({ route, navigation }) {
           <Text style={e.titulo} accessibilityRole="header">
             {r.texto.titulo}
           </Text>
-          <View style={[e.cartao, e.ajuste]}>
-            <View style={[e.linha, e.linhaAjuste]}>
-              <IconeBrilho accessible={false} />
-              <Text style={[e.legenda, e.roxo]}>UM PRÓXIMO PASSO POSSÍVEL</Text>
+          {r.texto.proximoAjuste ? (
+            <View style={[e.cartao, e.ajuste]}>
+              <View style={[e.linha, e.linhaAjuste]}>
+                <IconeBrilho accessible={false} />
+                <Text style={[e.legenda, e.roxo]}>UM PRÓXIMO PASSO POSSÍVEL</Text>
+              </View>
+              <Text style={e.texto}>{r.texto.proximoAjuste}</Text>
             </View>
-            <Text style={e.texto}>{r.texto.proximoAjuste}</Text>
-          </View>
+          ) : null}
           {s.planejamento?.estado === 'disponivel' ? (
             <ResumoAdesao
               style={e.planejamento}

@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
-import { isDataLimiteVencida } from '../../utils/dateInput';
 import { colors } from '../../theme/colors';
 import { fontFamily } from '../../theme/typography';
 import { IconeAnalise } from './IconeAnalise';
@@ -11,9 +10,9 @@ import { numeroPublico } from './formatarReferencia';
 export function MetaEmFoco({
   campanhas,
   onAbrir,
-  onVerPesquisas,
   renderEvolucao,
   titulo = 'Sua meta em foco',
+  estadosPermitidos = ['emAndamento'],
 }) {
   const { width, fontScale } = useWindowDimensions();
   const acoesEmpilhadas = width < 380 || fontScale > 1.3;
@@ -21,7 +20,7 @@ export function MetaEmFoco({
   const metas = campanhas
     .filter(
       (campanha) =>
-        campanha.estado === 'emAndamento' &&
+        estadosPermitidos.includes(campanha.estado) &&
         campanha.valorMensurado > 0 &&
         campanha.valorAtual != null &&
         campanha.unidade &&
@@ -65,7 +64,7 @@ export function MetaEmFoco({
           {numeroPublico(meta.valorAtual)}
           <Text style={locais.alvo}>
             {' '}
-            / {numeroPublico(meta.valorMensurado)} {meta.unidade}
+            de {numeroPublico(meta.valorMensurado)} {meta.unidade}
           </Text>
         </Text>
       </View>
@@ -80,9 +79,6 @@ export function MetaEmFoco({
         />
       </View>
       {renderEvolucao?.(meta.id)}
-      {isDataLimiteVencida(meta.dataLimite) ? (
-        <Text style={locais.prazo}>O prazo passou. Que tal rever o planejamento?</Text>
-      ) : null}
       <View style={estilos.divisor} />
       <View style={locais.acoes}>
         <Pressable
@@ -94,15 +90,6 @@ export function MetaEmFoco({
           <Text style={[estilos.marca, estilos.textoFlexivel]}>Ver minha meta</Text>
           <IconeAnalise nome="seta" tamanho={18} />
         </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Ver pesquisas desta área"
-          onPress={() => onVerPesquisas(meta.areaDaVida)}
-          style={[estilos.botaoTexto, locais.acao, acoesEmpilhadas && locais.acaoInteira]}
-        >
-          <IconeAnalise nome="globo" tamanho={18} />
-          <Text style={[estilos.marca, estilos.textoFlexivel]}>Ver pesquisas</Text>
-        </Pressable>
       </View>
     </View>
   );
@@ -113,7 +100,7 @@ const locais = StyleSheet.create({
   acoes: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   acao: { flex: 1, flexBasis: '45%', minWidth: 110 },
   acaoInteira: { flexBasis: '100%' },
-  valor: { fontFamily: fontFamily.bold, fontSize: 36, color: colors.brandDark },
+  valor: { fontFamily: fontFamily.bold, fontSize: 32, color: colors.brandDark },
   alvo: { fontFamily: fontFamily.medium, fontSize: 16, color: colors.textSecondary },
   trilho: {
     height: 10,

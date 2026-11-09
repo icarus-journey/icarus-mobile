@@ -132,3 +132,88 @@ export function relatorioDeTeste(
     },
   };
 }
+
+// Agregados públicos e textos exemplificativos do contrato HTTP 1.2, exclusivos dos testes.
+export function pesquisasQuantitativasDeTeste(area = 'SONO_E_RECUPERACAO') {
+  const sono = area === 'SONO_E_RECUPERACAO';
+  const leitura = (id, titulo, medida, atalho, grupos, texto) => ({
+    id,
+    titulo,
+    medida,
+    atalho,
+    grupos: grupos.map(([rotulo, percentual]) => ({ rotulo, percentual })),
+    leitura: texto,
+    recomendacao: {
+      titulo: sono ? 'O movimento pode ser um aliado' : 'Faça o estudo caber na sua rotina',
+      texto: sono
+        ? 'Se dormir melhor também é um objetivo seu, considere um movimento que caiba na sua rotina.'
+        : 'Se você concilia estudo e trabalho, escolha um momento possível para começar.',
+    },
+    dadosDaPesquisa: sono
+      ? 'Pessoas de 18–28 anos das 26 capitais e do Distrito Federal. Associação observada entre os grupos.'
+      : 'Pessoas de 18–28 anos dos Estados Unidos. Cada pessoa relatou um dia de 24 horas.',
+    fonte: `${sono ? 'Vigitel' : 'ATUS'} 2024 · cálculo ponderado do Icarus sobre a base oficial.`,
+    urlFonte: sono ? 'https://svs.aids.gov.br/daent/cgdnt/vigitel/' : 'https://www.bls.gov/tus/',
+    referenciasIds: [id],
+    faixaEtaria: '18–28',
+    tipoDia: 'todos',
+    origens: [],
+    limitacoes: [],
+  });
+  return {
+    ...referenciasDeTeste(),
+    versaoContrato: '1.2.0',
+    areaDaVida: area,
+    versaoGold: 'gold',
+    hashSnapshot: 'checksum',
+    leituras: sono
+      ? [
+          leitura(
+            'insonia',
+            'Atividade física e sono',
+            'Relataram sintomas frequentes de insônia',
+            'Ver relação com os sintomas de insônia',
+            [
+              ['Com atividade física suficiente no lazer', 29.1],
+              ['Sem atividade física suficiente no lazer', 35.3],
+            ],
+            'No grupo com atividade física suficiente, houve cerca de 18% menos relatos de sintomas de insônia.',
+          ),
+          leitura(
+            'deseja-sono',
+            'Atividade física e vontade de dormir mais',
+            'Gostariam de dormir mais que o habitual',
+            'Ver relação com a vontade de dormir mais',
+            [
+              ['Com atividade física suficiente no lazer', 68],
+              ['Sem atividade física suficiente no lazer', 74.1],
+            ],
+            'No grupo com atividade física suficiente, houve cerca de 8% menos relatos de vontade de dormir mais.',
+          ),
+        ]
+      : [
+          leitura(
+            'estudo-ocupacao',
+            'Estudo e trabalho',
+            'Registraram aulas ou tarefas naquele dia',
+            'Ver relação com trabalho',
+            [
+              ['Pessoas ocupadas', 13.6],
+              ['Pessoas não ocupadas', 42.1],
+            ],
+            'Entre os ocupados, houve cerca de 68% menos participação em aulas ou tarefas naquele dia.',
+          ),
+          leitura(
+            'participacao',
+            'Participação em estudos',
+            'Registraram aulas ou tarefas naquele dia',
+            'Ver participação em estudos',
+            [
+              ['Registraram na pesquisa', 20.7],
+              ['Não registraram na pesquisa', 79.3],
+            ],
+            'Cerca de 1 em cada 5 pessoas registrou aulas ou tarefas naquele dia.',
+          ),
+        ],
+  };
+}

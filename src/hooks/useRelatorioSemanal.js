@@ -52,15 +52,18 @@ export function useRelatorioSemanal(ativo = true) {
         }
       } catch (falha) {
         if (atual === versao.current)
-          setEstado({
+          setEstado((anterior) => ({
             usuarioId,
-            dados: null,
+            dados:
+              ![401, 404].includes(falha.status) && anterior.usuarioId === usuarioId
+                ? anterior.dados
+                : null,
             carregando: false,
             erro:
               falha.status === 401
                 ? 'Sua sessão terminou. Entre novamente para ver sua semana.'
                 : 'Não foi possível consultar sua semana. Confira a conexão e tente novamente.',
-          });
+          }));
       } finally {
         if (atual === versao.current) ocupado.current = false;
         if (controlador.current === leitura) controlador.current = null;

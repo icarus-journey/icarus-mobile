@@ -67,3 +67,14 @@ it('propaga expiração e falha de persistência sem tratá-las como lista vazia
   requisitarAutenticado.mockRejectedValue(Object.assign(new Error('Registro'), { status: 503 }));
   await expect(s.consultar(1)).rejects.toMatchObject({ status: 503 });
 });
+
+it('aceita orientação ausente só no snapshot novo e preserva compatibilidade do histórico', async () => {
+  const d = detalheRelatorioDeTeste();
+  d.relatorio.versaoIndicadores = '1.2.0';
+  d.relatorio.texto.proximoAjuste = null;
+  const requisitarAutenticado = jest.fn(async () => d);
+  const servico = criarServicoHistoricoRelatorios({ usuarioId: 'a', requisitarAutenticado });
+  expect((await servico.consultar(1)).relatorio.texto.proximoAjuste).toBeNull();
+  d.relatorio.versaoIndicadores = '1.1.0';
+  await expect(servico.consultar(1)).rejects.toThrow('Relatório indisponível.');
+});

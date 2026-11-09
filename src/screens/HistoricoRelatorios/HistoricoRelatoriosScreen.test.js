@@ -1,7 +1,7 @@
 import { NavigationContainer } from '@react-navigation/native';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { RootNavigator } from '../../navigation/RootNavigator';
-import { relatorioDeTeste } from '../../testUtils/dadosAnaliticos';
+import { progressoDeTeste, relatorioDeTeste } from '../../testUtils/dadosAnaliticos';
 import {
   detalheRelatorioDeTeste,
   paginaRelatoriosDeTeste,
@@ -26,6 +26,7 @@ function app(rota = 'HistoricoRelatoriosScreen') {
 beforeEach(() => {
   mockUsuario = 'a';
   mockRequisitar.mockReset().mockImplementation(async (rota) => {
+    if (rota.includes('/progresso')) return progressoDeTeste();
     if (rota.endsWith('/semanais') || rota.endsWith('/atual')) return relatorioDeTeste();
     if (rota.endsWith('/semanais/1')) return detalheRelatorioDeTeste();
     return paginaRelatoriosDeTeste({
@@ -44,10 +45,8 @@ beforeEach(() => {
     });
   });
 });
-it('entra pela Minha semana, pagina, consulta texto/configuração e retorna sem perder a lista', async () => {
-  render(app('RelatorioSemanalScreen'));
-  await screen.findByText('Sua semana de registros');
-  fireEvent.press(await screen.findByLabelText('Ver histórico'));
+it('mantém a tela preservada e funcional com acesso direto, pagina e retorna sem perder a lista', async () => {
+  render(app());
   await screen.findByText('Suas semanas, guardadas');
   fireEvent.press(await screen.findByLabelText('Ver semanas anteriores'));
   await screen.findByText('Uma semana anterior');

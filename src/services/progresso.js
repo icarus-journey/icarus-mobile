@@ -1,3 +1,4 @@
+import { validarRelatorioSemanal } from './validarRelatorioSemanal';
 import { validarObjetivos } from './validarObjetivos';
 
 const inteiro = (valor) => Number.isSafeInteger(valor) && valor >= 0;
@@ -7,6 +8,16 @@ export function validarProgresso(resposta) {
     throw new Error('Resposta de progresso indisponível.');
   if (resposta.objetivos != null && !validarObjetivos(resposta.objetivos))
     throw new Error('Resposta dos objetivos indisponível.');
+  if (resposta.comparacaoSemanal != null) {
+    validarRelatorioSemanal({ relatorio: { comparacaoSemanal: resposta.comparacaoSemanal } });
+    for (const semana of [
+      resposta.comparacaoSemanal.semana,
+      ...resposta.comparacaoSemanal.semanasAnteriores,
+    ]) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(semana.periodo?.fim ?? ''))
+        throw new Error('Período da comparação indisponível.');
+    }
+  }
   const adesao = resposta.adesao;
   if (adesao == null) return resposta; // API anterior preserva atividade e gráfico.
   const {

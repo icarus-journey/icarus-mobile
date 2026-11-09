@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
+import { ValorComMoeda } from '../Pontos/ValorComMoeda';
 import { colors } from '../../theme/colors';
 import { fontFamily } from '../../theme/typography';
 import { GraficoConclusoes } from './GraficoConclusoes';
@@ -9,7 +10,7 @@ import { IconeAnalise } from './IconeAnalise';
 import { estilosPainel as painel } from './estilosPainel';
 import { numeroPublico } from './formatarReferencia';
 
-export function ResumoEvolucaoPessoal({ dados }) {
+export function ResumoEvolucaoPessoal({ dados, deveExibirMetricas = true }) {
   const { width, fontScale } = useWindowDimensions();
   const [maisNumeros, setMaisNumeros] = useState(false);
   const indicadores = dados.indicadores;
@@ -54,7 +55,7 @@ export function ResumoEvolucaoPessoal({ dados }) {
             </View>
             {indicadores.diasComConclusao != null ? (
               <View style={estilos.dias}>
-                <IconeAnalise nome="calendario" cor={colors.white} tamanho={15} />
+                <IconeAnalise nome="calendario" cor={colors.brandDark} tamanho={15} />
                 <Text style={estilos.diasTexto}>
                   Em {indicadores.diasComConclusao}{' '}
                   {indicadores.diasComConclusao === 1 ? 'dia' : 'dias'}
@@ -66,7 +67,9 @@ export function ResumoEvolucaoPessoal({ dados }) {
         </View>
       ) : null}
       <ResumoAdesao adesao={dados.adesao} />
-      {metricas.length > 0 && (indicadores.concluidas != null || dados.adesao) ? (
+      {deveExibirMetricas &&
+      metricas.length > 0 &&
+      (indicadores.concluidas != null || dados.adesao) ? (
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Ver mais números"
@@ -80,7 +83,7 @@ export function ResumoEvolucaoPessoal({ dados }) {
           <IconeAnalise nome="chevron" tamanho={18} />
         </Pressable>
       ) : null}
-      {maisNumeros || (indicadores.concluidas == null && !dados.adesao) ? (
+      {deveExibirMetricas && (maisNumeros || (indicadores.concluidas == null && !dados.adesao)) ? (
         <View style={estilos.grade}>
           {metricas.map(([icone, rotulo, valor, unidade]) => (
             <View
@@ -89,11 +92,22 @@ export function ResumoEvolucaoPessoal({ dados }) {
               accessibilityLabel={`${rotulo}: ${numeroPublico(valor)}${unidade ?? ''}`}
               style={[estilos.metrica, (width < 350 || fontScale > 1.4) && estilos.metricaInteira]}
             >
-              <IconeAnalise nome={icone} tamanho={19} />
-              <Text style={estilos.valor}>
-                {numeroPublico(valor)}
-                {unidade ?? ''}
-              </Text>
+              {icone === 'pontos' ? (
+                <ValorComMoeda
+                  valor={valor}
+                  tamanho="grande"
+                  acessivel={false}
+                  cor={colors.textPrimaryStrong}
+                />
+              ) : (
+                <>
+                  <IconeAnalise nome={icone} tamanho={19} />
+                  <Text style={estilos.valor}>
+                    {numeroPublico(valor)}
+                    {unidade ?? ''}
+                  </Text>
+                </>
+              )}
               <Text style={painel.pequeno}>{rotulo}</Text>
             </View>
           ))}
@@ -104,15 +118,22 @@ export function ResumoEvolucaoPessoal({ dados }) {
 }
 
 const estilos = StyleSheet.create({
-  principal: { backgroundColor: colors.brand, borderRadius: 24, padding: 20, gap: 12 },
+  principal: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.borderDefaultAlt,
+    borderRadius: 24,
+    padding: 20,
+    gap: 12,
+  },
   numero: {
     fontFamily: fontFamily.bold,
     fontSize: 48,
-    color: colors.white,
+    color: colors.textPrimaryStrong,
     letterSpacing: -2,
     fontVariant: ['tabular-nums'],
   },
-  legenda: { fontFamily: fontFamily.medium, fontSize: 15, color: colors.white },
+  legenda: { fontFamily: fontFamily.medium, fontSize: 15, color: colors.textSecondary },
   resumo: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -126,11 +147,12 @@ const estilos = StyleSheet.create({
     gap: 6,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.4)',
+    borderColor: colors.borderDefaultAlt,
+    backgroundColor: colors.softPurple,
     paddingHorizontal: 10,
     paddingVertical: 6,
   },
-  diasTexto: { fontFamily: fontFamily.medium, fontSize: 12, color: colors.white },
+  diasTexto: { fontFamily: fontFamily.medium, fontSize: 12, color: colors.brandDark },
   grade: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   metrica: {
     flexGrow: 1,

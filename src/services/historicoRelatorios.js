@@ -84,13 +84,15 @@ export function criarServicoHistoricoRelatorios({ usuarioId, requisitarAutentica
         relatorio?.id !== id ||
         !instante(relatorio.geradoEm) ||
         Date.parse(r.resumo.geradoEm) !== Date.parse(relatorio.geradoEm) ||
-        !['titulo', 'resumo', 'proximoAjuste', 'reflexao'].every((k) =>
-          texto(relatorio.texto?.[k]),
-        ) ||
+        !['titulo', 'resumo', 'reflexao'].every((k) => texto(relatorio.texto?.[k])) ||
         relatorio.texto.titulo !== r.resumo.titulo ||
+        !(
+          texto(relatorio.texto.proximoAjuste) ||
+          (relatorio.versaoIndicadores === '1.2.0' && relatorio.texto.proximoAjuste === null)
+        ) ||
         !texto(relatorio.geracao?.provedor) ||
         !texto(relatorio.geracao?.modelo) ||
-        !['1.0.0', '1.1.0'].includes(relatorio.versaoIndicadores) ||
+        !['1.0.0', '1.1.0', '1.2.0'].includes(relatorio.versaoIndicadores) ||
         !relatorio.indicadores ||
         !Array.isArray(relatorio.indicadores.distribuicaoPorArea) ||
         !opcional(relatorio.indicadores.concluidas) ||

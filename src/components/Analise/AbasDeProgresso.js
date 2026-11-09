@@ -6,7 +6,7 @@ export function AbasDeProgresso({ aba, onChange }) {
   return (
     <View style={estilos.controle} accessibilityRole="tablist">
       {[
-        ['pessoal', 'Minha jornada'],
+        ['pessoal', 'Meu progresso'],
         ['publico', 'Pesquisas'],
       ].map(([id, titulo]) => (
         <Pressable

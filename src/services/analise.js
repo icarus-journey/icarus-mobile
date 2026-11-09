@@ -1,5 +1,6 @@
 import { validarProgresso } from './progresso';
 import { validarRelatorioSemanal } from './validarRelatorioSemanal';
+import { validarPesquisas } from './validarPesquisas';
 
 export function criarServicoAnalise({ usuarioId, requisitarAutenticado }) {
   const base = `/api/usuarios/${usuarioId}`;
@@ -28,12 +29,15 @@ export function criarServicoAnalise({ usuarioId, requisitarAutenticado }) {
           metodo: 'POST',
         }),
       ),
-    referencias: (areaDaVida, tipoDia = 'todos', signal) => {
+    referencias: async (areaDaVida, tipoDia = 'todos', signal, campanhaId = null) => {
       const parametros = [`tipoDia=${encodeURIComponent(tipoDia)}`];
-      if (areaDaVida) parametros.push(`areaDaVida=${encodeURIComponent(areaDaVida)}`);
-      return requisitarAutenticado(
-        `${base}/referencias-publicas?${parametros.join('&')}`,
-        ...(signal ? [{ signal }] : []),
+      if (campanhaId != null) parametros.push(`campanhaId=${encodeURIComponent(campanhaId)}`);
+      else if (areaDaVida) parametros.push(`areaDaVida=${encodeURIComponent(areaDaVida)}`);
+      return validarPesquisas(
+        await requisitarAutenticado(
+          `${base}/referencias-publicas?${parametros.join('&')}`,
+          ...(signal ? [{ signal }] : []),
+        ),
       );
     },
   };

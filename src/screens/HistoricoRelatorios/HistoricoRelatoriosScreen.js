@@ -77,7 +77,7 @@ function HistoricoDaSessao({ navigation }) {
             <EmptyState
               title="Sua história começa por aqui"
               message="Quando houver um relatório salvo, ele aparecerá aqui."
-              buttonLabel="Voltar à Minha semana"
+              buttonLabel="Voltar ao progresso"
               onCreate={() => navigation.goBack()}
             />
           ) : null

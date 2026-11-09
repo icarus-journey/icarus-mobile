@@ -1,6 +1,5 @@
 import { NavigationContainer } from '@react-navigation/native';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
-import { Linking } from 'react-native';
 
 import { RootNavigator } from '../../navigation/RootNavigator';
 import { CampaignsProvider } from '../../state/CampaignsContext';
@@ -9,8 +8,8 @@ import { MissionsProvider } from '../../state/MissionsContext';
 import {
   progressoDeTeste,
   referenciasDeTeste,
+  pesquisasQuantitativasDeTeste,
   relatorioDeTeste,
-  PERIODO_ANALITICO,
   evolucaoDaMetaDeTeste,
 } from '../../testUtils/dadosAnaliticos';
 
@@ -29,6 +28,8 @@ let falhaGold;
 let areaSemMapa;
 let respostaRelatorio;
 let respostaMeta;
+let respostaProgresso;
+let respostaPublica;
 function aplicativo(rota = 'ProgressoScreen', campanhas = []) {
   return (
     <MissionsProvider initialMissions={[]}>
@@ -48,6 +49,33 @@ beforeEach(() => {
   areaSemMapa = false;
   respostaRelatorio = relatorioDeTeste();
   respostaMeta = evolucaoDaMetaDeTeste();
+  respostaProgresso = {
+    ...progressoDeTeste(),
+    versaoContrato: '1.4.0',
+    objetivos: objetivosDeTeste(),
+    adesao: {
+      estado: 'disponivel',
+      previstasRegistradas: 17,
+      concluidasDoPlanejamento: 12,
+      pendentes: 5,
+      atrasadas: 0,
+      taxaConclusao: 70.6,
+    },
+    comparacaoSemanal: comparacaoDeTeste(),
+    diferencaFeitasSemanaAnterior: 2,
+  };
+  respostaProgresso.objetivos.campanhas[0].resultado.cenarioAtual.prazo = {
+    referencia: '2026-11-08',
+    conclusaoEstimada: '2026-12-06',
+    prazoFim: '2026-12-13',
+    diasAtePrazo: 35,
+    margemDias: 7,
+    ritmoSemanalNecessario: 1.6,
+    situacao: 'antes_do_prazo',
+  };
+  respostaPublica = pesquisasQuantitativasDeTeste();
+  respostaPublica.areaDaVida = 'SONO_E_RECUPERACAO';
+  respostaPublica.referencias[0].dados.indicador = 'vigitel_duracao_sono_habitual';
   mockRequisitar.mockReset().mockImplementation(async (caminho) => {
     if (caminho.includes('/referencias-publicas')) {
       if (falhaGold) throw new Error('Sem conexão');
@@ -56,63 +84,69 @@ beforeEach(() => {
             ...referenciasDeTeste(),
             estado: 'sem_mapeamento',
             referencias: [],
+            leituras: [],
             mensagem: 'Referência pública compatível de Finanças em breve no Icarus.',
           }
-        : referenciasDeTeste();
+        : respostaPublica;
     }
     if (/\/campanhas\/\d+\/progresso/.test(caminho)) return respostaMeta;
-    if (caminho.includes('/progresso')) return progressoDeTeste();
+    if (caminho.includes('/progresso')) return respostaProgresso;
     return respostaRelatorio;
   });
 });
 
-it('abre Meu progresso pelo início preservando a lista e permite voltar', async () => {
+function comparacaoDeTeste() {
+  const semana = (fim, previstas, concluidas, taxaConclusao) => ({
+    periodo: {
+      inicio: new Date(Date.parse(fim) - 6 * 86400000).toISOString().slice(0, 10),
+      fim,
+      fusoHorario: 'America/Sao_Paulo',
+    },
+    estado: 'disponivel',
+    previstas,
+    concluidas,
+    taxaConclusao,
+  });
+  return {
+    semana: semana('2026-10-18', 17, 12, 70.6),
+    semanasAnteriores: [
+      semana('2026-10-11', 14, 10, 71.4),
+      semana('2026-10-04', 14, 9, 64.3),
+      semana('2026-09-27', 13, 8, 61.5),
+      semana('2026-09-20', 12, 7, 58.3),
+    ],
+    mediaQuatroSemanas: { previstas: 13.25, concluidas: 8.5, taxaConclusao: 63.9 },
+    podeCompararSemanaAnterior: true,
+    podeCompararMediaQuatroSemanas: true,
+  };
+}
+it('abre progresso pelo início sem destino Minha semana nem geração no início', async () => {
   render(aplicativo('MissionList'));
-  await screen.findByText('Reveja um próximo passo possível.');
-  expect(screen.getByLabelText('Adicionar missão')).toBeTruthy();
+  await screen.findByLabelText('Meu progresso');
+  expect(screen.queryByLabelText('Ver meu progresso')).toBeNull();
+  expect(mockRequisitar.mock.calls.some(([r]) => r.includes('/relatorios/'))).toBe(false);
   fireEvent.press(screen.getByLabelText('Meu progresso'));
-  await screen.findByLabelText('2 missões feitas');
-  expect(screen.getByRole('tab', { name: 'Minha jornada' })).toBeTruthy();
-  fireEvent.press(screen.getByLabelText('Voltar'));
-  expect(screen.getByLabelText('Adicionar missão')).toBeTruthy();
-  await screen.findByText('Reveja um próximo passo possível.');
+  await screen.findByText('12 de 17 missões feitas');
+  expect(screen.getByRole('tab', { name: 'Meu progresso' })).toBeTruthy();
+  expect(screen.queryByText('Minha semana')).toBeNull();
+  expect(screen.queryByLabelText('Sobre estes números')).toBeNull();
 });
-
-it.each(['Campanha', 'Épico'])(
-  'mantém a semana visível ao voltar de %s para Missão enquanto revalida',
-  async (segmento) => {
-    render(aplicativo('MissionList'));
-    await screen.findByText('Reveja um próximo passo possível.');
-    const normal = mockRequisitar.getMockImplementation();
-    let concluir;
-    mockRequisitar.mockImplementation((rota, opcoes) =>
-      rota.endsWith('/relatorios/semanais/atual')
-        ? new Promise((resolver) => {
-            concluir = resolver;
-          })
-        : normal(rota, opcoes),
-    );
-    fireEvent.press(screen.getByLabelText(segmento));
-    fireEvent.press(screen.getByLabelText('Missão'));
-    expect(screen.getByText('Reveja um próximo passo possível.')).toBeTruthy();
-    expect(screen.queryByText('Consultando seus registros…')).toBeNull();
-    await waitFor(() => expect(concluir).toEqual(expect.any(Function)));
-    await act(async () => concluir(relatorioDeTeste()));
-    expect(screen.getByText('Reveja um próximo passo possível.')).toBeTruthy();
-  },
-);
-
-it('mostra progresso visual e separa pesquisas sem jargão ou avisos falsos de falta de dados', async () => {
+it('mostra meta primeiro, compara planejamento e abre explicação com eixos', async () => {
   render(aplicativo());
-  await screen.findByLabelText('2 missões feitas');
-  expect(screen.getByLabelText('12 out 2026: 1 missão feita')).toBeTruthy();
-  expect(screen.getByLabelText('Estudos e aprendizado: 1 missão feita')).toBeTruthy();
-  expect(screen.queryByLabelText('Previstas: Indisponível')).toBeNull();
-  expect(screen.queryByText(/Histórico insuficiente/)).toBeNull();
-  expect(screen.queryByLabelText('Registrar progresso')).toBeNull();
-  const leiturasGold = mockRequisitar.mock.calls.filter(([c]) =>
-    c.includes('/referencias-publicas'),
-  ).length;
+  await screen.findByText('Antes do prazo, se mantiver o ritmo.');
+  expect(screen.getByText('2 missões feitas a mais que na semana anterior.')).toBeTruthy();
+  expect(screen.queryByText('Evolução da meta')).toBeNull();
+  fireEvent.press(screen.getByLabelText('Ver minha meta'));
+  await screen.findByText('Evolução da meta');
+  expect(screen.getByText(/1,6 módulos por semana/)).toBeTruthy();
+  expect(screen.getByText('Data do registro')).toBeTruthy();
+  expect(screen.queryByText(/Por que .*prazo/)).toBeNull();
+  expect(screen.queryByLabelText('Atualizar meta')).toBeNull();
+  expect(screen.getByLabelText('Abrir campanha')).toBeTruthy();
+});
+it('altera período sem consultar pesquisas nem gerar relatório', async () => {
+  render(aplicativo());
+  await screen.findByText('12 de 17 missões feitas');
   fireEvent.press(screen.getByLabelText('Mês anterior completo'));
   await waitFor(() =>
     expect(mockRequisitar).toHaveBeenCalledWith(
@@ -121,397 +155,225 @@ it('mostra progresso visual e separa pesquisas sem jargão ou avisos falsos de f
     ),
   );
   expect(
-    mockRequisitar.mock.calls.filter(([c]) => c.includes('/referencias-publicas')),
-  ).toHaveLength(leiturasGold);
-  fireEvent.press(screen.getByRole('tab', { name: 'Pesquisas' }));
-  expect(await screen.findByText('Sono Vigitel')).toBeTruthy();
-  expect(screen.getByText('Vigitel · Brasil')).toBeTruthy();
-  expect(screen.getByText('PESQUISA DE 2024')).toBeTruthy();
-  expect(screen.getByText('7 h')).toBeTruthy();
-  expect(screen.getByText('Metade dos registros ficou até esse tempo.')).toBeTruthy();
-  expect(screen.queryByText(/mediana|P25|P75|denominador/i)).toBeNull();
-  fireEvent.press(screen.getByLabelText('Próxima referência'));
-  expect(await screen.findByText('Sono ATUS')).toBeTruthy();
-  expect(screen.getByText('ATUS · Estados Unidos')).toBeTruthy();
-  expect(screen.getByText('2 de 2 referências')).toBeTruthy();
-});
-
-it('explica uma limitação da versão sem culpar a quantidade de registros da pessoa', async () => {
-  render(aplicativo());
-  await screen.findByLabelText('2 missões feitas');
-  fireEvent.press(screen.getByLabelText('Sobre estes números'));
-  expect(
-    await screen.findByText('A porcentagem do planejamento ainda não está disponível.'),
-  ).toBeTruthy();
-  fireEvent.press(screen.getByLabelText('Entendi'));
-  expect(screen.getByLabelText('2 missões feitas')).toBeTruthy();
-});
-
-it('liga o avanço da meta às pesquisas da mesma área sem transformar pontos em módulos', async () => {
-  render(
-    aplicativo('ProgressoScreen', [
-      {
-        id: 12,
-        titulo: 'Aprender mensageria',
-        estado: 'emAndamento',
-        valorAtual: 8,
-        valorMensurado: 16,
-        unidade: 'módulos',
-        areaDaVida: 'estudosEAprendizado',
-      },
-    ]),
-  );
-  await screen.findByLabelText('Aprender mensageria: 8 de 16 módulos');
-  await screen.findByText('Cerca de 4 semanas para chegar lá');
-  fireEvent.press(screen.getByLabelText('Últimos seis meses completos'));
-  await waitFor(() =>
-    expect(mockRequisitar).toHaveBeenCalledWith(
-      '/api/usuarios/pessoa-a/progresso?periodo=seisMeses',
-      expect.objectContaining({ signal: expect.anything() }),
+    mockRequisitar.mock.calls.every(
+      ([r]) => !r.includes('/referencias-publicas') && !r.includes('/relatorios/'),
     ),
-  );
-  expect(screen.getByLabelText('Aprender mensageria: 8 de 16 módulos')).toBeTruthy();
-  expect(
-    mockRequisitar.mock.calls.filter(([c]) => /\/campanhas\/12\/progresso/.test(c)),
-  ).toHaveLength(1);
-  fireEvent.press(screen.getByLabelText('Ver pesquisas desta área'));
-  await waitFor(() =>
-    expect(mockRequisitar).toHaveBeenCalledWith(
-      '/api/usuarios/pessoa-a/referencias-publicas?tipoDia=todos&areaDaVida=ESTUDOS_E_APRENDIZADO',
-      expect.objectContaining({ signal: expect.anything() }),
-    ),
-  );
-  expect(screen.getByRole('tab', { name: 'Pesquisas' }).props.accessibilityState.selected).toBe(
-    true,
-  );
+  ).toBe(true);
 });
-
-it('mostra recorte ampliado, denominador e limites nos detalhes e trata falha de abrir a origem', async () => {
-  const abrir = jest.spyOn(Linking, 'openURL').mockRejectedValue(new Error('Sem navegador'));
+it('mantém os gráficos visíveis sem a grade de indicadores nem o acesso ao histórico', async () => {
   render(aplicativo());
-  fireEvent.press(screen.getByRole('tab', { name: 'Pesquisas' }));
-  await screen.findByText('Sono Vigitel');
-  fireEvent.press(screen.getAllByLabelText('Entender os dados')[0]);
-  expect(await screen.findByText('O que este número não diz')).toBeTruthy();
-  expect(
-    screen.getByText('Faixa etária ampliada para preservar a referência compatível.'),
-  ).toBeTruthy();
-  expect(screen.getByText('Respostas válidas; não representa sua duração pessoal.')).toBeTruthy();
-  expect(screen.getByText('Estimativa descritiva; não define duração ideal.')).toBeTruthy();
-  fireEvent.press(screen.getByLabelText('Abrir fonte: Vigitel'));
-  expect(await screen.findByText('Não foi possível abrir a fonte. Tente novamente.')).toBeTruthy();
-  abrir.mockRestore();
-});
-
-const metaComHistorico = {
-  id: 12,
-  titulo: 'Aprender mensageria',
-  estado: 'emAndamento',
-  valorAtual: 8,
-  valorMensurado: 16,
-  unidade: 'módulos',
-  areaDaVida: 'estudosEAprendizado',
-};
-
-it('abre a meta pelo painel e atualiza o cenário ao voltar, sem recalcular no aplicativo', async () => {
-  render(aplicativo('ProgressoScreen', [metaComHistorico]));
-  await screen.findByText('Cerca de 4 semanas para chegar lá');
-  fireEvent.press(screen.getByLabelText('Ver minha meta'));
-  await screen.findByText('Detalhe da campanha');
-  respostaMeta = {
-    ...respostaMeta,
-    cenario: { disponivel: false, motivo: 'historico_desatualizado_ou_futuro' },
-  };
-  fireEvent.press(screen.getByLabelText('Voltar'));
-  await waitFor(() => expect(screen.queryByText('Cerca de 4 semanas para chegar lá')).toBeNull());
-  await screen.findByLabelText('Entender meu ritmo');
-  expect(
-    mockRequisitar.mock.calls.filter(([c]) => /\/campanhas\/12\/progresso/.test(c)),
-  ).toHaveLength(3);
-});
-
-it('falha na leitura da meta preserva o acesso e permite repetir sem mostrar estimativa antiga', async () => {
-  const normal = mockRequisitar.getMockImplementation();
-  let falhar = true;
-  mockRequisitar.mockImplementation((caminho, opcoes) =>
-    /\/campanhas\/12\/progresso/.test(caminho) && falhar
-      ? Promise.reject(new Error('Sem conexão'))
-      : normal(caminho, opcoes),
-  );
-  render(aplicativo('ProgressoScreen', [metaComHistorico]));
-  await screen.findByText('Não foi possível atualizar o avanço da meta.');
-  expect(screen.getByLabelText('Ver minha meta')).toBeTruthy();
-  expect(screen.queryByText(/para chegar lá/)).toBeNull();
-  falhar = false;
-  fireEvent.press(screen.getByLabelText('Atualizar avanço da meta'));
-  await screen.findByText('Cerca de 4 semanas para chegar lá');
-});
-
-it('troca de conta descarta o cenário atrasado da conta anterior', async () => {
-  const normal = mockRequisitar.getMockImplementation();
-  let terminar;
-  mockRequisitar.mockImplementation((caminho, opcoes) => {
-    if (/\/campanhas\/12\/progresso/.test(caminho)) {
-      if (caminho.includes('pessoa-a'))
-        return new Promise((resolve) => {
-          terminar = resolve;
-        });
-      return Promise.resolve(
-        evolucaoDaMetaDeTeste({ cenario: { disponivel: false, motivo: 'historico_insuficiente' } }),
-      );
-    }
-    return normal(caminho, opcoes);
-  });
-  const tela = render(aplicativo('ProgressoScreen', [metaComHistorico]));
-  await waitFor(() => expect(terminar).toEqual(expect.any(Function)));
-  mockUsuarioId = 'pessoa-b';
-  tela.rerender(aplicativo('ProgressoScreen', [metaComHistorico]));
-  await screen.findByLabelText('Entender meu ritmo');
-  await act(async () => terminar(evolucaoDaMetaDeTeste()));
-  expect(screen.queryByText(/para chegar lá/)).toBeNull();
-});
-
-it('recupera falha da API e distingue área sem mapeamento', async () => {
-  falhaGold = true;
-  render(aplicativo());
-  fireEvent.press(screen.getByRole('tab', { name: 'Pesquisas' }));
-  await screen.findByText(/Não foi possível carregar as referências/);
-  falhaGold = false;
-  fireEvent.press(screen.getByLabelText('Tentar novamente'));
-  await screen.findByText('Sono Vigitel');
-  areaSemMapa = true;
-  fireEvent.press(screen.getByLabelText('Escolher área das pesquisas'));
-  fireEvent.press(screen.getByLabelText('Finanças'));
-  expect(
-    await screen.findByText('Referência pública compatível de Finanças em breve no Icarus.'),
-  ).toBeTruthy();
-  expect(screen.queryByText('Sono ATUS')).toBeNull();
-});
-
-it('exibe relatório persistido e identifica IA, período e reflexão opcional', async () => {
-  render(aplicativo('RelatorioSemanalScreen'));
-  expect(await screen.findByText('Sua semana de registros')).toBeTruthy();
-  expect(screen.getByText('REFLEXÃO COM INTELIGÊNCIA ARTIFICIAL')).toBeTruthy();
-  expect(screen.getByText('12–18 out 2026')).toBeTruthy();
-  expect(screen.getByText('Horário de São Paulo')).toBeTruthy();
-  expect(screen.queryByText('Qual ajuste faz sentido agora?')).toBeNull();
-  fireEvent.press(screen.getByLabelText('Uma pergunta para refletir'));
-  expect(screen.getByText('Qual ajuste faz sentido agora?')).toBeTruthy();
-  expect(mockRequisitar).toHaveBeenCalledWith(
-    '/api/usuarios/pessoa-a/relatorios/semanais/atual',
-    expect.objectContaining({ signal: expect.anything() }),
-  );
-});
-
-it('mostra o planejamento comparável e abre a atividade em separado sem nova geração', async () => {
-  respostaRelatorio.relatorio.comparacaoSemanal = {
-    semana: { estado: 'disponivel', previstas: 10, concluidas: 8, taxaConclusao: 80 },
-    semanasAnteriores: Array.from({ length: 4 }, () => ({
-      estado: 'disponivel',
-      previstas: 8,
-      concluidas: 4,
-      taxaConclusao: 50,
-    })),
-    mediaQuatroSemanas: { previstas: 8.5, concluidas: 5, taxaConclusao: 56.2 },
-    podeCompararSemanaAnterior: true,
-    podeCompararMediaQuatroSemanas: true,
-  };
-  render(aplicativo('RelatorioSemanalScreen'));
-  await screen.findByText('8 de 10 feitas');
-  expect(screen.queryByText('Média das 4 anteriores')).toBeNull();
-  expect(screen.queryByText('missões feitas')).toBeNull();
-  fireEvent.press(screen.getByLabelText('Comparar semanas'));
-  expect(screen.getByText('Média das 4 anteriores')).toBeTruthy();
-  fireEvent.press(screen.getByLabelText('Ver atividade da semana'));
-  expect(screen.getByText('missões feitas')).toBeTruthy();
-  expect(
-    mockRequisitar.mock.calls.filter(([rota]) => rota.endsWith('/relatorios/semanais')),
-  ).toHaveLength(0);
-});
-
-it('processamento consulta sem iniciar nova geração e falha exige tentativa explícita', async () => {
-  respostaRelatorio = {
-    estado: 'processando',
-    periodo: PERIODO_ANALITICO,
-    mensagem: 'Sua semana está sendo preparada.',
-  };
-  render(aplicativo('RelatorioSemanalScreen'));
-  await screen.findByText('Sua semana está sendo preparada.');
-  respostaRelatorio = {
-    estado: 'falha',
-    periodo: PERIODO_ANALITICO,
-    mensagem: 'Não foi possível preparar.',
-    podeTentarNovamente: true,
-  };
-  fireEvent.press(screen.getByLabelText('Atualizar relatório'));
-  await screen.findByText('Não foi possível preparar.');
-  expect(mockRequisitar).toHaveBeenLastCalledWith(
-    '/api/usuarios/pessoa-a/relatorios/semanais/atual',
-    expect.objectContaining({ signal: expect.anything() }),
-  );
-  respostaRelatorio = relatorioDeTeste();
-  fireEvent.press(screen.getByLabelText('Tentar gerar novamente'));
-  await screen.findByText('Sua semana de registros');
-  expect(mockRequisitar).toHaveBeenLastCalledWith(
-    '/api/usuarios/pessoa-a/relatorios/semanais/tentar-novamente',
-    { metodo: 'POST' },
-  );
-});
-
-it('falta de histórico não apresenta texto de teste como relatório', async () => {
-  respostaRelatorio = {
-    estado: 'historico_insuficiente',
-    periodo: PERIODO_ANALITICO,
-    mensagem: 'Ainda não há registros suficientes.',
-  };
-  render(aplicativo('RelatorioSemanalScreen'));
-  await screen.findByText('Ainda não há registros suficientes.');
-  expect(screen.queryByText('REFLEXÃO COM INTELIGÊNCIA ARTIFICIAL')).toBeNull();
-  expect(screen.queryByLabelText('Tentar gerar novamente')).toBeNull();
-});
-
-it('ignora um relatório antigo após trocar a conta', async () => {
-  let concluir;
-  mockRequisitar.mockImplementation((caminho) =>
-    caminho.includes('pessoa-a')
-      ? new Promise((resolve) => {
-          concluir = resolve;
-        })
-      : Promise.resolve(relatorioDeTeste('Resumo privado da conta B.')),
-  );
-  const tela = render(aplicativo('RelatorioSemanalScreen'));
-  mockUsuarioId = 'pessoa-b';
-  tela.rerender(aplicativo('RelatorioSemanalScreen'));
-  await screen.findByText('Sua semana de registros');
-  fireEvent.press(screen.getByLabelText('Ler resumo da semana'));
-  expect(await screen.findByText('Resumo privado da conta B.')).toBeTruthy();
-  await act(async () => {
-    concluir(relatorioDeTeste('Resumo privado da conta A.'));
-  });
-  expect(screen.queryByText('Resumo privado da conta A.')).toBeNull();
-});
-
-it('mantém o vazio honesto e permite explorar pesquisas mesmo sem registros pessoais', async () => {
-  const normal = mockRequisitar.getMockImplementation();
-  mockRequisitar.mockImplementation((caminho, opcoes) =>
-    caminho.includes('/progresso')
-      ? Promise.resolve({
-          ...progressoDeTeste(),
-          estado: 'sem_registros',
-          evolucao: null,
-          indicadores: { quantidadeRegistros: 0 },
-          mensagem: 'Você ainda não tem registros neste período.',
-        })
-      : normal(caminho, opcoes),
-  );
-  render(aplicativo());
-  await screen.findByText('Você ainda não tem registros neste período.');
-  expect(screen.queryByLabelText('0 missões feitas')).toBeNull();
+  await screen.findByText('12 de 17 missões feitas');
+  expect(screen.queryByText('Outros registros do período')).toBeNull();
   expect(screen.queryByLabelText('Ver mais números')).toBeNull();
+  expect(screen.queryByLabelText('Relatórios salvos')).toBeNull();
+  for (const rotulo of [
+    'Dias com missões feitas',
+    'Pontos ganhos',
+    'Recompensas resgatadas',
+    'Pontos utilizados',
+    'Planejadas no período',
+    'Feitas do planejamento',
+    'Pendentes ao fechar',
+    'Em atraso ao fechar',
+    'Taxa de conclusão',
+  ]) {
+    expect(screen.queryByText(rotulo)).toBeNull();
+  }
+  expect(screen.getByLabelText('2 missões feitas')).toBeTruthy();
+  expect(screen.getByText('Por área da vida')).toBeTruthy();
+  expect(screen.queryByText(/Seus registros mostram parte da rotina/)).toBeNull();
+  expect(screen.getByLabelText('Aprender mensageria: 8 de 16 módulos')).toBeTruthy();
+});
+it('mostra gráfico das semanas e interpretação somente quando usa a mesma base', async () => {
+  respostaRelatorio.relatorio = {
+    ...respostaRelatorio.relatorio,
+    versaoIndicadores: '1.2.0',
+    comparacaoSemanal: comparacaoDeTeste(),
+    texto: {
+      titulo: 'Você concluiu mais nesta semana',
+      resumo: 'O volume cresceu e a proporção ficou próxima da anterior.',
+      proximoAjuste: null,
+    },
+  };
+  render(aplicativo('RelatorioSemanalScreen'));
+  await screen.findByText('Últimas 4 semanas');
+  expect(await screen.findByText('Você concluiu mais nesta semana')).toBeTruthy();
+  expect(
+    screen.getByLabelText(/Semana encerrada em 2026-10-18: 12 feitas de 17 planejadas/),
+  ).toBeTruthy();
+  expect(screen.queryByLabelText('Relatórios salvos')).toBeNull();
+  expect(screen.queryByLabelText('Atualizar comparação')).toBeNull();
+});
+it('mantém relatório antigo no histórico sem aplicar sua interpretação a números atuais', async () => {
+  render(aplicativo('RelatorioSemanalScreen'));
+  await screen.findByText('Últimas 4 semanas');
+  expect(screen.queryByText('Reveja um próximo passo possível.')).toBeNull();
+  expect(
+    screen.queryByText('A comparação continua disponível sem uma nova leitura por IA.'),
+  ).toBeNull();
+});
+it('exibe a pesquisa de sono sem formulário ou coleta pessoal', async () => {
+  render(aplicativo());
   fireEvent.press(screen.getByRole('tab', { name: 'Pesquisas' }));
-  expect(await screen.findByText('Sono Vigitel')).toBeTruthy();
+  await screen.findByText('Atividade física e sono');
+  expect(screen.queryByText('Informar meu sono')).toBeNull();
+  expect(screen.queryByText('Atualizar meu relato')).toBeNull();
+  expect(mockRequisitar.mock.calls.every(([r]) => !r.includes('/relato-sono'))).toBe(true);
+});
+it('não apresenta relato anterior nem transforma a pesquisa em avaliação pessoal', async () => {
+  respostaPublica.relatoSono = {
+    habitualMinutos: 360,
+    metaMinutos: 420,
+    diferencaParaMetaMinutos: 60,
+  };
+  respostaPublica.contextoSono = {
+    inicioFaixaMinutos: 360,
+    fimFaixaMinutos: 480,
+    posicaoNaFaixa: 'inicio',
+  };
+  render(aplicativo());
+  fireEvent.press(screen.getByRole('tab', { name: 'Pesquisas' }));
+  await screen.findByText('Atividade física e sono');
+  expect(screen.queryByText('1 h abaixo da sua meta')).toBeNull();
+  expect(screen.queryByText('Seu sono em contexto')).toBeNull();
+  expect(screen.queryByText(/você está dormindo pouco/i)).toBeNull();
+});
+it('alterna as duas relações de sono e mantém a leitura visível durante reconsulta', async () => {
+  render(aplicativo());
+  fireEvent.press(screen.getByRole('tab', { name: 'Pesquisas' }));
+  await screen.findByText('Atividade física e sono');
+  fireEvent.press(screen.getByText('Ver relação com a vontade de dormir mais'));
+  expect(screen.getByText('68%')).toBeTruthy();
+  expect(screen.getByText(/8% menos relatos/)).toBeTruthy();
+  expect(screen.getByText('Ver relação com os sintomas de insônia')).toBeTruthy();
+  let resolver;
+  const normal = mockRequisitar.getMockImplementation();
+  mockRequisitar.mockImplementation((r, o) =>
+    r.includes('/referencias-publicas')
+      ? new Promise((resolve) => {
+          resolver = resolve;
+        })
+      : normal(r, o),
+  );
+  const rolagem = screen.UNSAFE_getAllByType(require('react-native').ScrollView)[0];
+  act(() => {
+    rolagem.props.refreshControl.props.onRefresh();
+  });
+  await waitFor(() => expect(resolver).toEqual(expect.any(Function)));
+  expect(screen.getByText('Atividade física e vontade de dormir mais')).toBeTruthy();
+  await act(async () => resolver(respostaPublica));
+  expect(screen.getByText('Atividade física e vontade de dormir mais')).toBeTruthy();
+});
+it('troca campanha sem aceitar a resposta antiga sobre a nova seleção', async () => {
+  let resolver;
+  const normal = mockRequisitar.getMockImplementation();
+  mockRequisitar.mockImplementation((r, o) =>
+    r.includes('/referencias-publicas') && r.includes('campanhaId=12')
+      ? new Promise((resolve) => {
+          resolver = resolve;
+        })
+      : normal(r, o),
+  );
+  render(aplicativo());
+  await screen.findByLabelText('Escolher campanha do progresso');
+  fireEvent.press(screen.getByRole('tab', { name: 'Pesquisas' }));
+  await waitFor(() => expect(resolver).toEqual(expect.any(Function)));
+  fireEvent.press(screen.getByLabelText('Escolher campanha das pesquisas'));
+  fireEvent.press(screen.getByRole('button', { name: 'Caminhar no parque' }));
+  await screen.findByText('Atividade física e sono');
+  await act(async () => resolver(pesquisasQuantitativasDeTeste('ESTUDOS_E_APRENDIZADO')));
+  expect(screen.queryByText('Estudo e trabalho')).toBeNull();
+  expect(screen.getByText('Atividade física e sono')).toBeTruthy();
+  expect(
+    screen.getByLabelText('Escolher campanha das pesquisas').props.accessibilityValue.text,
+  ).toBe('Caminhar no parque');
+});
+it('mostra ATUS quantitativo e leva recomendação, dados e fonte ao detalhe', async () => {
+  respostaPublica = pesquisasQuantitativasDeTeste('ESTUDOS_E_APRENDIZADO');
+  respostaPublica.evidencias = [
+    { id: 'estudo_recuperacao_conteudo_2011', reflexao: 'Texto rejeitado' },
+  ];
+  render(aplicativo());
+  await screen.findByLabelText('Aprender mensageria: 8 de 16 módulos');
+  fireEvent.press(screen.getByRole('tab', { name: 'Pesquisas' }));
+  await screen.findByText('Estudo e trabalho');
+  expect(screen.getByText(/Na sua campanha: \+2 módulos registrados/)).toBeTruthy();
+  expect(screen.queryByText('Texto rejeitado')).toBeNull();
+  expect(screen.queryByText(/ATUS 2024/)).toBeNull();
+  fireEvent.press(screen.getByText('Ver participação em estudos'));
+  expect(screen.getByText('20,7%')).toBeTruthy();
+  expect(screen.getByText(/1 em cada 5/)).toBeTruthy();
+  fireEvent.press(screen.getByText('Ver dados e relação'));
+  await screen.findByText('Faça o estudo caber na sua rotina');
+  expect(screen.getByText(/Pessoas de 18–28 anos dos Estados Unidos/)).toBeTruthy();
+  expect(screen.getByText(/ATUS 2024/)).toBeTruthy();
+  expect(screen.getByText('Ver fonte oficial')).toBeTruthy();
+  expect(screen.queryByText('Ligação com sua campanha')).toBeNull();
+  expect(screen.queryByText('Como interpretar')).toBeNull();
+});
+it('troca de conta descarta a resposta de progresso anterior', async () => {
+  let resolver;
+  const normal = mockRequisitar.getMockImplementation();
+  mockRequisitar.mockImplementation((r, o) =>
+    r.includes('/pessoa-a/progresso')
+      ? new Promise((resolve) => {
+          resolver = resolve;
+        })
+      : normal(r, o),
+  );
+  const tela = render(aplicativo());
+  await waitFor(() => expect(resolver).toEqual(expect.any(Function)));
+  mockUsuarioId = 'pessoa-b';
+  respostaProgresso.objetivos.campanhas[0].titulo = 'Meta da conta B';
+  tela.rerender(aplicativo());
+  await screen.findByLabelText('Meta da conta B: 8 de 16 módulos');
+  await act(async () => resolver({ ...progressoDeTeste(), objetivos: objetivosDeTeste() }));
+  expect(screen.queryByText('Aprender mensageria')).toBeNull();
+});
+it('área sem mapeamento não inventa pesquisa nem classificação pessoal', async () => {
+  areaSemMapa = true;
+  render(aplicativo());
+  fireEvent.press(screen.getByRole('tab', { name: 'Pesquisas' }));
+  await screen.findByText('Referência pública compatível de Finanças em breve no Icarus.');
+  expect(screen.queryByText('Informar meu sono')).toBeNull();
 });
 
-it('não mostra o gráfico da conta anterior se sua resposta chegar depois da troca de sessão', async () => {
-  let terminarA;
-  const normal = mockRequisitar.getMockImplementation();
-  mockRequisitar.mockImplementation((caminho, opcoes) => {
-    if (caminho.includes('pessoa-a/progresso'))
-      return new Promise((resolve) => {
-        terminarA = resolve;
-      });
-    if (caminho.includes('pessoa-b/progresso'))
-      return Promise.resolve({
-        ...progressoDeTeste(),
-        indicadores: { ...progressoDeTeste().indicadores, concluidas: 3 },
-      });
-    return normal(caminho, opcoes);
-  });
+it('mantém a campanha escolhida ao trocar período e aba, sem gravar uma preferência', async () => {
+  render(aplicativo());
+  await screen.findByLabelText('Escolher campanha do progresso');
+  fireEvent.press(screen.getByLabelText('Escolher campanha do progresso'));
+  fireEvent.press(screen.getByRole('button', { name: 'Caminhar no parque' }));
+  expect(
+    screen.getByText('Esta campanha ainda não tem um resultado mensurado para exibir.'),
+  ).toBeTruthy();
+  fireEvent.press(screen.getByLabelText('Mês anterior completo'));
+  await waitFor(() =>
+    expect(mockRequisitar).toHaveBeenCalledWith(
+      '/api/usuarios/pessoa-a/progresso?periodo=mesAnterior',
+      expect.objectContaining({ signal: expect.anything() }),
+    ),
+  );
+  expect(
+    screen.getByLabelText('Escolher campanha do progresso').props.accessibilityValue.text,
+  ).toBe('Caminhar no parque');
+  fireEvent.press(screen.getByRole('tab', { name: 'Pesquisas' }));
+  await screen.findByText('Atividade física e sono');
+  fireEvent.press(screen.getByRole('tab', { name: 'Meu progresso' }));
+  await screen.findByLabelText('Escolher campanha do progresso');
+  expect(
+    screen.getByLabelText('Escolher campanha do progresso').props.accessibilityValue.text,
+  ).toBe('Caminhar no parque');
+  expect(mockRequisitar.mock.calls.every(([, o]) => !o?.metodo || o.metodo === 'GET')).toBe(true);
+});
+it('não herda a campanha escolhida de outra conta', async () => {
   const tela = render(aplicativo());
+  await screen.findByLabelText('Escolher campanha do progresso');
+  fireEvent.press(screen.getByLabelText('Escolher campanha do progresso'));
+  fireEvent.press(screen.getByRole('button', { name: 'Caminhar no parque' }));
   mockUsuarioId = 'pessoa-b';
   tela.rerender(aplicativo());
-  expect(await screen.findByLabelText('3 missões feitas')).toBeTruthy();
-  await act(async () => {
-    terminarA({
-      ...progressoDeTeste(),
-      indicadores: { ...progressoDeTeste().indicadores, concluidas: 99 },
-    });
-  });
-  expect(screen.queryByLabelText('99 missões feitas')).toBeNull();
-});
-
-it('mostra pontos e recompensas sob demanda sem tomar o lugar da evolução e da meta', async () => {
-  render(aplicativo());
-  await screen.findByLabelText('2 missões feitas');
-  expect(screen.queryByLabelText('Pontos ganhos: 60')).toBeNull();
-  fireEvent.press(screen.getByLabelText('Ver mais números'));
-  expect(screen.getByLabelText('Pontos ganhos: 60')).toBeTruthy();
-  expect(screen.getByLabelText('Recompensas resgatadas: 1')).toBeTruthy();
-});
-
-it('distingue a meta real dos pontos e avisa quando o prazo da meta passou', async () => {
-  respostaMeta = evolucaoDaMetaDeTeste({
-    valorAtual: 860,
-    valorMensurado: 1200,
-    unidade: 'reais',
-    cenario: { disponivel: false, motivo: 'historico_insuficiente' },
-    evolucao: {
-      estado: 'historico_insuficiente',
-      faltante: 340,
-      avancoRegistrado: null,
-      pontos: [],
-    },
-  });
-  render(
-    aplicativo('ProgressoScreen', [
-      {
-        id: 1,
-        titulo: 'Acumular pontos',
-        estado: 'emAndamento',
-        valorAtual: 99,
-        valorMensurado: 600,
-        unidade: 'pontos ',
-      },
-      {
-        id: 2,
-        titulo: 'Reforçar a reserva',
-        estado: 'emAndamento',
-        valorAtual: 860,
-        valorMensurado: 1200,
-        unidade: 'reais',
-        dataLimite: '15/10/2020',
-        areaDaVida: 'financas',
-      },
-    ]),
-  );
-  expect(await screen.findByLabelText('Reforçar a reserva: 860 de 1.200 reais')).toBeTruthy();
-  expect(screen.queryByText('Acumular pontos')).toBeNull();
-  expect(screen.getByText('O prazo passou. Que tal rever o planejamento?')).toBeTruthy();
-});
-
-it('consome objetivos pelo resumo, troca período e abre o detalhe sem consultas de previsão extras', async () => {
-  const anterior = mockRequisitar.getMockImplementation();
-  mockRequisitar.mockImplementation(async (caminho) => {
-    if (/\/progresso\?/.test(caminho)) {
-      const objetivos = objetivosDeTeste();
-      if (caminho.includes('mesAnterior'))
-        objetivos.campanhas[0].resultado.evolucaoNoPeriodo.avancoRegistrado = 5;
-      return { ...progressoDeTeste(), versaoContrato: '1.3.0', objetivos };
-    }
-    return anterior(caminho);
-  });
-  render(aplicativo('ProgressoScreen', [metaComHistorico]));
-  await screen.findByLabelText('Ver meus objetivos');
-  expect(screen.getByText('+2')).toBeTruthy();
-  fireEvent.press(screen.getByLabelText('Mês anterior completo'));
-  await screen.findByText('+5');
-  expect(screen.getByLabelText('Aprender mensageria: 8 de 16 módulos')).toBeTruthy();
+  await screen.findByLabelText('Aprender mensageria: 8 de 16 módulos');
   expect(
-    mockRequisitar.mock.calls.filter(([c]) => /\/campanhas\/12\/progresso/.test(c)),
-  ).toHaveLength(0);
-  fireEvent.press(screen.getByLabelText('Ver meus objetivos'));
-  fireEvent.press(screen.getByLabelText('Detalhar campanha: Aprender mensageria'));
-  fireEvent.press(screen.getByLabelText('Ver campanha: Aprender mensageria'));
-  await screen.findByText('Detalhe da campanha');
-  expect(await screen.findByLabelText('Registrar progresso')).toBeTruthy();
+    screen.getByLabelText('Escolher campanha do progresso').props.accessibilityValue.text,
+  ).toBe('Aprender mensageria');
 });
