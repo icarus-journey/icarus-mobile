@@ -1,7 +1,10 @@
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useExecucaoMissao } from '../../hooks/useExecucaoMissao';
+import { useExclusaoPlanejamento } from '../../hooks/useExclusaoPlanejamento';
+import { BotaoExcluirPlanejamento } from '../../components/BotaoExcluirPlanejamento';
+import { useRef, useState } from 'react';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { BottomNav } from '../../components/BottomNav';
 import { PrimaryButton, SecondaryButton } from '../../components/Button';
 import { DetailInfoCard } from '../../components/DetailInfoCard';
 import { DetailProgressCard } from '../../components/DetailProgressCard';
@@ -9,9 +12,18 @@ import { DetailRewardCard } from '../../components/DetailRewardCard';
 import { DetailSummaryCard } from '../../components/DetailSummaryCard';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import IconEdit from '../../assets/icons/icon-edit.svg';
+import { useCampaigns } from '../../state/CampaignsContext';
 import { useMissions } from '../../state/MissionsContext';
 import { colors } from '../../theme/colors';
 import { fontFamily, fontSize } from '../../theme/typography';
+import { vibrarConclusao } from '../../utils/haptics';
+import {
+  aceitaRealizacaoInformada,
+  formatarRealizacao,
+  mensagemErroRealizacao,
+} from '../../utils/realizacaoMissao';
+import { useSessao } from '../../state/SessaoContext';
+import { ConfirmarRealizacaoModal } from './ConfirmarRealizacaoModal';
 
 const DIFICULDADE_LABELS = {
   TRIVIAL: 'Trivial',
@@ -20,17 +32,23 @@ const DIFICULDADE_LABELS = {
   DIFICIL: 'Difícil',
 };
 
-const RECORRENCIA_LABELS = {
-  DIARIA: 'Diária',
-  SEMANAL: 'Semanal',
-  MENSAL: 'Mensal',
-};
-
 export function MissionDetailScreen({ route, navigation }) {
   const { missionId } = route.params;
-  const { getMissionById } = useMissions();
+  const { sessao } = useSessao();
+  const chave = `${sessao?.usuarioId}:${missionId}`;
+  const exclusao = useExclusaoPlanejamento({ tipo: 'missoes', id: missionId, navigation });
+  const { getMissionById, concluirMissao, pararMissao, aplicarExecucao } = useMissions();
+  const { incrementarValorAtual, getCampaignById } = useCampaigns();
   const insets = useSafeAreaInsets();
   const mission = getMissionById(missionId);
+  const leitura = useExecucaoMissao(missionId, navigation, aplicarExecucao);
+  const execucao = leitura.dados?.execucao;
+  const [concluindo, setConcluindo] = useState(false);
+  const envioEmCurso = useRef(false);
+  const [parando, setParando] = useState(false);
+  const [erro, setErro] = useState('');
+  const [registroEmEdicao, setRegistroEmEdicao] = useState(null);
+  const [erroRealizacao, setErroRealizacao] = useState('');
 
   if (!mission) {
     return (
@@ -41,10 +59,89 @@ export function MissionDetailScreen({ route, navigation }) {
     );
   }
 
+  const concluida = execucao ? execucao.concluida : Boolean(mission.concluidaEm);
+  const campanha = mission.campanha ? getCampaignById(mission.campanha.id) : null;
+  const campanhaEncerrada = ['concluida', 'excluida'].includes(campanha?.estado);
+  const inativa = Boolean(mission.inativa) || (campanhaEncerrada && mission.recorrente);
+
+  async function handleConcluir(realizacao = null, alvo = execucao) {
+    if (envioEmCurso.current || !alvo?.podeConcluir) return;
+    envioEmCurso.current = true;
+    setConcluindo(true);
+    setErro('');
+    setErroRealizacao('');
+    try {
+      const resultado = await concluirMissao(
+        mission.id,
+        alvo.ocorrenciaId,
+        realizacao
+          ? {
+              ...realizacao,
+              dataPrevistaEsperada: alvo.dataPrevista,
+              fusoHorarioEsperado: alvo.fusoHorario,
+            }
+          : undefined,
+      );
+      vibrarConclusao();
+      // Missão e campanha vivem em Contexts separados — reflete aqui, sem round-trip à API,
+      // o mesmo crédito que ConcluirMissaoUseCase já aplicou ao valor_atual no backend.
+      if (mission.campanha && !resultado.repetida) {
+        incrementarValorAtual(mission.campanha.id, resultado.pontuacaoCreditada);
+      }
+      setRegistroEmEdicao(null);
+      leitura.atualizar();
+    } catch (falha) {
+      if (realizacao) {
+        setErroRealizacao(mensagemErroRealizacao(falha));
+        if ([404, 409].includes(falha.status)) leitura.atualizar();
+        return;
+      }
+      setErro(
+        falha.status === 409
+          ? 'A execução mudou. Atualize os dados antes de concluir.'
+          : 'Não foi possível concluir a missão. Tente novamente.',
+      );
+      leitura.atualizar();
+    } finally {
+      envioEmCurso.current = false;
+      setConcluindo(false);
+    }
+  }
+
+  function handleParar() {
+    Alert.alert(
+      'Parar esta missão?',
+      'Ela deixa de gerar novos dias. Dias futuros ainda não vencidos são cancelados; os atrasados ficam no histórico.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Parar',
+          style: 'destructive',
+          onPress: async () => {
+            setParando(true);
+            setErro('');
+            try {
+              await pararMissao(mission.id);
+              leitura.atualizar();
+            } catch {
+              setErro('Não foi possível parar a missão. Tente novamente.');
+            } finally {
+              setParando(false);
+            }
+          },
+        },
+      ],
+    );
+  }
+
   return (
     <View style={styles.screen}>
       <ScrollView
         style={styles.body}
+        accessibilityElementsHidden={registroEmEdicao?.chave === chave}
+        importantForAccessibility={
+          registroEmEdicao?.chave === chave ? 'no-hide-descendants' : 'auto'
+        }
         contentContainerStyle={[
           styles.content,
           { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 32 },
@@ -58,13 +155,26 @@ export function MissionDetailScreen({ route, navigation }) {
           description={mission.descricao}
           chips={[
             { label: 'Missão', backgroundColor: colors.dangerSoft, textColor: colors.dangerText },
+            inativa
+              ? {
+                  label: 'Parada',
+                  backgroundColor: colors.dangerSoft,
+                  textColor: colors.dangerText,
+                }
+              : concluida
+                ? {
+                    label: 'Concluída',
+                    backgroundColor: colors.successSoft,
+                    textColor: colors.success,
+                  }
+                : {
+                    label: 'Em andamento',
+                    backgroundColor: colors.softPurpleAlt,
+                    textColor: colors.brandDark,
+                  },
             {
-              label: 'Em andamento',
-              backgroundColor: colors.softPurpleAlt,
-              textColor: colors.brandDark,
-            },
-            {
-              label: `+${mission.pontos} pts`,
+              label: 'Recompensa',
+              pontos: execucao?.pontuacao ?? mission.pontos,
               backgroundColor: colors.softPurpleAlt,
               textColor: colors.brandDark,
             },
@@ -73,9 +183,25 @@ export function MissionDetailScreen({ route, navigation }) {
 
         <DetailInfoCard
           rows={[
-            { label: 'Prazo', value: mission.prazoCompleto },
+            {
+              label: execucao ? 'Execução' : 'Prazo',
+              value: execucao?.dataPrevista
+                ? execucao.dataPrevista.split('-').reverse().join('/')
+                : mission.prazoCompleto,
+            },
+            ...(execucao?.realizadaEm
+              ? [
+                  {
+                    label: 'Realizada em',
+                    value: formatarRealizacao(
+                      execucao.realizadaEm,
+                      execucao.fusoHorarioRealizacao ?? execucao.fusoHorario,
+                    ),
+                  },
+                ]
+              : []),
             { label: 'Dificuldade', value: DIFICULDADE_LABELS[mission.dificuldade] },
-            { label: 'Recorrência', value: RECORRENCIA_LABELS[mission.recorrencia] },
+            { label: 'Recorrente', value: mission.recorrente ? 'Sim' : 'Não' },
             { label: 'Campanha', value: mission.campanha?.titulo },
           ]}
         />
@@ -96,21 +222,119 @@ export function MissionDetailScreen({ route, navigation }) {
           </Text>
         </View>
 
-        <DetailRewardCard value={mission.recompensaLabel} />
+        <DetailRewardCard
+          label={mission.recorrente ? 'Pontos desta execução' : 'Recompensa'}
+          valor={execucao?.pontuacao ?? mission.pontos}
+        />
 
+        {erro ? (
+          <Text style={styles.errorText} accessibilityRole="alert">
+            {erro}
+          </Text>
+        ) : null}
+
+        {leitura.erro ? (
+          <Text style={styles.errorText} accessibilityRole="alert">
+            {leitura.erro}
+          </Text>
+        ) : null}
         <PrimaryButton
-          label="Concluir missão"
-          onPress={() => {}}
-          accessibilityHint="Ainda não disponível nesta versão"
+          label={
+            leitura.carregando
+              ? 'Carregando execução...'
+              : concluida
+                ? 'Missão concluída'
+                : campanhaEncerrada
+                  ? 'Campanha encerrada'
+                  : inativa
+                    ? 'Missão parada'
+                    : execucao?.codigoBloqueio === 'campanha_nao_iniciada'
+                      ? 'Campanha não iniciada'
+                      : execucao?.codigoBloqueio === 'execucao_futura' && execucao.proximaData
+                        ? `Disponível em ${execucao.proximaData.split('-').reverse().join('/')}`
+                        : !execucao?.podeConcluir
+                          ? 'Sem execução disponível'
+                          : concluindo
+                            ? 'Concluindo...'
+                            : 'Concluir agora'
+          }
+          onPress={() => handleConcluir()}
+          disabled={
+            leitura.carregando ||
+            !execucao?.podeConcluir ||
+            campanhaEncerrada ||
+            inativa ||
+            concluida ||
+            concluindo ||
+            exclusao.excluindo
+          }
         />
-        <SecondaryButton
-          label="Editar missão"
-          onPress={() => navigation.navigate('MissionForm', { missionId: mission.id })}
-          icon={<IconEdit width={24} height={24} />}
-        />
+        {aceitaRealizacaoInformada(leitura.dados?.versaoContrato) &&
+        execucao?.podeConcluir &&
+        !campanhaEncerrada &&
+        !inativa &&
+        !concluida ? (
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Fiz em outro momento"
+            accessibilityHint="Escolher data e horário antes de confirmar a conclusão"
+            accessibilityState={{ disabled: concluindo || exclusao.excluindo }}
+            disabled={concluindo || exclusao.excluindo}
+            style={styles.outroMomento}
+            onPress={() => {
+              setErroRealizacao('');
+              setRegistroEmEdicao({ chave, execucao });
+            }}
+          >
+            <Text style={styles.outroMomentoTexto}>Fiz em outro momento</Text>
+          </Pressable>
+        ) : null}
+        {leitura.erro || erro ? (
+          <SecondaryButton
+            label="Atualizar execução"
+            onPress={() => {
+              setErro('');
+              leitura.atualizar();
+            }}
+          />
+        ) : null}
+        {!campanhaEncerrada && (!concluida || mission.recorrente) && !inativa ? (
+          <SecondaryButton
+            label="Editar missão"
+            disabled={exclusao.excluindo}
+            onPress={() => navigation.navigate('MissionForm', { missionId: mission.id })}
+            icon={<IconEdit width={24} height={24} />}
+          />
+        ) : null}
+        {mission.recorrente && !inativa ? (
+          <SecondaryButton
+            label={parando ? 'Parando...' : 'Parar missão'}
+            onPress={handleParar}
+            disabled={parando || exclusao.excluindo}
+          />
+        ) : null}
+        {mission.recorrente || (!concluida && !inativa) ? (
+          <BotaoExcluirPlanejamento
+            nome="missão"
+            hierarquia={false}
+            aoExcluir={exclusao.excluir}
+            excluindo={exclusao.excluindo}
+            erro={exclusao.erro}
+            disabled={concluindo || parando}
+          />
+        ) : null}
       </ScrollView>
 
-      <BottomNav onPressMissoes={() => navigation.popToTop()} />
+      {registroEmEdicao?.chave === chave ? (
+        <ConfirmarRealizacaoModal
+          execucao={registroEmEdicao.execucao}
+          aoConfirmar={(realizacao) => handleConcluir(realizacao, registroEmEdicao.execucao)}
+          aoCancelar={() => setRegistroEmEdicao(null)}
+          enviando={concluindo}
+          erro={erroRealizacao}
+          espacoInferior={insets.bottom}
+        />
+      ) : null}
     </View>
   );
 }
@@ -133,6 +357,23 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.regular,
     fontSize: fontSize.label,
     color: colors.textSecondary,
+  },
+  outroMomento: {
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+  },
+  outroMomentoTexto: {
+    fontFamily: fontFamily.medium,
+    fontSize: fontSize.body,
+    color: colors.brandLink,
+    textAlign: 'center',
+  },
+  errorText: {
+    fontFamily: fontFamily.regular,
+    fontSize: fontSize.base,
+    color: colors.dangerText,
   },
   card: {
     width: '100%',

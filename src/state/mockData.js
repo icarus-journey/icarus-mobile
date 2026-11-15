@@ -17,11 +17,10 @@ export const MOCK_MISSIONS = [
     prazoCompleto: 'Ontem, 18:00',
     dificuldade: 'MEDIA',
     pontos: 20,
-    recorrencia: 'DIARIA',
+    recorrente: true,
     campanha: MOCK_CAMPANHAS[0],
     corDestaque: colors.typeAccentA,
     progresso: { concluidos: 3, total: 5 },
-    recompensaLabel: '20 XP + 10 pontos',
   },
   {
     id: 'missao-2',
@@ -33,11 +32,10 @@ export const MOCK_MISSIONS = [
     prazoCompleto: 'Hoje, 18:00',
     dificuldade: 'MEDIA',
     pontos: 20,
-    recorrencia: 'DIARIA',
+    recorrente: false,
     campanha: MOCK_CAMPANHAS[0],
     corDestaque: colors.typeAccentB,
     progresso: { concluidos: 3, total: 5 },
-    recompensaLabel: '20 XP + 10 pontos',
   },
 ];
 

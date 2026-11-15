@@ -1,17 +1,22 @@
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useExclusaoPlanejamento } from '../../hooks/useExclusaoPlanejamento';
+import { BotaoExcluirPlanejamento } from '../../components/BotaoExcluirPlanejamento';
+import { useState } from 'react';
+import { Alert, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { BottomNav } from '../../components/BottomNav';
 import { PrimaryButton, SecondaryButton } from '../../components/Button';
 import { DetailInfoCard } from '../../components/DetailInfoCard';
 import { DetailProgressCard } from '../../components/DetailProgressCard';
+import { ProgressoDaCampanha } from './ProgressoDaCampanha';
 import { DetailRewardCard } from '../../components/DetailRewardCard';
 import { DetailSummaryCard } from '../../components/DetailSummaryCard';
+import { KeyboardAwareScrollView } from '../../components/KeyboardAwareScrollView';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import IconEdit from '../../assets/icons/icon-edit.svg';
 import { useCampaigns } from '../../state/CampaignsContext';
 import { colors } from '../../theme/colors';
 import { fontFamily, fontSize } from '../../theme/typography';
+import { vibrarConclusao } from '../../utils/haptics';
 
 const DIFICULDADE_LABELS = {
   TRIVIAL: 'Trivial',
@@ -20,11 +25,21 @@ const DIFICULDADE_LABELS = {
   DIFICIL: 'Difícil',
 };
 
+const ESTADO_CAMPANHA_LABELS = {
+  planejada: 'Planejada',
+  emAndamento: 'Em andamento',
+  concluida: 'Concluída',
+  excluida: 'Excluída',
+};
+
 export function CampaignDetailScreen({ route, navigation }) {
   const { campaignId } = route.params;
-  const { getCampaignById } = useCampaigns();
+  const exclusao = useExclusaoPlanejamento({ tipo: 'campanhas', id: campaignId, navigation });
+  const { getCampaignById, concluirCampanha, aplicarProgresso } = useCampaigns();
   const insets = useSafeAreaInsets();
   const campaign = getCampaignById(campaignId);
+  const [concluindo, setConcluindo] = useState(false);
+  const [erro, setErro] = useState('');
 
   if (!campaign) {
     return (
@@ -35,11 +50,39 @@ export function CampaignDetailScreen({ route, navigation }) {
     );
   }
 
+  const concluida = campaign.estado === 'concluida';
+  const encerrada = concluida || campaign.estado === 'excluida';
+  const estadoLabel = ESTADO_CAMPANHA_LABELS[campaign.estado] ?? 'Em andamento';
+
+  async function handleConcluir() {
+    setConcluindo(true);
+    setErro('');
+    try {
+      await concluirCampanha(campaign.id);
+      vibrarConclusao();
+    } catch {
+      setErro('Não foi possível concluir a campanha. Tente novamente.');
+    } finally {
+      setConcluindo(false);
+    }
+  }
+
+  function confirmarConclusao() {
+    Alert.alert(
+      'Concluir campanha?',
+      'As repetições pendentes de hoje em diante serão canceladas. Seu histórico e seus pontos ficam salvos.',
+      [
+        { text: 'Voltar', style: 'cancel' },
+        { text: 'Concluir', onPress: handleConcluir },
+      ],
+    );
+  }
+
   const quantidadeMissoes = campaign.missoesAtribuidas?.length ?? 0;
 
   return (
     <View style={styles.screen}>
-      <ScrollView
+      <KeyboardAwareScrollView
         style={styles.body}
         contentContainerStyle={[
           styles.content,
@@ -58,14 +101,21 @@ export function CampaignDetailScreen({ route, navigation }) {
               backgroundColor: colors.dangerSoft,
               textColor: colors.dangerText,
             },
-            {
-              label: 'Em andamento',
-              backgroundColor: colors.softPurpleAlt,
-              textColor: colors.brandDark,
-            },
+            concluida
+              ? {
+                  label: estadoLabel,
+                  backgroundColor: colors.successSoft,
+                  textColor: colors.success,
+                }
+              : {
+                  label: estadoLabel,
+                  backgroundColor: colors.softPurpleAlt,
+                  textColor: colors.brandDark,
+                },
             campaign.recompensaCurta
               ? {
-                  label: `+${campaign.recompensaCurta}`,
+                  label: 'Recompensa final',
+                  pontos: campaign.recompensaCurta,
                   backgroundColor: colors.softPurpleAlt,
                   textColor: colors.brandDark,
                 }
@@ -75,6 +125,12 @@ export function CampaignDetailScreen({ route, navigation }) {
 
         <DetailInfoCard
           rows={[
+            {
+              label: 'Início',
+              value: campaign.prazoInicio
+                ? campaign.prazoInicio.split('-').reverse().join('/')
+                : null,
+            },
             { label: 'Prazo', value: campaign.prazoLabel },
             { label: 'Dificuldade', value: DIFICULDADE_LABELS[campaign.dificuldade] },
             {
@@ -85,30 +141,58 @@ export function CampaignDetailScreen({ route, navigation }) {
           ]}
         />
 
+        <ProgressoDaCampanha
+          campanhaId={campaign.id}
+          campanha={campaign}
+          aoAtualizar={aplicarProgresso}
+          aoDefinirMeta={() => navigation.navigate('CampaignForm', { campaignId: campaign.id })}
+          aoConcluir={confirmarConclusao}
+          concluindo={concluindo}
+        />
+
         {campaign.progresso ? (
           <DetailProgressCard
-            title="Progresso desta campanha"
+            title="Execução das missões"
             subtitle={`${campaign.progresso.concluidas} de ${campaign.progresso.total} missões concluídas`}
             current={campaign.progresso.concluidas}
             total={campaign.progresso.total}
           />
         ) : null}
 
-        <DetailRewardCard value={campaign.recompensaLabel} />
+        <DetailRewardCard valor={campaign.pontos} />
+
+        {erro ? (
+          <Text style={styles.errorText} accessibilityRole="alert">
+            {erro}
+          </Text>
+        ) : null}
 
         <PrimaryButton
-          label="Concluir campanha"
-          onPress={() => {}}
-          accessibilityHint="Ainda não disponível nesta versão"
+          label={
+            concluida ? 'Campanha concluída' : concluindo ? 'Concluindo...' : 'Concluir campanha'
+          }
+          onPress={confirmarConclusao}
+          disabled={encerrada || concluindo || exclusao.excluindo}
         />
-        <SecondaryButton
-          label="Editar campanha"
-          onPress={() => navigation.navigate('CampaignForm', { campaignId: campaign.id })}
-          icon={<IconEdit width={24} height={24} />}
-        />
-      </ScrollView>
-
-      <BottomNav onPressMissoes={() => navigation.popToTop()} />
+        {campaign.estado === 'planejada' ? (
+          <SecondaryButton
+            label="Editar campanha"
+            disabled={exclusao.excluindo}
+            onPress={() => navigation.navigate('CampaignForm', { campaignId: campaign.id })}
+            icon={<IconEdit width={24} height={24} />}
+          />
+        ) : null}
+        {true ? (
+          <BotaoExcluirPlanejamento
+            nome="campanha"
+            hierarquia={true}
+            aoExcluir={exclusao.excluir}
+            excluindo={exclusao.excluindo}
+            erro={exclusao.erro}
+            disabled={concluindo}
+          />
+        ) : null}
+      </KeyboardAwareScrollView>
     </View>
   );
 }
@@ -131,5 +215,10 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.regular,
     fontSize: fontSize.label,
     color: colors.textSecondary,
+  },
+  errorText: {
+    fontFamily: fontFamily.regular,
+    fontSize: fontSize.base,
+    color: colors.dangerText,
   },
 });
