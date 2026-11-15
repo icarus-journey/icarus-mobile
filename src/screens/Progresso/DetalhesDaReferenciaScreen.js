@@ -7,6 +7,7 @@ import { estilosAnalise as estilos } from '../../components/Analise/estilosAnali
 import { ValoresDaReferencia } from '../../components/Analise/ValoresDaReferencia';
 import { tipoDiaDaReferencia } from '../../components/Analise/formatarReferencia';
 import { estilosProgresso } from './estilosProgresso';
+import { DetalhesRelacaoPesquisa } from './DetalhesRelacaoPesquisa';
 
 function nomeDaOrigem(fonte) {
   return (
@@ -20,6 +21,12 @@ function nomeDaOrigem(fonte) {
 }
 
 export function DetalhesDaReferenciaScreen({ navigation, route }) {
+  if (route.params.leitura)
+    return <DetalhesRelacaoPesquisa navigation={navigation} leitura={route.params.leitura} />;
+  return <DetalheReferenciaOriginal navigation={navigation} route={route} />;
+}
+
+function DetalheReferenciaOriginal({ navigation, route }) {
   const { referencia } = route.params;
   const { dados, recorte, origens } = referencia;
   const insets = useSafeAreaInsets();

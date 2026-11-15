@@ -10,8 +10,8 @@ export function criarServicoDiario({ usuarioId, requisitarAutenticado }) {
     texto: entrada.texto.trim(),
   });
   return {
-    async listar() {
-      const entradas = await requisitarAutenticado(base);
+    async listar(signal) {
+      const entradas = await requisitarAutenticado(base, ...(signal ? [{ signal }] : []));
       if (!Array.isArray(entradas)) throw new Error('Resposta de diário inválida.');
       return entradas.map(normalizarEntrada);
     },

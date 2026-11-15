@@ -1,41 +1,59 @@
-import { useEffect } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef } from 'react';
 import { AppState } from 'react-native';
 
 import { criarServicoPerfil, obterFusoDoDispositivo } from '../services/perfil';
 import { useSessao } from './SessaoContext';
 
-export function SincronizadorDeFuso() {
+const SincronizacaoFusoContext = createContext(null);
+
+export function SincronizadorDeFuso({ children }) {
   const { sessao, requisitarAutenticado } = useSessao();
   const usuarioId = sessao?.usuarioId;
+  const servico = useMemo(
+    () => criarServicoPerfil({ usuarioId, requisitarAutenticado }),
+    [usuarioId, requisitarAutenticado],
+  );
+  const controle = useRef({ ativo: true, ultimoFuso: null, pendente: null });
+  const sincronizar = useCallback(
+    function sincronizarFuso() {
+      const estado = controle.current;
+      const fuso = obterFusoDoDispositivo();
+      if (!estado.ativo || !usuarioId || !fuso) return Promise.resolve();
+      if (estado.pendente) return estado.pendente.then(sincronizarFuso);
+      if (fuso === estado.ultimoFuso) return Promise.resolve();
+      estado.pendente = servico
+        .atualizarFuso(fuso)
+        .then(() => {
+          if (estado.ativo) estado.ultimoFuso = fuso;
+        })
+        .finally(() => {
+          estado.pendente = null;
+        });
+      return estado.pendente;
+    },
+    [usuarioId, servico],
+  );
 
   useEffect(() => {
-    if (!usuarioId) return;
-    let ativo = true;
-    let enviando = false;
-    let ultimoFuso;
-    const servico = criarServicoPerfil({ usuarioId, requisitarAutenticado });
-    async function sincronizar() {
-      const fuso = obterFusoDoDispositivo();
-      if (!ativo || enviando || !fuso || fuso === ultimoFuso) return;
-      enviando = true;
-      try {
-        await servico.atualizarFuso(fuso);
-        if (ativo) ultimoFuso = fuso;
-      } catch {
-        // Uma falha de rede permite nova tentativa ao voltar ao aplicativo.
-      } finally {
-        enviando = false;
-      }
-    }
-    sincronizar();
-    const assinatura = AppState.addEventListener('change', (estado) => {
-      if (estado === 'active') sincronizar();
+    const estado = controle.current;
+    estado.ativo = true;
+    const tentar = () => sincronizar().catch(() => {});
+    tentar();
+    const assinatura = AppState.addEventListener('change', (proximo) => {
+      if (proximo === 'active') tentar();
     });
     return () => {
-      ativo = false;
+      estado.ativo = false;
       assinatura.remove();
     };
-  }, [usuarioId, requisitarAutenticado]);
+  }, [sincronizar]);
+  return (
+    <SincronizacaoFusoContext.Provider value={sincronizar}>
+      {children}
+    </SincronizacaoFusoContext.Provider>
+  );
+}
 
-  return null;
+export function useSincronizacaoFuso() {
+  return useContext(SincronizacaoFusoContext);
 }

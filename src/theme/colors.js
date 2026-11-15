@@ -19,6 +19,8 @@ export const colors = {
   textSecondary: '#625a72',
   textSecondaryAlt: '#6b6478',
   textMuted: '#665c7a',
+  textoDiaMissao: '#6f687a',
+  textoGrupoMissao: '#4f465f',
 
   borderDefault: '#ded8ea',
   borderDefaultAlt: '#e8e3ef',

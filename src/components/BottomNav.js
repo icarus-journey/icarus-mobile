@@ -21,6 +21,7 @@ export function BottomNav({
   onPressDiario,
   onPressLoja,
   onPressPerfil,
+  onLongPressItem,
 }) {
   const insets = useSafeAreaInsets();
   const acoes = {
@@ -33,6 +34,8 @@ export function BottomNav({
 
   return (
     <View
+      accessibilityRole="tablist"
+      accessibilityLabel="Navegação principal"
       style={[styles.container, { height: 76 + insets.bottom, paddingBottom: 6 + insets.bottom }]}
     >
       {ITENS.map(({ key, label, Icon }) => {
@@ -63,7 +66,8 @@ export function BottomNav({
           <Pressable
             key={key}
             onPress={onPress}
-            accessibilityRole="button"
+            onLongPress={onLongPressItem ? () => onLongPressItem(key) : undefined}
+            accessibilityRole="tab"
             accessibilityLabel={label}
             accessibilityState={{ selected: isActive }}
             style={styles.item}

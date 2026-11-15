@@ -1,17 +1,44 @@
+import { validarProgresso } from './progresso';
+import { validarRelatorioSemanal } from './validarRelatorioSemanal';
+import { validarPesquisas } from './validarPesquisas';
+
 export function criarServicoAnalise({ usuarioId, requisitarAutenticado }) {
   const base = `/api/usuarios/${usuarioId}`;
   return {
-    progresso: (periodo = 'semanaAnterior') =>
-      requisitarAutenticado(`${base}/progresso?periodo=${encodeURIComponent(periodo)}`),
-    consultarRelatorio: () => requisitarAutenticado(`${base}/relatorios/semanais/atual`),
-    solicitarRelatorio: () =>
-      requisitarAutenticado(`${base}/relatorios/semanais`, { metodo: 'POST' }),
-    tentarRelatorioNovamente: () =>
-      requisitarAutenticado(`${base}/relatorios/semanais/tentar-novamente`, { metodo: 'POST' }),
-    referencias: (areaDaVida, tipoDia = 'todos') => {
+    progresso: async (periodo = 'semanaAnterior', signal) =>
+      validarProgresso(
+        await requisitarAutenticado(
+          `${base}/progresso?periodo=${encodeURIComponent(periodo)}`,
+          ...(signal ? [{ signal }] : []),
+        ),
+      ),
+    consultarRelatorio: async (signal) =>
+      validarRelatorioSemanal(
+        await requisitarAutenticado(
+          `${base}/relatorios/semanais/atual`,
+          ...(signal ? [{ signal }] : []),
+        ),
+      ),
+    solicitarRelatorio: async () =>
+      validarRelatorioSemanal(
+        await requisitarAutenticado(`${base}/relatorios/semanais`, { metodo: 'POST' }),
+      ),
+    tentarRelatorioNovamente: async () =>
+      validarRelatorioSemanal(
+        await requisitarAutenticado(`${base}/relatorios/semanais/tentar-novamente`, {
+          metodo: 'POST',
+        }),
+      ),
+    referencias: async (areaDaVida, tipoDia = 'todos', signal, campanhaId = null) => {
       const parametros = [`tipoDia=${encodeURIComponent(tipoDia)}`];
-      if (areaDaVida) parametros.push(`areaDaVida=${encodeURIComponent(areaDaVida)}`);
-      return requisitarAutenticado(`${base}/referencias-publicas?${parametros.join('&')}`);
+      if (campanhaId != null) parametros.push(`campanhaId=${encodeURIComponent(campanhaId)}`);
+      else if (areaDaVida) parametros.push(`areaDaVida=${encodeURIComponent(areaDaVida)}`);
+      return validarPesquisas(
+        await requisitarAutenticado(
+          `${base}/referencias-publicas?${parametros.join('&')}`,
+          ...(signal ? [{ signal }] : []),
+        ),
+      );
     },
   };
 }

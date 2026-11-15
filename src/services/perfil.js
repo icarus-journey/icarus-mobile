@@ -4,7 +4,7 @@ import { fromByteArray } from 'base64-js';
 export function criarServicoPerfil({ usuarioId, requisitarAutenticado }) {
   const base = `/api/usuarios/${usuarioId}`;
   return {
-    consultar: () => requisitarAutenticado(base),
+    consultar: (signal) => requisitarAutenticado(base, ...(signal ? [{ signal }] : [])),
     salvar: (dados) => requisitarAutenticado(`${base}/perfil`, { metodo: 'PUT', corpo: dados }),
     atualizarFuso: (fusoHorario) =>
       requisitarAutenticado(`${base}/fuso`, { metodo: 'PUT', corpo: { fusoHorario } }),
@@ -29,9 +29,10 @@ export async function atualizarFotoPerfil({ usuarioId, uri, requisitarAutenticad
   });
 }
 
-export async function obterFotoPerfil({ usuarioId, requisitarAutenticado }) {
+export async function obterFotoPerfil({ usuarioId, requisitarAutenticado, signal }) {
   const { conteudo, tipo } = await requisitarAutenticado(`/api/usuarios/${usuarioId}/foto`, {
     formatoResposta: 'binario',
+    ...(signal ? { signal } : {}),
   });
   return `data:${tipo};base64,${fromByteArray(conteudo)}`;
 }

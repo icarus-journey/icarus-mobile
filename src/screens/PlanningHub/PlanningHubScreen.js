@@ -1,39 +1,60 @@
-import { ResumoInicial } from './ResumoInicial';
+import { CabecalhoSecaoMissoes } from './CabecalhoSecaoMissoes';
+import { agruparMissoesPorDia } from './agruparMissoesPorDia';
 import { SecondaryButton } from '../../components/Button';
-import { useMemo, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useMemo, useRef, useState } from 'react';
+import {
+  ActivityIndicator,
+  SectionList,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  useWindowDimensions,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { BottomNav } from '../../components/BottomNav';
+import { IndicadoresJornada } from '../../components/Jornada/IndicadoresJornada';
+import { DetalhesSequenciaModal } from '../../components/Jornada/DetalhesSequenciaModal';
+import { useJornada } from '../../hooks/useJornada';
 import { CampaignHeroCard } from '../../components/CampaignHeroCard';
 import { EmptyState } from '../../components/EmptyState';
 import { EpicHeroCard } from '../../components/EpicHeroCard';
 import { SegmentedControl } from '../../components/SegmentedControl';
+import IconeAcessoProgresso from '../../assets/icons/icone-acesso-progresso.svg';
+import IconeAcessoHistorico from '../../assets/icons/icone-acesso-historico.svg';
 import { TaskCard } from '../../components/TaskCard';
 import { useCampaigns } from '../../state/CampaignsContext';
+import { useCarregamentoPlanejamento } from '../../state/CarregadorPlanejamento';
 import { useEpics } from '../../state/EpicsContext';
 import { useMissions } from '../../state/MissionsContext';
 import { colors } from '../../theme/colors';
 import { fontFamily, fontSize } from '../../theme/typography';
-import { isDataLimiteVencida } from '../../utils/dateInput';
+import {
+  formatDateDaysFromNow,
+  isDataLimiteVencida,
+  isValidDateString,
+  paraDataIso,
+} from '../../utils/dateInput';
+import { focarElemento } from '../../utils/focarElemento';
 
-function isMissaoAtrasada(mission) {
-  return mission.status === 'ATRASADA' || isDataLimiteVencida(mission.dataLimite);
+function isMissaoAtrasada(mission, referencia) {
+  return mission.status === 'ATRASADA' || isDataLimiteVencida(mission.dataLimite, referencia);
 }
 
-function SecaoExtra({ title, children }) {
-  return (
-    <View style={styles.extraSection}>
-      <Text style={styles.extraTitle}>{title}</Text>
-      <View style={styles.extraList}>{children}</View>
-    </View>
-  );
+function compararMissoesPorData(primeira, segunda) {
+  const primeiraData = isValidDateString(primeira.dataLimite)
+    ? paraDataIso(primeira.dataLimite)
+    : '9999-99-99';
+  const segundaData = isValidDateString(segunda.dataLimite)
+    ? paraDataIso(segunda.dataLimite)
+    : '9999-99-99';
+  return primeiraData.localeCompare(segundaData);
 }
 
 const HEADERS = {
-  MISSAO: { title: 'Missões', subtitle: 'Seus próximos passos.' },
-  CAMPANHA: { title: 'Campanhas', subtitle: 'Progresso das suas campanhas.' },
-  EPICO: { title: 'Épicos', subtitle: 'Objetivos que movem sua jornada.' },
+  MISSAO: { title: 'Missões' },
+  CAMPANHA: { title: 'Campanhas' },
+  EPICO: { title: 'Épicos' },
 };
 
 const ADD_LABELS = {
@@ -48,23 +69,54 @@ const ADD_ROUTES = {
   EPICO: 'EpicForm',
 };
 
+function SeparadorMissoes() {
+  return <View style={styles.separadorMissoes} />;
+}
+
 export function PlanningHubScreen({ navigation, route }) {
   const { missions } = useMissions();
+  const planejamento = useCarregamentoPlanejamento();
   const { campaigns } = useCampaigns();
   const { epics } = useEpics();
   const insets = useSafeAreaInsets();
   const [segment, setSegment] = useState(route.params?.initialSegment ?? 'MISSAO');
+  const jornada = useJornada(navigation);
+  const hoje = formatDateDaysFromNow(0);
+  const [sequenciaAberta, setSequenciaAberta] = useState(false);
+  const referenciaSequencia = useRef(null);
+  const { width, fontScale } = useWindowDimensions();
+  const caracteresDosIndicadores =
+    (jornada.dados?.saldoPontos?.toLocaleString('pt-BR').length ?? 1) +
+    (jornada.dados?.sequencia?.diasAtuais?.toLocaleString('pt-BR').length ?? 1);
+  const cabecalhoCompacto =
+    width < 380 ||
+    fontScale > 1.15 ||
+    caracteresDosIndicadores > 7 ||
+    (jornada.dados?.saldoPontos?.toLocaleString('pt-BR').length ?? 0) > 6 ||
+    (jornada.dados?.sequencia?.diasAtuais ?? 0) >= 1000;
+  const indicadores = (
+    <IndicadoresJornada
+      dados={jornada.dados}
+      carregando={jornada.carregando}
+      aoVerSequencia={() => setSequenciaAberta(true)}
+      aoVerLoja={() => navigation.navigate('Loja')}
+      referenciaSequencia={referenciaSequencia}
+    />
+  );
 
   const {
     ativas: missoesAtivas,
     atrasadas: missoesAtrasadas,
     concluidas: missoesConcluidas,
   } = useMemo(() => {
-    const concluidas = missions.filter((m) => m.concluidaEm);
-    const atrasadas = missions.filter((m) => !m.concluidaEm && isMissaoAtrasada(m));
-    const ativas = missions.filter((m) => !m.concluidaEm && !isMissaoAtrasada(m));
+    const [dia, mes, ano] = hoje.split('/').map(Number);
+    const referencia = new Date(ano, mes - 1, dia);
+    const ordenadas = [...missions].sort(compararMissoesPorData);
+    const concluidas = ordenadas.filter((m) => m.concluidaEm);
+    const atrasadas = ordenadas.filter((m) => !m.concluidaEm && isMissaoAtrasada(m, referencia));
+    const ativas = ordenadas.filter((m) => !m.concluidaEm && !isMissaoAtrasada(m, referencia));
     return { ativas, atrasadas, concluidas };
-  }, [missions]);
+  }, [missions, hoje]);
 
   const {
     ativas: campanhasAtivas,
@@ -96,10 +148,50 @@ export function PlanningHubScreen({ navigation, route }) {
     return { ativos, atrasados, concluidos };
   }, [epics]);
 
+  const secoes = useMemo(() => {
+    if (segment === 'MISSAO') {
+      return [
+        ...agruparMissoesPorDia(missoesAtivas, hoje),
+        { key: 'atrasadas', titulo: 'Atrasados', tipo: 'estado', data: missoesAtrasadas },
+        { key: 'concluidas', titulo: 'Concluídos', tipo: 'estado', data: missoesConcluidas },
+      ].filter((secao) => secao.data.length);
+    }
+    const grupos =
+      segment === 'CAMPANHA'
+        ? [
+            ['', campanhasAtivas],
+            ['Atrasados', campanhasAtrasadas],
+            ['Concluídos', campanhasConcluidas],
+          ]
+        : [
+            ['', epicosAtivos],
+            ['Atrasados', epicosAtrasados],
+            ['Concluídos', epicosConcluidos],
+          ];
+    return grupos.filter(([, itens]) => itens.length).map(([titulo, data]) => ({ titulo, data }));
+  }, [
+    segment,
+    hoje,
+    missoesAtivas,
+    missoesAtrasadas,
+    missoesConcluidas,
+    campanhasAtivas,
+    campanhasAtrasadas,
+    campanhasConcluidas,
+    epicosAtivos,
+    epicosAtrasados,
+    epicosConcluidos,
+  ]);
+
   const header = HEADERS[segment];
 
   function handleAdd() {
     navigation.navigate(ADD_ROUTES[segment]);
+  }
+
+  function fecharSequencia() {
+    setSequenciaAberta(false);
+    requestAnimationFrame(() => focarElemento(referenciaSequencia));
   }
 
   return (
@@ -107,9 +199,16 @@ export function PlanningHubScreen({ navigation, route }) {
       <View style={[styles.content, { paddingTop: insets.top + 12 }]}>
         <View style={styles.headerRow}>
           <View style={styles.headerTexts}>
-            <Text style={styles.title}>{header.title}</Text>
-            <Text style={styles.subtitle}>{header.subtitle}</Text>
+            <Text
+              style={styles.title}
+              numberOfLines={cabecalhoCompacto ? undefined : 1}
+              adjustsFontSizeToFit={!cabecalhoCompacto}
+              minimumFontScale={0.8}
+            >
+              {header.title}
+            </Text>
           </View>
+          {!cabecalhoCompacto ? indicadores : null}
           <Pressable
             onPress={handleAdd}
             accessibilityRole="button"
@@ -120,182 +219,153 @@ export function PlanningHubScreen({ navigation, route }) {
             <View style={styles.plusVertical} />
           </Pressable>
         </View>
+        {cabecalhoCompacto ? <View style={styles.indicadoresCompactos}>{indicadores}</View> : null}
 
-        <SecondaryButton
-          label="Meu progresso"
-          onPress={() => navigation.navigate('ProgressoScreen')}
-        />
         <SegmentedControl value={segment} onChange={setSegment} />
+        <View style={styles.acessos}>
+          <Pressable
+            style={styles.acesso}
+            accessibilityRole="button"
+            accessibilityLabel="Meu progresso"
+            onPress={() => navigation.navigate('ProgressoScreen')}
+          >
+            <IconeAcessoProgresso accessible={false} />
+            <Text style={styles.textoAcesso}>Meu progresso</Text>
+          </Pressable>
+          {segment === 'MISSAO' ? (
+            <Pressable
+              style={styles.acesso}
+              accessibilityRole="button"
+              accessibilityLabel="Histórico"
+              accessibilityHint="Consultar os registros de missões"
+              onPress={() => navigation.navigate('HistoricoMissoes')}
+            >
+              <IconeAcessoHistorico accessible={false} />
+              <Text style={styles.textoAcesso}>Histórico</Text>
+            </Pressable>
+          ) : null}
+        </View>
 
-        {segment === 'MISSAO' ? (
-          <FlatList
-            ListHeaderComponent={
-              <ResumoInicial onVerSemana={() => navigation.navigate('RelatorioSemanalScreen')} />
-            }
-            data={missoesAtivas}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + 16 }]}
-            renderItem={({ item }) => (
+        {planejamento.erro ? (
+          <View>
+            <Text style={styles.subtitle} accessibilityRole="alert">
+              {planejamento.erro}
+            </Text>
+            <SecondaryButton label="Atualizar lista" onPress={planejamento.atualizar} />
+          </View>
+        ) : null}
+        <SectionList
+          key={segment}
+          sections={secoes}
+          keyExtractor={(item) => String(item.id)}
+          contentContainerStyle={[
+            styles.list,
+            segment === 'MISSAO' && styles.listaMissoes,
+            { paddingBottom: insets.bottom + 16 },
+          ]}
+          ItemSeparatorComponent={segment === 'MISSAO' ? SeparadorMissoes : undefined}
+          stickySectionHeadersEnabled={false}
+          initialNumToRender={8}
+          maxToRenderPerBatch={8}
+          windowSize={5}
+          renderSectionHeader={({ section }) =>
+            !section.titulo ? null : segment === 'MISSAO' ? (
+              <CabecalhoSecaoMissoes
+                titulo={section.titulo}
+                tipo={section.tipo}
+                primeira={section.key === secoes[0]?.key}
+              />
+            ) : (
+              <Text style={styles.extraTitle}>{section.titulo}</Text>
+            )
+          }
+          renderItem={({ item }) =>
+            segment === 'MISSAO' ? (
               <TaskCard
                 mission={item}
                 onPress={() => navigation.navigate('MissionDetail', { missionId: item.id })}
               />
-            )}
-            ListEmptyComponent={
-              missoesAtrasadas.length === 0 && missoesConcluidas.length === 0 ? (
-                <EmptyState
-                  title="Nenhuma missão por aqui"
-                  subtitle="Crie sua primeira missão para começar a acompanhar seus passos."
-                  buttonLabel="Criar missão"
-                  onCreate={() => navigation.navigate('MissionForm')}
-                />
-              ) : null
-            }
-            ListFooterComponent={
-              <>
-                {missoesAtrasadas.length > 0 ? (
-                  <SecaoExtra title="Atrasados">
-                    {missoesAtrasadas.map((item) => (
-                      <TaskCard
-                        key={item.id}
-                        mission={item}
-                        onPress={() => navigation.navigate('MissionDetail', { missionId: item.id })}
-                      />
-                    ))}
-                  </SecaoExtra>
-                ) : null}
-                {missoesConcluidas.length > 0 ? (
-                  <SecaoExtra title="Concluídos">
-                    {missoesConcluidas.map((item) => (
-                      <TaskCard
-                        key={item.id}
-                        mission={item}
-                        onPress={() => navigation.navigate('MissionDetail', { missionId: item.id })}
-                      />
-                    ))}
-                  </SecaoExtra>
-                ) : null}
-              </>
-            }
-          />
-        ) : null}
-
-        {segment === 'CAMPANHA' ? (
-          <FlatList
-            data={campanhasAtivas}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + 16 }]}
-            renderItem={({ item }) => (
+            ) : segment === 'CAMPANHA' ? (
               <CampaignHeroCard
                 campaign={item}
                 onPress={() => navigation.navigate('CampaignDetail', { campaignId: item.id })}
               />
-            )}
-            ListEmptyComponent={
-              campanhasAtrasadas.length === 0 && campanhasConcluidas.length === 0 ? (
-                <EmptyState
-                  title="Nenhuma campanha por aqui"
-                  subtitle="Crie sua primeira campanha para organizar suas missões."
-                  buttonLabel="Criar campanha"
-                  onCreate={() => navigation.navigate('CampaignForm')}
-                />
-              ) : null
-            }
-            ListFooterComponent={
-              <>
-                {campanhasAtrasadas.length > 0 ? (
-                  <SecaoExtra title="Atrasados">
-                    {campanhasAtrasadas.map((item) => (
-                      <CampaignHeroCard
-                        key={item.id}
-                        campaign={item}
-                        onPress={() =>
-                          navigation.navigate('CampaignDetail', { campaignId: item.id })
-                        }
-                      />
-                    ))}
-                  </SecaoExtra>
-                ) : null}
-                {campanhasConcluidas.length > 0 ? (
-                  <SecaoExtra title="Concluídos">
-                    {campanhasConcluidas.map((item) => (
-                      <CampaignHeroCard
-                        key={item.id}
-                        campaign={item}
-                        onPress={() =>
-                          navigation.navigate('CampaignDetail', { campaignId: item.id })
-                        }
-                      />
-                    ))}
-                  </SecaoExtra>
-                ) : null}
-              </>
-            }
-          />
-        ) : null}
-
-        {segment === 'EPICO' ? (
-          <FlatList
-            data={epicosAtivos}
-            keyExtractor={(item) => item.id}
-            contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + 16 }]}
-            renderItem={({ item }) => (
+            ) : (
               <EpicHeroCard
                 epic={item}
                 onPress={() => navigation.navigate('EpicDetail', { epicId: item.id })}
               />
-            )}
-            ListEmptyComponent={
-              epicosAtrasados.length === 0 && epicosConcluidos.length === 0 ? (
-                <EmptyState
-                  title="Nenhum épico por aqui"
-                  subtitle="Crie seu primeiro épico para dar rumo à sua jornada."
-                  buttonLabel="Criar épico"
-                  onCreate={() => navigation.navigate('EpicForm')}
-                />
-              ) : null
-            }
-            ListFooterComponent={
-              <>
-                {epicosAtrasados.length > 0 ? (
-                  <SecaoExtra title="Atrasados">
-                    {epicosAtrasados.map((item) => (
-                      <EpicHeroCard
-                        key={item.id}
-                        epic={item}
-                        onPress={() => navigation.navigate('EpicDetail', { epicId: item.id })}
-                      />
-                    ))}
-                  </SecaoExtra>
-                ) : null}
-                {epicosConcluidos.length > 0 ? (
-                  <SecaoExtra title="Concluídos">
-                    {epicosConcluidos.map((item) => (
-                      <EpicHeroCard
-                        key={item.id}
-                        epic={item}
-                        onPress={() => navigation.navigate('EpicDetail', { epicId: item.id })}
-                      />
-                    ))}
-                  </SecaoExtra>
-                ) : null}
-              </>
-            }
-          />
-        ) : null}
+            )
+          }
+          ListEmptyComponent={
+            planejamento.carregando ? (
+              <ActivityIndicator
+                color={colors.brand}
+                accessibilityLabel="Carregando seus próximos passos"
+              />
+            ) : planejamento.erro ? null : segment === 'MISSAO' ? (
+              <EmptyState
+                title="Nenhuma missão por aqui"
+                subtitle="Crie sua primeira missão para começar a acompanhar seus passos."
+                buttonLabel="Criar missão"
+                onCreate={() => navigation.navigate('MissionForm')}
+              />
+            ) : segment === 'CAMPANHA' ? (
+              <EmptyState
+                title="Nenhuma campanha por aqui"
+                subtitle="Crie sua primeira campanha para organizar suas missões."
+                buttonLabel="Criar campanha"
+                onCreate={() => navigation.navigate('CampaignForm')}
+              />
+            ) : (
+              <EmptyState
+                title="Nenhum épico por aqui"
+                subtitle="Crie seu primeiro épico para dar rumo à sua jornada."
+                buttonLabel="Criar épico"
+                onCreate={() => navigation.navigate('EpicForm')}
+              />
+            )
+          }
+        />
       </View>
 
-      <BottomNav
-        onPressLoja={() => navigation.navigate('Loja')}
-        onPressMissoes={() => navigation.navigate('MissionList')}
-        onPressDiario={() => navigation.navigate('Diario')}
-        onPressPerfil={() => navigation.navigate('Conta')}
-      />
+      {sequenciaAberta ? (
+        <DetalhesSequenciaModal
+          key={jornada.usuarioId ?? 'sem-sessao'}
+          jornada={jornada}
+          espacoInferior={insets.bottom}
+          aoFechar={fecharSequencia}
+        />
+      ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  acessos: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    columnGap: 16,
+    rowGap: 4,
+    marginTop: -8,
+    marginBottom: -8,
+  },
+  acesso: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    minHeight: 44,
+    paddingHorizontal: 4,
+    paddingVertical: 8,
+    maxWidth: '100%',
+  },
+  textoAcesso: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: fontSize.input,
+    color: colors.brand,
+    flexShrink: 1,
+  },
   screen: {
     flex: 1,
     backgroundColor: colors.surface,
@@ -307,13 +377,14 @@ const styles = StyleSheet.create({
   },
   headerRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     justifyContent: 'space-between',
+    gap: 16,
   },
   headerTexts: {
     flex: 1,
-    gap: 4,
   },
+  indicadoresCompactos: { alignSelf: 'flex-end', maxWidth: '100%' },
   title: {
     fontFamily: fontFamily.bold,
     fontSize: fontSize.screenTitle,
@@ -325,9 +396,9 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   addButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
+    width: 44,
+    height: 44,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.brandStrong,
@@ -350,16 +421,12 @@ const styles = StyleSheet.create({
     gap: 16,
     flexGrow: 1,
   },
-  extraSection: {
-    marginTop: 24,
-    gap: 12,
-  },
+  listaMissoes: { gap: 0 },
+  separadorMissoes: { height: 12 },
   extraTitle: {
+    marginTop: 24,
     fontFamily: fontFamily.semiBold,
     fontSize: fontSize.input,
     color: colors.textSecondary,
-  },
-  extraList: {
-    gap: 16,
   },
 });

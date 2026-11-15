@@ -4,7 +4,7 @@
 
 **Responsável:** Izael
 
-**Última atualização:** 2026-10-17
+**Última atualização:** 2026-11-07
 
 ## 1. Objetivo
 
@@ -80,6 +80,51 @@ Regras gerais:
   `RootNavigator`;
 - nomes de rota em `PascalCase` e iguais ao nome do componente de tela.
 
+### Organização implementada no MVP-23
+
+`RootNavigator` separa visitante (`Login`/`Register`) de onboarding e
+`AreaPrincipal`, com chave por usuário. `AbasPrincipais` usa bottom-tabs 7.21.0:
+Missões, Diário, Loja e Perfil. Missões e Loja possuem pilhas próprias;
+Diário e Perfil são destinos diretos, sem pilha artificial de uma tela.
+
+A barra é renderizada somente pelo navegador. Reutiliza `BottomNav` e os
+ícones/tokens existentes; permanece na raiz das abas e nos detalhes de
+épico/campanha/missão. Formulários, progresso, relatórios, históricos e extrato
+ocupam a tela inteira. Trocar de aba preserva a pilha e o estado montado;
+repetir a aba ativa em uma pilha abre sua raiz. `tabPress` cancelável e
+`tabLongPress` são encaminhados ao React Navigation.
+
+Voltar fecha primeiro a tela da pilha atual. Na raiz de outra aba,
+`backBehavior="firstRoute"` retorna a Missões; na raiz de Missões, o navegador
+não consome outro retorno. O onboarding substitui sua rota por `AreaPrincipal`,
+abrindo o segmento Épicos em Missões, sem retorno ao questionário.
+
+Dados continuam atualizados pelos efeitos de foco já existentes. O Diário
+preserva o rascunho ao trocar de aba; o ditado aborta ao perder foco e ignora
+resultados/permissões de um ciclo anterior. Perfil mantém sua reconsulta ao
+focar, sem transformar o formulário em cache persistente. Logout/troca de
+usuário desmontam os navegadores e providers privados; não há persistência
+da navegação no dispositivo. Mapa e limites no
+[contrato de navegação](../../icarus-context/docs/implementation-design/frontend/01-navegacao-mobile.md).
+
+### Barras do sistema — MVP-25
+
+`OpcoesDaJanelaProvider` fica em `App`, dentro de `SafeAreaProvider`, e centraliza
+teclado, leitor de tela e ciclo do aplicativo. Os três native-stacks usam
+`useOpcoesDaJanela`; novos navegadores nativos devem reutilizar essa política.
+No Android ativo e sem teclado/leitor, `navigationBarHidden` oculta somente a
+barra inferior, com retorno transitório por gesto gerenciado pelo screens.
+No iOS, `autoHideHomeIndicator` é uma preferência; não remove a área segura.
+
+A consulta inicial de acessibilidade precede a ocultação; erro conserva a barra.
+Um evento recente do leitor prevalece sobre resposta inicial atrasada. Ouvintes
+são removidos ao desmontar e consultas pendentes são descartadas. Teclado,
+leitor ou app fora de atividade solicitam controles visíveis; retomar reavalia
+o estado. Não há temporizador para esconder barra, captura de gesto, zeragem
+manual de insets, dependência nova, mudança de configuração nativa ou persistência
+dessa preferência no dispositivo. Ver
+[contrato de área útil](../../icarus-context/docs/implementation-design/frontend/02-area-util-e-barras-do-sistema.md).
+
 ## 5. Estado
 
 - **estado local de tela** (formulário em edição, tela expandida, etc.): hook
@@ -112,6 +157,49 @@ Regras gerais:
 - nenhuma regra de domínio (cálculo de sequência, validação de recorrência,
   etc.) é replicada no aplicativo; o aplicativo exibe o que a API retorna e
   envia o que o usuário informa.
+
+### 6.1. Ciclo de leitura — MVP-24
+
+`CarregadorPlanejamento` concentra a carga inicial/retomada e expõe carregamento,
+falha e repetição. As alterações locais de missões, campanhas e épicos avançam
+uma revisão em memória (`useEstadoVersionado`); se ela mudar durante a carga,
+o snapshot antigo é descartado e consultado novamente antes de hidratar os três
+contextos. Essa revisão protege o estado local; não é versão persistida da API.
+
+`useLeituraEmFoco` identifica a leitura por usuário e filtros, agrupa tentativas
+simultâneas e invalida/cancela consultas ao desfocar ou mudar o escopo. Atualização
+do mesmo escopo preserva o conteúdo durante a espera; mudança de usuário/filtro
+oculta os dados anteriores. Somente a aba analítica visível consulta seus dados.
+Retomada do aplicativo reconsulta a leitura em foco. Históricos distinguem a
+primeira página de paginação; retornar durante uma atualização interrompida
+permite retomar a consulta, e filtros equivalentes não criam ciclos de efeitos.
+
+`SincronizadorDeFuso` compartilha a operação pendente; planejamento, sequência,
+execução, progresso e relatório aguardam essa sincronização antes de ler dados
+dependentes do dia local. Mudanças rápidas confirmam o último fuso do dispositivo.
+Falhas continuam recuperáveis, sem inventar sequência ou métricas. O relatório
+semanal começa pelo GET do resultado salvo, solicita somente se ausente e consulta
+processamento apenas no foco vigente. Seu estado pertence a `PlanningHubScreen`,
+acima da lista remontada por segmento; `ResumoInicial` recebe dados por props.
+Nova tentativa permanece explícita.
+
+Perfil preserva os campos e a foto da mesma sessão durante a reconsulta por foco,
+aplicando a resposta completa após consultar a imagem. Edições locais não salvas
+permanecem em memória e não são sobrescritas pela leitura. Perda de foco cancela
+a consulta; troca de usuário descarta imediatamente o estado anterior.
+Consultar não desativa o botão de salvar: uma gravação cancela/invalida a leitura
+pendente, impedindo que ela sobrescreva a confirmação.
+
+O cliente HTTP aceita `AbortSignal`; cancelar uma leitura não desfaz escritas.
+Loja e Diário agrupam leituras pendentes e invalidam resultados anteriores ao
+salvar. Não há cache global de respostas nem mudança na lista permitida da IA.
+Diário exibe carregamento apenas antes da primeira leitura; retornos preservam
+o histórico, inclusive vazio, sem ação manual de atualizar. Registrar independe
+da consulta: se a gravação interromper uma leitura, reconsulta após confirmar
+para recuperar o histórico completo. Duplicação continua bloqueada no envio.
+Planejamento usa `SectionList`; Diário/Loja usam `FlatList`. O formulário do Diário
+permanece no cabeçalho, preservando rascunho e tratamento do teclado. Medições
+opcionais de desenvolvimento ficam fora das telas, sem conteúdo pessoal nos logs.
 
 ## 7. Componentes e telas
 
@@ -167,11 +255,11 @@ Proibidas:
 
 ## 11. Rastreabilidade
 
-| Origem | Uso neste documento |
-|---|---|
+| Origem                                                                            | Uso neste documento                                                                      |
+| --------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
 | `icarus-context/docs/implementation-design/platform/01-arquitetura-da-solucao.md` | Restrições de dependência, armazenamento seguro do token, acessibilidade e alvo Android. |
-| `icarus-context/docs/product-specification/04-requisitos.md` (RNF-06, RNF-07) | Critérios de acessibilidade e compatibilidade. |
-| `icarus-mobile/README.md` | Descrição geral do aplicativo. |
+| `icarus-context/docs/product-specification/04-requisitos.md` (RNF-06, RNF-07)     | Critérios de acessibilidade e compatibilidade.                                           |
+| `icarus-mobile/README.md`                                                         | Descrição geral do aplicativo.                                                           |
 
 ## 12. Próxima revisão
 

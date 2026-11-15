@@ -9,9 +9,11 @@ export function ScreenHeader({
   onBack,
   corVoltar = colors.softPurple,
   IconeVoltar = IconChevronLeft,
+  estiloTitulo,
+  style,
 }) {
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, style]}>
       <Pressable
         onPress={onBack}
         accessibilityRole="button"
@@ -21,9 +23,7 @@ export function ScreenHeader({
       >
         <IconeVoltar />
       </Pressable>
-      <Text style={styles.title}>
-        {title}
-      </Text>
+      <Text style={[styles.title, estiloTitulo]}>{title}</Text>
       <View style={styles.spacer} />
     </View>
   );

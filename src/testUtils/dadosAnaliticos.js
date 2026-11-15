@@ -1,4 +1,35 @@
 // Dados exclusivos dos testes de contrato e navegação.
+export function evolucaoDaMetaDeTeste(alteracoes = {}) {
+  return {
+    versaoContrato: '1.1.0',
+    campanhaId: 12,
+    valorAtual: 8,
+    valorMensurado: 16,
+    unidade: 'módulos',
+    estado: 'emAndamento',
+    podeRegistrar: true,
+    metaAlcancada: false,
+    versao: 'v1',
+    medicoes: [],
+    evolucao: {
+      estado: 'disponivel',
+      avancoRegistrado: 8,
+      faltante: 8,
+      fusoHorario: 'America/Sao_Paulo',
+      pontos: ['2026-09-26', '2026-10-03', '2026-10-10', '2026-10-17', '2026-10-24'].map(
+        (data, i) => ({ data, valor: 2 * i, revisado: false }),
+      ),
+    },
+    cenario: {
+      disponivel: true,
+      motivo: 'cenario_condicional_se_mantiver_o_ritmo',
+      ritmoSemanal: 2,
+      faltante: 8,
+      semanasAproximadas: 4,
+    },
+    ...alteracoes,
+  };
+}
 export const PERIODO_ANALITICO = {
   inicio: '2026-10-12',
   fim: '2026-10-18',
@@ -30,6 +61,7 @@ export function progressoDeTeste() {
       ],
     },
     indicadores: indicadoresDeTeste(),
+    versaoContrato: '1.1.0',
     situacaoCenarios: 'historico_mensurado_indisponivel',
     mensagem: 'Seus registros deste período.',
   };
@@ -98,5 +130,90 @@ export function relatorioDeTeste(
       indicadores: indicadoresDeTeste(),
       geracao: { provedor: 'ollama', modelo: 'modelo-de-teste' },
     },
+  };
+}
+
+// Agregados públicos e textos exemplificativos do contrato HTTP 1.2, exclusivos dos testes.
+export function pesquisasQuantitativasDeTeste(area = 'SONO_E_RECUPERACAO') {
+  const sono = area === 'SONO_E_RECUPERACAO';
+  const leitura = (id, titulo, medida, atalho, grupos, texto) => ({
+    id,
+    titulo,
+    medida,
+    atalho,
+    grupos: grupos.map(([rotulo, percentual]) => ({ rotulo, percentual })),
+    leitura: texto,
+    recomendacao: {
+      titulo: sono ? 'O movimento pode ser um aliado' : 'Faça o estudo caber na sua rotina',
+      texto: sono
+        ? 'Se dormir melhor também é um objetivo seu, considere um movimento que caiba na sua rotina.'
+        : 'Se você concilia estudo e trabalho, escolha um momento possível para começar.',
+    },
+    dadosDaPesquisa: sono
+      ? 'Pessoas de 18–28 anos das 26 capitais e do Distrito Federal. Associação observada entre os grupos.'
+      : 'Pessoas de 18–28 anos dos Estados Unidos. Cada pessoa relatou um dia de 24 horas.',
+    fonte: `${sono ? 'Vigitel' : 'ATUS'} 2024 · cálculo ponderado do Icarus sobre a base oficial.`,
+    urlFonte: sono ? 'https://svs.aids.gov.br/daent/cgdnt/vigitel/' : 'https://www.bls.gov/tus/',
+    referenciasIds: [id],
+    faixaEtaria: '18–28',
+    tipoDia: 'todos',
+    origens: [],
+    limitacoes: [],
+  });
+  return {
+    ...referenciasDeTeste(),
+    versaoContrato: '1.2.0',
+    areaDaVida: area,
+    versaoGold: 'gold',
+    hashSnapshot: 'checksum',
+    leituras: sono
+      ? [
+          leitura(
+            'insonia',
+            'Atividade física e sono',
+            'Relataram sintomas frequentes de insônia',
+            'Ver relação com os sintomas de insônia',
+            [
+              ['Com atividade física suficiente no lazer', 29.1],
+              ['Sem atividade física suficiente no lazer', 35.3],
+            ],
+            'No grupo com atividade física suficiente, houve cerca de 18% menos relatos de sintomas de insônia.',
+          ),
+          leitura(
+            'deseja-sono',
+            'Atividade física e vontade de dormir mais',
+            'Gostariam de dormir mais que o habitual',
+            'Ver relação com a vontade de dormir mais',
+            [
+              ['Com atividade física suficiente no lazer', 68],
+              ['Sem atividade física suficiente no lazer', 74.1],
+            ],
+            'No grupo com atividade física suficiente, houve cerca de 8% menos relatos de vontade de dormir mais.',
+          ),
+        ]
+      : [
+          leitura(
+            'estudo-ocupacao',
+            'Estudo e trabalho',
+            'Registraram aulas ou tarefas naquele dia',
+            'Ver relação com trabalho',
+            [
+              ['Pessoas ocupadas', 13.6],
+              ['Pessoas não ocupadas', 42.1],
+            ],
+            'Entre os ocupados, houve cerca de 68% menos participação em aulas ou tarefas naquele dia.',
+          ),
+          leitura(
+            'participacao',
+            'Participação em estudos',
+            'Registraram aulas ou tarefas naquele dia',
+            'Ver participação em estudos',
+            [
+              ['Registraram na pesquisa', 20.7],
+              ['Não registraram na pesquisa', 79.3],
+            ],
+            'Cerca de 1 em cada 5 pessoas registrou aulas ou tarefas naquele dia.',
+          ),
+        ],
   };
 }

@@ -1,11 +1,11 @@
+import { useExclusaoPlanejamento } from '../../hooks/useExclusaoPlanejamento';
+import { BotaoExcluirPlanejamento } from '../../components/BotaoExcluirPlanejamento';
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { BottomNav } from '../../components/BottomNav';
 import { PrimaryButton, SecondaryButton } from '../../components/Button';
 import { DetailInfoCard } from '../../components/DetailInfoCard';
-import { DetailProgressCard } from '../../components/DetailProgressCard';
 import { DetailRewardCard } from '../../components/DetailRewardCard';
 import { DetailSummaryCard } from '../../components/DetailSummaryCard';
 import { ScreenHeader } from '../../components/ScreenHeader';
@@ -30,6 +30,7 @@ const ESTADO_EPICO_LABELS = {
 
 export function EpicDetailScreen({ route, navigation }) {
   const { epicId } = route.params;
+  const exclusao = useExclusaoPlanejamento({ tipo: 'epicos', id: epicId, navigation });
   const { getEpicById, concluirEpico } = useEpics();
   const insets = useSafeAreaInsets();
   const epic = getEpicById(epicId);
@@ -93,7 +94,8 @@ export function EpicDetailScreen({ route, navigation }) {
                 },
             epic.pontos
               ? {
-                  label: `+${epic.pontos} pts`,
+                  label: 'Recompensa',
+                  pontos: epic.pontos,
                   backgroundColor: colors.softPurpleAlt,
                   textColor: colors.brandDark,
                 }
@@ -114,15 +116,17 @@ export function EpicDetailScreen({ route, navigation }) {
         />
 
         {epic.progresso ? (
-          <DetailProgressCard
-            title="Progresso deste épico"
-            subtitle={`${epic.progresso.concluidas} de ${epic.progresso.total} campanhas concluídas`}
-            current={epic.progresso.concluidas}
-            total={epic.progresso.total}
+          <DetailInfoCard
+            rows={[
+              {
+                label: 'Campanhas concluídas',
+                value: `${epic.progresso.concluidas} de ${epic.progresso.total}`,
+              },
+            ]}
           />
         ) : null}
 
-        <DetailRewardCard value={epic.recompensaLabel} />
+        <DetailRewardCard valor={epic.pontos} />
 
         {erro ? (
           <Text style={styles.errorText} accessibilityRole="alert">
@@ -133,21 +137,27 @@ export function EpicDetailScreen({ route, navigation }) {
         <PrimaryButton
           label={concluido ? 'Épico concluído' : concluindo ? 'Concluindo...' : 'Concluir épico'}
           onPress={handleConcluir}
-          disabled={concluido || concluindo}
+          disabled={concluido || concluindo || exclusao.excluindo}
         />
         {!concluido ? (
           <SecondaryButton
             label="Editar épico"
+            disabled={exclusao.excluindo}
             onPress={() => navigation.navigate('EpicForm', { epicId: epic.id })}
             icon={<IconEdit width={24} height={24} />}
           />
         ) : null}
+        {true ? (
+          <BotaoExcluirPlanejamento
+            nome="épico"
+            hierarquia={true}
+            aoExcluir={exclusao.excluir}
+            excluindo={exclusao.excluindo}
+            erro={exclusao.erro}
+            disabled={concluindo}
+          />
+        ) : null}
       </ScrollView>
-
-      <BottomNav
-        onPressLoja={() => navigation.navigate('Loja')}
-        onPressMissoes={() => navigation.popToTop()}
-      />
     </View>
   );
 }

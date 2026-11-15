@@ -1,4 +1,12 @@
-import { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 
 import { criarOperacaoId, criarServicoLoja, mensagemLoja } from '../services/loja';
 import { useSessao } from './SessaoContext';
@@ -17,40 +25,58 @@ export function LojaProvider({ children }) {
   const [erro, setErro] = useState('');
   const requisicao = useRef(0);
   const ocupado = useRef(false);
+  const leitura = useRef(null);
+  const montado = useRef(true);
+  useEffect(() => {
+    montado.current = true;
+    return () => {
+      montado.current = false;
+      leitura.current?.abort();
+    };
+  }, []);
   const operacoes = useRef({});
 
   const recarregar = useCallback(async () => {
-    if (ocupado.current) return;
+    if (ocupado.current || leitura.current) return;
     const numero = ++requisicao.current;
+    const controlador = new AbortController();
+    leitura.current = controlador;
     setCarregando(true);
     setErro('');
     try {
-      const resultado = await servico.consultar();
-      if (numero === requisicao.current) setLoja(resultado);
+      const resultado = await servico.consultar(controlador.signal);
+      if (montado.current && numero === requisicao.current) setLoja(resultado);
     } catch {
-      if (numero === requisicao.current)
+      if (montado.current && numero === requisicao.current)
         setErro('Não foi possível carregar a loja. Confira a conexão e tente novamente.');
     } finally {
-      if (numero === requisicao.current) setCarregando(false);
+      if (montado.current && numero === requisicao.current) setCarregando(false);
+      if (leitura.current === controlador) leitura.current = null;
     }
   }, [servico]);
 
   async function executar(operacao) {
     if (ocupado.current) return false;
     ocupado.current = true;
-    ++requisicao.current;
+    const numero = ++requisicao.current;
+    leitura.current?.abort();
+    leitura.current = null;
     setCarregando(false);
     setEnviando(true);
     setErro('');
     try {
-      setLoja(await operacao());
+      const resultado = await operacao();
+      if (!montado.current || numero !== requisicao.current) return false;
+      setLoja(resultado);
       return true;
     } catch (falha) {
-      setErro(mensagemLoja(falha));
+      if (montado.current && numero === requisicao.current) setErro(mensagemLoja(falha));
       return false;
     } finally {
-      ocupado.current = false;
-      setEnviando(false);
+      if (montado.current && numero === requisicao.current) {
+        ocupado.current = false;
+        setEnviando(false);
+      }
     }
   }
 

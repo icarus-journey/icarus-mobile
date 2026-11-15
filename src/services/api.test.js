@@ -1,6 +1,23 @@
 import { criarApi, errosDoFormulario, ErroApi } from './api';
 
 describe('cliente HTTP', () => {
+  it('cancela uma leitura abandonada e remove o ouvinte sem confundir com falha de conexão', async () => {
+    const controlador = new AbortController();
+    const remover = jest.spyOn(controlador.signal, 'removeEventListener');
+    const api = criarApi({
+      urlBase: 'https://api.exemplo.com',
+      executarFetch: (_, { signal }) =>
+        new Promise((_, rejeitar) => {
+          signal.addEventListener('abort', () => rejeitar({ name: 'AbortError' }));
+        }),
+    });
+    const consulta = api('/api/usuarios/titular/progresso', { signal: controlador.signal });
+    controlador.abort();
+    await expect(consulta).rejects.toMatchObject({ codigo: 'requisicao_cancelada' });
+    expect(remover).toHaveBeenCalledWith('abort', expect.any(Function));
+    remover.mockRestore();
+  });
+
   it('envia JSON e Bearer para o endereço configurado', async () => {
     const executarFetch = jest.fn(async () => ({
       ok: true,
@@ -52,7 +69,11 @@ describe('cliente HTTP', () => {
     const formData = new FormData();
     formData.append('arquivo', 'conteudo-fake');
 
-    await api('/api/usuarios/usuario/foto', { metodo: 'PUT', corpoFormData: formData, token: 'acesso' });
+    await api('/api/usuarios/usuario/foto', {
+      metodo: 'PUT',
+      corpoFormData: formData,
+      token: 'acesso',
+    });
 
     expect(executarFetch).toHaveBeenCalledWith(
       'https://api.exemplo.com/api/usuarios/usuario/foto',

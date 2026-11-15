@@ -34,19 +34,49 @@ export function DetalhesDosIndicadores({ visivel, onFechar, dados }) {
               Esses números não medem sua rotina inteira. Mais pontos ou mais missões não significam
               mais equilíbrio ou uma meta alcançada.
             </Text>
-            {dados?.indicadores?.taxaConclusao == null ? (
+            <Text style={estilos.titulo}>O que você planejou</Text>
+            <Text style={estilos.texto}>
+              A porcentagem considera as missões planejadas para esse período e feitas até ele
+              terminar. Uma missão feita depois aparece na atividade do período seguinte. Reagendar
+              ou cancelar depois do fechamento preserva o planejamento anterior.
+            </Text>
+            {dados?.adesao?.estado === 'historico_parcial' ? (
+              <Text style={estilos.texto}>
+                Parte do planejamento antigo não guardava as mudanças de datas e cancelamentos, ou
+                há dias sem planejamento preservado. Mostramos os registros disponíveis e deixamos a
+                porcentagem em aberto.
+              </Text>
+            ) : dados?.adesao?.estado === 'sem_planejamento' ? (
+              <Text style={estilos.texto}>
+                Não há missões planejadas registradas para esse período. A porcentagem fica em
+                aberto.
+              </Text>
+            ) : !dados?.adesao ? (
+              <Text style={estilos.texto}>
+                A porcentagem do planejamento ainda não está disponível.
+              </Text>
+            ) : null}
+            <Text style={estilos.titulo}>Comparação entre períodos</Text>
+            <Text style={estilos.texto}>
+              A comparação entre semanas ainda não está disponível. Os números deste período
+              continuam aparecendo normalmente.
+            </Text>
+            {dados?.objetivos ? (
               <>
-                <Text style={estilos.titulo}>Taxa e comparação entre períodos</Text>
+                <Text style={estilos.titulo}>Seus objetivos agora</Text>
                 <Text style={estilos.texto}>
-                  Ainda não estão disponíveis nesta versão. Seus registros de conclusões continuam
-                  aparecendo normalmente.
+                  Campanhas, épicos e valores das metas mostram o estado atual. O período escolhido
+                  altera as missões feitas e os registros de progresso. O destaque usa os últimos
+                  sete dias, incluindo hoje. Sem registro não significa que o objetivo ficou parado.
                 </Text>
               </>
             ) : null}
-            <Text style={estilos.titulo}>Previsões de conquistas</Text>
+            <Text style={estilos.titulo}>O ritmo da sua meta</Text>
             <Text style={estilos.texto}>
-              Precisam de medições do resultado da sua meta. Concluir missões e ganhar pontos não
-              substitui essas medições.
+              A evolução da meta usa seus registros de progresso e aparece{' '}
+              {dados?.objetivos ? 'em Seus objetivos' : 'em Sua meta em foco'}. Havendo cinco
+              registros semanais comparáveis, mostramos quanto tempo faltaria se o ritmo continuar.
+              Pontos e missões feitas não substituem o resultado da meta.
             </Text>
             <SecondaryButton label="Entendi" onPress={onFechar} />
           </ScrollView>

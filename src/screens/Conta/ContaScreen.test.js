@@ -57,7 +57,10 @@ beforeEach(() => {
 
 it('consulta dados reais e mantém o cadastro somente para leitura', async () => {
   await abrir();
-  expect(mockRequisitar).toHaveBeenCalledWith('/api/usuarios/pessoa-a');
+  expect(mockRequisitar).toHaveBeenCalledWith(
+    '/api/usuarios/pessoa-a',
+    expect.objectContaining({ signal: expect.anything() }),
+  );
   expect(screen.getByLabelText('Nome: Ana Silva')).toBeTruthy();
   expect(screen.getByLabelText('E-mail: ana@exemplo.com')).toBeTruthy();
   expect(screen.getByLabelText('Data de nascimento: 31/12/2000')).toBeTruthy();
@@ -281,6 +284,7 @@ describe('foto de perfil', () => {
     const foto = await screen.findByLabelText('Foto de perfil de Ana Silva');
     expect(mockRequisitar).toHaveBeenCalledWith('/api/usuarios/pessoa-a/foto', {
       formatoResposta: 'binario',
+      signal: expect.anything(),
     });
     expect(foto.props.source.uri).toBe('data:image/jpeg;base64,QUJD');
   });

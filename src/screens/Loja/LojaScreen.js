@@ -1,10 +1,10 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Modal,
   Pressable,
   RefreshControl,
-  ScrollView,
+  FlatList,
   StyleSheet,
   Text,
   View,
@@ -12,12 +12,14 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { BottomNav } from '../../components/BottomNav';
 import { PrimaryButton, SecondaryButton } from '../../components/Button';
+import { IlustracaoRecompensa } from '../../components/IlustracaoRecompensa';
 import { useLoja } from '../../state/LojaContext';
 import { colors } from '../../theme/colors';
 import { fontFamily } from '../../theme/typography';
 import { CartaoRecompensa } from './CartaoRecompensa';
+import { CartaoSaldo } from '../../components/Pontos/CartaoSaldo';
+import { ValorComMoeda } from '../../components/Pontos/ValorComMoeda';
 
 const ESTADOS = { disponivel: 'Disponível', resgatada: 'Resgatada', utilizada: 'Utilizada' };
 
@@ -55,7 +57,12 @@ export function LojaScreen({ navigation }) {
       acao: 'resgatar',
       id: selecao.protecao ? null : selecionada.id,
       titulo: 'Resgatar recompensa?',
-      mensagem: `${selecionada.titulo} custa ${selecionada.custo} pontos. Seu saldo atual é ${loja.saldoPontos} pontos. Após o resgate, restarão ${loja.saldoPontos - selecionada.custo} pontos.`,
+      mensagem: `Confirmar o resgate de “${selecionada.titulo}”?`,
+      resumo: {
+        custo: selecionada.custo,
+        saldo: loja.saldoPontos,
+        apos: loja.saldoPontos - selecionada.custo,
+      },
       botao: 'Confirmar resgate',
     });
   }
@@ -64,6 +71,7 @@ export function LojaScreen({ navigation }) {
     <CartaoRecompensa
       key={item.id}
       {...item}
+      deveMostrarUtilizada={item.estado === 'utilizada'}
       estado={item.estado === 'disponivel' ? undefined : ESTADOS[item.estado]}
       onPress={() => {
         setSelecao({ id: item.id });
@@ -84,120 +92,155 @@ export function LojaScreen({ navigation }) {
     />
   );
 
+  const linhas = useMemo(() => {
+    if (!loja) return [];
+    const resultado = [
+      { chave: 'titulo-protecao', tipo: 'titulo', texto: 'Proteção de sequência' },
+      { chave: 'protecao', tipo: 'protecao' },
+      { chave: 'titulo-recompensas', tipo: 'titulo', texto: 'Suas recompensas' },
+    ];
+    if (!loja.recompensas.length)
+      resultado.push({
+        chave: 'sem-recompensas',
+        tipo: 'texto',
+        texto: 'Sua loja ainda não tem recompensas. Toque em + para criar a primeira.',
+      });
+    for (const estado of ['disponivel', 'resgatada', 'utilizada']) {
+      const itens = loja.recompensas.filter((item) => item.estado === estado);
+      if (itens.length && estado !== 'disponivel')
+        resultado.push({
+          chave: `grupo-${estado}`,
+          tipo: 'grupo',
+          texto: estado === 'resgatada' ? 'Resgatadas' : 'Utilizadas',
+        });
+      resultado.push(
+        ...itens.map((item) => ({ chave: `recompensa-${item.id}`, tipo: 'recompensa', item })),
+      );
+    }
+    resultado.push({ chave: 'titulo-historico', tipo: 'titulo', texto: 'Histórico de resgates' });
+    if (!loja.resgates.length)
+      resultado.push({
+        chave: 'sem-resgates',
+        tipo: 'texto',
+        texto: 'Seus resgates aparecerão aqui.',
+      });
+    resultado.push(
+      ...loja.resgates.map((item) => ({ chave: `resgate-${item.id}`, tipo: 'historico', item })),
+    );
+    return resultado;
+  }, [loja]);
+
+  function renderizarLinha({ item: linha }) {
+    if (linha.tipo === 'titulo') return <Text style={styles.subtitulo}>{linha.texto}</Text>;
+    if (linha.tipo === 'grupo') return <Text style={styles.rotulo}>{linha.texto}</Text>;
+    if (linha.tipo === 'texto') return <Text style={styles.texto}>{linha.texto}</Text>;
+    if (linha.tipo === 'protecao')
+      return (
+        <CartaoRecompensa
+          titulo={loja.protecao.titulo}
+          deveMostrarProtecao
+          descricao="Uma proteção cobre um dia sem conclusão. Consumo automático pela sequência."
+          custo={loja.protecao.custo}
+          estado={`${loja.protecao.quantidade} de ${loja.protecao.limite} proteções no inventário`}
+          onPress={() => {
+            setSelecao({ protecao: true });
+            setConfirmacao(null);
+          }}
+        />
+      );
+    if (linha.tipo === 'recompensa') return recompensa(linha.item);
+    const item = linha.item;
+    return (
+      <View key={item.id} style={styles.historico}>
+        <Text style={styles.data}>{new Date(item.resgatadoEm).toLocaleDateString('pt-BR')}</Text>
+        <View style={styles.identidadeRecompensa}>
+          <IlustracaoRecompensa
+            deveMostrarProtecao={item.protecao}
+            deveMostrarUtilizada={item.estado === 'utilizado'}
+            tamanho={32}
+          />
+          <Text style={[styles.rotulo, styles.tituloRecompensa]}>{item.titulo}</Text>
+        </View>
+        <Text style={styles.texto}>
+          {item.estado === 'estornado'
+            ? 'Resgate desfeito'
+            : item.estado === 'utilizado'
+              ? 'Utilizado'
+              : 'Resgatado'}
+        </Text>
+        <ValorComMoeda valor={item.custo} comSinal={item.estado === 'estornado'} />
+        {item.estado === 'resgatado' ? (
+          <SecondaryButton
+            label={item.protecao ? 'Desfazer resgate da proteção' : 'Desfazer resgate'}
+            disabled={enviando}
+            onPress={() =>
+              setConfirmacao({
+                acao: 'desfazer',
+                id: item.id,
+                titulo: 'Desfazer resgate?',
+                mensagem: 'O valor será devolvido ao seu saldo.',
+                valor: item.custo,
+                botao: 'Desfazer resgate',
+              })
+            }
+          />
+        ) : null}
+      </View>
+    );
+  }
+
   return (
     <View style={styles.tela}>
-      <ScrollView
+      <FlatList
+        data={linhas}
+        keyExtractor={(linha) => linha.chave}
+        renderItem={renderizarLinha}
+        initialNumToRender={8}
+        maxToRenderPerBatch={8}
+        windowSize={5}
         contentContainerStyle={[styles.conteudo, { paddingTop: margens.top + 24 }]}
         refreshControl={
           <RefreshControl refreshing={carregando} onRefresh={recarregar} tintColor={colors.loja} />
         }
-      >
-        <View style={styles.cabecalho}>
-          <Text style={styles.titulo}>Loja de recompensas</Text>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Adicionar recompensa"
-            onPress={() => navigation.navigate('FormularioRecompensa')}
-            style={styles.adicionar}
-          >
-            <Text style={styles.mais}>+</Text>
-          </Pressable>
-        </View>
-        <Text style={styles.texto}>Troque pontos por descanso e personalização.</Text>
-        <View style={styles.saldo}>
-          <Text style={styles.rotuloSaldo}>Saldo disponível</Text>
-          <Text style={styles.valorSaldo} accessibilityLiveRegion="polite">
-            {loja ? `${loja.saldoPontos.toLocaleString('pt-BR')} pontos` : '—'}
-          </Text>
-        </View>
-        {erro && !selecao && !confirmacao ? (
-          <View style={styles.aviso}>
-            <Text accessibilityRole="alert" style={styles.erro}>
-              {erro}
-            </Text>
-            <SecondaryButton
-              label="Atualizar loja"
-              onPress={recarregar}
-              disabled={enviando || carregando}
-            />
-          </View>
-        ) : null}
-        {carregando && !loja ? (
-          <ActivityIndicator accessibilityLabel="Carregando loja" color={colors.lojaTexto} />
-        ) : null}
-        {loja ? (
+        ListHeaderComponentStyle={styles.cabecalhoLista}
+        ListHeaderComponent={
           <>
-            <Text style={styles.subtitulo}>Proteção de sequência</Text>
-            <CartaoRecompensa
-              titulo={loja.protecao.titulo}
-              descricao="Uma proteção cobre um dia sem conclusão. Consumo automático pela sequência."
-              custo={loja.protecao.custo}
-              estado={`${loja.protecao.quantidade} de ${loja.protecao.limite} proteções no inventário`}
-              onPress={() => {
-                setSelecao({ protecao: true });
-                setConfirmacao(null);
-              }}
+            <View style={styles.cabecalho}>
+              <Text style={styles.titulo}>Loja de recompensas</Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Adicionar recompensa"
+                onPress={() => navigation.navigate('FormularioRecompensa')}
+                style={styles.adicionar}
+              >
+                <Text style={styles.mais}>+</Text>
+              </Pressable>
+            </View>
+            <Text style={styles.texto}>Escolha uma recompensa para você.</Text>
+            <CartaoSaldo
+              saldo={loja?.saldoPontos}
+              carregando={carregando}
+              aoVerExtrato={() => navigation.navigate('Extrato')}
             />
-            <Text style={styles.subtitulo}>Suas recompensas</Text>
-            {!loja.recompensas.length ? (
-              <Text style={styles.texto}>
-                Sua loja ainda não tem recompensas. Toque em + para criar a primeira.
-              </Text>
-            ) : null}
-            {loja.recompensas.filter((item) => item.estado === 'disponivel').map(recompensa)}
-            {['resgatada', 'utilizada'].map((estado) => {
-              const itens = loja.recompensas.filter((item) => item.estado === estado);
-              return itens.length ? (
-                <View key={estado} style={styles.grupo}>
-                  <Text style={styles.rotulo}>
-                    {estado === 'resgatada' ? 'Resgatadas' : 'Utilizadas'}
-                  </Text>
-                  {itens.map(recompensa)}
-                </View>
-              ) : null;
-            })}
-            <Text style={styles.subtitulo}>Histórico de resgates</Text>
-            {!loja.resgates.length ? (
-              <Text style={styles.texto}>Seus resgates aparecerão aqui.</Text>
-            ) : null}
-            {loja.resgates.map((item) => (
-              <View key={item.id} style={styles.historico}>
-                <Text style={styles.data}>
-                  {new Date(item.resgatadoEm).toLocaleDateString('pt-BR')}
+            {erro && !selecao && !confirmacao ? (
+              <View style={styles.aviso}>
+                <Text accessibilityRole="alert" style={styles.erro}>
+                  {erro}
                 </Text>
-                <Text style={styles.rotulo}>{item.titulo}</Text>
-                <Text style={styles.texto}>
-                  {item.estado === 'estornado'
-                    ? `Estornado · +${item.custo} pontos`
-                    : `${item.estado === 'utilizado' ? 'Utilizado' : 'Resgatado'} · ${item.custo} pontos`}
-                </Text>
-                {item.protecao && item.estado === 'resgatado' ? (
-                  <SecondaryButton
-                    label="Desfazer resgate da proteção"
-                    disabled={enviando}
-                    onPress={() =>
-                      setConfirmacao({
-                        acao: 'desfazer',
-                        id: item.id,
-                        titulo: 'Desfazer resgate?',
-                        mensagem: `${item.custo} pontos serão devolvidos ao seu saldo.`,
-                        botao: 'Desfazer resgate',
-                      })
-                    }
-                  />
-                ) : null}
+                <SecondaryButton
+                  label="Atualizar loja"
+                  onPress={recarregar}
+                  disabled={enviando || carregando}
+                />
               </View>
-            ))}
+            ) : null}
+            {carregando && !loja ? (
+              <ActivityIndicator accessibilityLabel="Carregando loja" color={colors.lojaTexto} />
+            ) : null}
           </>
-        ) : null}
-      </ScrollView>
-      <BottomNav
-        activeItem="loja"
-        onPressMissoes={() => navigation.navigate('MissionList')}
-        onPressDiario={() => navigation.navigate('Diario')}
-        onPressLoja={() => {}}
-        onPressPerfil={() => navigation.navigate('Conta')}
+        }
       />
+
       <Modal
         visible={Boolean(selecao || confirmacao)}
         transparent
@@ -215,6 +258,23 @@ export function LojaScreen({ navigation }) {
               <>
                 <Text style={styles.subtitulo}>{confirmacao.titulo}</Text>
                 <Text style={styles.texto}>{confirmacao.mensagem}</Text>
+                {confirmacao.resumo ? (
+                  <View style={styles.grupo}>
+                    {[
+                      ['Custo', confirmacao.resumo.custo],
+                      ['Seu saldo', confirmacao.resumo.saldo],
+                      ['Após o resgate', confirmacao.resumo.apos],
+                    ].map(([rotulo, valor]) => (
+                      <View key={rotulo}>
+                        <Text style={styles.rotulo}>{rotulo}</Text>
+                        <ValorComMoeda valor={valor} rotulo={rotulo} />
+                      </View>
+                    ))}
+                  </View>
+                ) : null}
+                {confirmacao.valor != null ? (
+                  <ValorComMoeda valor={confirmacao.valor} comSinal rotulo="Devolução" />
+                ) : null}
                 {erro ? (
                   <Text style={styles.erro} accessibilityRole="alert">
                     {erro}
@@ -235,12 +295,23 @@ export function LojaScreen({ navigation }) {
               </>
             ) : selecionada ? (
               <>
-                <Text style={styles.subtitulo}>{selecionada.titulo}</Text>
+                <View style={styles.identidadeRecompensa}>
+                  <IlustracaoRecompensa
+                    deveMostrarProtecao={selecao.protecao}
+                    deveMostrarUtilizada={selecionada.estado === 'utilizada'}
+                    tamanho={48}
+                  />
+                  <Text style={[styles.subtitulo, styles.tituloRecompensa]}>
+                    {selecionada.titulo}
+                  </Text>
+                </View>
                 {selecionada.descricao ? (
                   <Text style={styles.texto}>{selecionada.descricao}</Text>
                 ) : null}
-                <Text style={styles.rotulo}>Custo: {selecionada.custo} pontos</Text>
-                <Text style={styles.texto}>Seu saldo: {loja.saldoPontos} pontos</Text>
+                <Text style={styles.rotulo}>Custo</Text>
+                <ValorComMoeda valor={selecionada.custo} rotulo="Custo" />
+                <Text style={styles.texto}>Seu saldo</Text>
+                <ValorComMoeda valor={loja.saldoPontos} rotulo="Seu saldo" />
                 {erro ? (
                   <Text style={styles.erro} accessibilityRole="alert">
                     {erro}
@@ -298,7 +369,8 @@ export function LojaScreen({ navigation }) {
                           acao: 'desfazer',
                           id: selecionada.resgateId,
                           titulo: 'Desfazer resgate?',
-                          mensagem: `${selecionada.custo} pontos serão devolvidos ao saldo.`,
+                          mensagem: 'O valor será devolvido ao saldo.',
+                          valor: selecionada.custo,
                           botao: 'Desfazer resgate',
                         })
                       }
@@ -327,6 +399,9 @@ export function LojaScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
+  identidadeRecompensa: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  tituloRecompensa: { flex: 1 },
+  cabecalhoLista: { gap: 16 },
   tela: { flex: 1, backgroundColor: colors.surface },
   conteudo: { paddingHorizontal: 24, paddingBottom: 24, gap: 16 },
   cabecalho: {
