@@ -1,0 +1,148 @@
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+
+import { criarServicoDiario, mensagemDiario } from '../services/diario';
+import { useSessao } from './SessaoContext';
+
+const DiariosContext = createContext(null);
+const ordenar = (entradas) =>
+  [...entradas].sort(
+    (a, b) =>
+      b.dataRegistro.localeCompare(a.dataRegistro) ||
+      b.criadaEm.localeCompare(a.criadaEm) ||
+      b.id - a.id,
+  );
+
+export function DiariosProvider({ children }) {
+  const { sessao, requisitarAutenticado } = useSessao();
+  const usuarioId = sessao?.usuarioId;
+  return (
+    <DadosDoDiario
+      key={usuarioId ?? 'visitante'}
+      usuarioId={usuarioId}
+      requisitarAutenticado={requisitarAutenticado}
+    >
+      {children}
+    </DadosDoDiario>
+  );
+}
+
+function DadosDoDiario({ children, usuarioId, requisitarAutenticado }) {
+  const servico = useMemo(
+    () => criarServicoDiario({ usuarioId, requisitarAutenticado }),
+    [usuarioId, requisitarAutenticado],
+  );
+  const [entradas, setEntradas] = useState([]);
+  const [carregando, setCarregando] = useState(true);
+  const [historicoCarregado, setHistoricoCarregado] = useState(false);
+  const [enviando, setEnviando] = useState(false);
+  const [erro, setErro] = useState('');
+  const requisicao = useRef(0);
+  const ocupado = useRef(false);
+  const leitura = useRef(null);
+  const montado = useRef(true);
+
+  useEffect(() => {
+    montado.current = true;
+    return () => {
+      montado.current = false;
+      leitura.current?.abort();
+    };
+  }, []);
+
+  const recarregar = useCallback(async () => {
+    if (!usuarioId || ocupado.current || leitura.current) return;
+    const numero = ++requisicao.current;
+    const controlador = new AbortController();
+    leitura.current = controlador;
+    const atual = () => montado.current && numero === requisicao.current;
+    setCarregando(true);
+    setErro('');
+    try {
+      const resultado = await servico.listar(controlador.signal);
+      if (atual()) {
+        setEntradas(resultado);
+        setHistoricoCarregado(true);
+      }
+    } catch {
+      if (atual())
+        setErro('Não foi possível carregar seu diário. Confira a conexão e tente novamente.');
+    } finally {
+      if (atual()) setCarregando(false);
+      if (leitura.current === controlador) leitura.current = null;
+    }
+  }, [servico, usuarioId]);
+
+  async function executar(operacao, aplicar) {
+    if (!usuarioId || ocupado.current) return false;
+    ocupado.current = true;
+    const reconsultarAposSalvar = Boolean(leitura.current) || !historicoCarregado;
+    let confirmado = false;
+    leitura.current?.abort();
+    leitura.current = null;
+    const numero = ++requisicao.current;
+    const atual = () => montado.current && numero === requisicao.current;
+    setEnviando(true);
+    setCarregando(false);
+    setErro('');
+    try {
+      const resultado = await operacao();
+      if (!atual()) return false;
+      setEntradas((anteriores) => ordenar(aplicar(anteriores, resultado)));
+      confirmado = true;
+      return true;
+    } catch (falha) {
+      if (atual()) setErro(mensagemDiario(falha));
+      return false;
+    } finally {
+      if (atual()) {
+        ocupado.current = false;
+        setEnviando(false);
+        if (confirmado && reconsultarAposSalvar) recarregar();
+      }
+    }
+  }
+
+  return (
+    <DiariosContext.Provider
+      value={{
+        entradas,
+        carregando,
+        historicoCarregado,
+        enviando,
+        erro,
+        recarregar,
+        adicionarEntrada: (dados) =>
+          executar(
+            () => servico.criar(dados),
+            (anteriores, entrada) => [entrada, ...anteriores],
+          ),
+        atualizarEntrada: (id, dados) =>
+          executar(
+            () => servico.atualizar(id, dados),
+            (anteriores, entrada) => anteriores.map((item) => (item.id === id ? entrada : item)),
+          ),
+        excluirEntrada: (id) =>
+          executar(
+            () => servico.excluir(id),
+            (anteriores) => anteriores.filter((item) => item.id !== id),
+          ),
+      }}
+    >
+      {children}
+    </DiariosContext.Provider>
+  );
+}
+
+export function useDiarios() {
+  const contexto = useContext(DiariosContext);
+  if (!contexto) throw new Error('useDiarios deve ser usado dentro de um DiariosProvider');
+  return contexto;
+}

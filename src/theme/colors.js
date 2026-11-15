@@ -1,4 +1,7 @@
 export const colors = {
+  loja: '#ebc145',
+  lojaSuave: '#fff7d6',
+  lojaTexto: '#785900',
   brand: '#5b2dbb',
   brandStrong: '#591fc7',
   brandDark: '#4c1d95',
@@ -16,6 +19,8 @@ export const colors = {
   textSecondary: '#625a72',
   textSecondaryAlt: '#6b6478',
   textMuted: '#665c7a',
+  textoDiaMissao: '#6f687a',
+  textoGrupoMissao: '#4f465f',
 
   borderDefault: '#ded8ea',
   borderDefaultAlt: '#e8e3ef',
@@ -25,6 +30,7 @@ export const colors = {
   dangerSoft: '#ffecef',
   dangerText: '#b53049',
   success: '#1f8c59',
+  successSoft: '#e5f5ec',
   progressTrack: '#e9e3f1',
 
   typeAccentA: '#e85d75',

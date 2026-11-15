@@ -17,6 +17,7 @@ export function DetailSummaryCard({ accentColor, title, description, chips }) {
             label={chip.label}
             backgroundColor={chip.backgroundColor}
             textColor={chip.textColor}
+            pontos={chip.pontos}
           />
         ))}
       </View>

@@ -1,0 +1,99 @@
+import { iniciarMedicaoHttp } from '../utils/medirFluidez';
+
+export class ErroApi extends Error {
+  constructor(mensagem, status = 0, erros = {}) {
+    super(mensagem);
+    this.name = 'ErroApi';
+    this.status = status;
+    this.erros = erros;
+  }
+}
+
+export function criarApi({
+  urlBase = process.env.EXPO_PUBLIC_API_URL,
+  executarFetch = (...args) => fetch(...args),
+  tempoLimite = 15000,
+} = {}) {
+  return async function requisitar(
+    caminho,
+    { metodo = 'GET', corpo, corpoFormData, token, formatoResposta = 'json', signal } = {},
+  ) {
+    if (!urlBase) {
+      throw new ErroApi(
+        'Não foi possível conectar ao serviço. Verifique a configuração do aplicativo.',
+      );
+    }
+    const controlador = new AbortController();
+    const cancelar = () => controlador.abort();
+    signal?.addEventListener('abort', cancelar);
+    if (signal?.aborted) cancelar();
+    const terminarMedicao = iniciarMedicaoHttp(caminho, metodo);
+    let status = 0;
+    const limite = setTimeout(() => controlador.abort(), tempoLimite);
+    try {
+      const resposta = await executarFetch(`${urlBase.replace(/\/+$/, '')}${caminho}`, {
+        method: metodo,
+        headers: {
+          Accept: 'application/json',
+          ...(formatoResposta === 'binario' ? { 'Cache-Control': 'no-cache' } : {}),
+          // FormData define o próprio Content-Type (com boundary) — não sobrescrever aqui.
+          ...(corpo ? { 'Content-Type': 'application/json' } : {}),
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        ...(corpo ? { body: JSON.stringify(corpo) } : {}),
+        ...(corpoFormData ? { body: corpoFormData } : {}),
+        signal: controlador.signal,
+      });
+      status = resposta.status;
+      if (resposta.ok && formatoResposta === 'binario') {
+        return {
+          conteudo: new Uint8Array(await resposta.arrayBuffer()),
+          tipo: resposta.headers.get('Content-Type'),
+        };
+      }
+      const dados = resposta.status === 204 ? null : await resposta.json().catch(() => null);
+      if (!resposta.ok) {
+        const mensagens = {
+          400: 'Revise os dados informados.',
+          401: 'E-mail ou senha inválidos, ou sessão expirada.',
+          409: 'Já existe uma conta associada a este e-mail.',
+          429: 'Muitas tentativas de acesso. Aguarde alguns minutos e tente novamente.',
+        };
+        const erro = new ErroApi(
+          mensagens[resposta.status] ??
+            'O serviço está indisponível. Tente novamente em instantes.',
+          resposta.status,
+          resposta.status === 400 ? (dados?.errors ?? {}) : {},
+        );
+        erro.codigo = typeof dados?.codigo === 'string' ? dados.codigo : undefined;
+        throw erro;
+      }
+      return dados;
+    } catch (erro) {
+      if (signal?.aborted) {
+        const cancelada = new ErroApi('Requisição cancelada.');
+        cancelada.codigo = 'requisicao_cancelada';
+        throw cancelada;
+      }
+      if (erro instanceof ErroApi) throw erro;
+      throw new ErroApi(
+        erro.name === 'AbortError'
+          ? 'A conexão demorou demais. Tente novamente.'
+          : 'Não foi possível conectar. Verifique sua conexão e tente novamente.',
+      );
+    } finally {
+      clearTimeout(limite);
+      signal?.removeEventListener('abort', cancelar);
+      terminarMedicao(status, controlador.signal.aborted);
+    }
+  };
+}
+
+export function errosDoFormulario(erro) {
+  const campos = { nome: 'name', email: 'email', senha: 'password', dataNascimento: 'birthDate' };
+  return Object.fromEntries(
+    Object.entries(erro.erros ?? {})
+      .filter(([campo, mensagens]) => campos[campo] && Array.isArray(mensagens))
+      .map(([campo, mensagens]) => [campos[campo], mensagens.join(' ')]),
+  );
+}

@@ -14,6 +14,7 @@ export function SelectField({ label, required, value, placeholder, onPress, erro
         onPress={onPress}
         accessibilityRole="button"
         accessibilityLabel={label}
+        accessibilityValue={{ text: value ?? placeholder }}
         accessibilityHint="Toque para escolher"
         style={[styles.field, Boolean(error) && styles.fieldError]}
       >
@@ -39,7 +40,8 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
   field: {
-    height: 48,
+    minHeight: 48,
+    paddingVertical: 10,
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: colors.borderDefault,

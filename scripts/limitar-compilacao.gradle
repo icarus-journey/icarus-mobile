@@ -1,0 +1,12 @@
+gradle.beforeProject { projeto ->
+    ['com.android.application', 'com.android.library'].each { identificador ->
+        projeto.plugins.withId(identificador) {
+            def android = projeto.extensions.getByName('android')
+            android.defaultConfig.externalNativeBuild.cmake.arguments(
+                '-DCMAKE_JOB_POOLS=compilacao_icarus=1',
+                '-DCMAKE_JOB_POOL_COMPILE=compilacao_icarus',
+                '-DCMAKE_JOB_POOL_LINK=compilacao_icarus'
+            )
+        }
+    }
+}

@@ -4,21 +4,26 @@ import IconChevronLeft from '../assets/icons/icon-chevron-left.svg';
 import { colors } from '../theme/colors';
 import { fontFamily, fontSize } from '../theme/typography';
 
-export function ScreenHeader({ title, onBack }) {
+export function ScreenHeader({
+  title,
+  onBack,
+  corVoltar = colors.softPurple,
+  IconeVoltar = IconChevronLeft,
+  estiloTitulo,
+  style,
+}) {
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, style]}>
       <Pressable
         onPress={onBack}
         accessibilityRole="button"
         accessibilityLabel="Voltar"
-        style={styles.backButton}
+        style={[styles.backButton, { backgroundColor: corVoltar }]}
         hitSlop={8}
       >
-        <IconChevronLeft width={20} height={20} />
+        <IconeVoltar />
       </Pressable>
-      <Text style={styles.title} numberOfLines={1}>
-        {title}
-      </Text>
+      <Text style={[styles.title, estiloTitulo]}>{title}</Text>
       <View style={styles.spacer} />
     </View>
   );
@@ -28,7 +33,7 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    height: 44,
+    minHeight: 44,
     marginBottom: 8,
   },
   backButton: {

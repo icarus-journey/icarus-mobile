@@ -1,11 +1,16 @@
 import { StyleSheet, Text, View } from 'react-native';
 
 import { fontFamily, fontSize } from '../theme/typography';
+import { ValorComMoeda } from './Pontos/ValorComMoeda';
 
-export function StatusChip({ label, backgroundColor, textColor }) {
+export function StatusChip({ label, backgroundColor, textColor, pontos }) {
   return (
     <View style={[styles.chip, { backgroundColor }]}>
-      <Text style={[styles.label, { color: textColor }]}>{label}</Text>
+      {pontos != null ? (
+        <ValorComMoeda valor={pontos} comSinal tamanho="compacto" cor={textColor} rotulo={label} />
+      ) : (
+        <Text style={[styles.label, { color: textColor }]}>{label}</Text>
+      )}
     </View>
   );
 }

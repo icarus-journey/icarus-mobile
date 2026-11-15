@@ -27,6 +27,10 @@ export function validateEpicForm(values) {
     errors.dificuldade = 'Escolha uma dificuldade.';
   }
 
+  if (!values.areaDaVida) {
+    errors.areaDaVida = 'Escolha uma área da vida.';
+  }
+
   return errors;
 }
 

@@ -2,10 +2,16 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors } from '../theme/colors';
 import { fontFamily, fontSize } from '../theme/typography';
+import { isDataLimiteVencida } from '../utils/dateInput';
+import { ValorComMoeda } from './Pontos/ValorComMoeda';
 
 export function TaskCard({ mission, onPress, statusLabel }) {
+  const concluida = Boolean(mission.concluidaEm);
+  const atrasada =
+    !concluida && (mission.status === 'ATRASADA' || isDataLimiteVencida(mission.dataLimite));
+  const accentColor = concluida ? colors.success : atrasada ? colors.danger : mission.corDestaque;
   const resolvedStatusLabel =
-    statusLabel ?? (mission.status === 'ATRASADA' ? 'atrasada' : 'pendente');
+    statusLabel ?? (concluida ? 'concluída' : atrasada ? 'atrasada' : 'pendente');
   const accessibilityLabel = [
     mission.titulo,
     mission.prazoLabel,
@@ -22,14 +28,23 @@ export function TaskCard({ mission, onPress, statusLabel }) {
       accessibilityLabel={accessibilityLabel}
       style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
     >
-      <View style={[styles.accent, { backgroundColor: mission.corDestaque }]} />
+      <View style={[styles.accent, { backgroundColor: accentColor }]} />
       <View style={styles.body}>
         <Text style={styles.title} numberOfLines={1}>
           {mission.titulo}
         </Text>
         <Text style={styles.subtitle}>{mission.prazoLabel}</Text>
       </View>
-      {mission.pontos ? <Text style={styles.points}>+{mission.pontos} XP</Text> : null}
+      {mission.pontos ? (
+        <ValorComMoeda
+          valor={mission.pontos}
+          comSinal
+          tamanho="compacto"
+          cor={colors.textSecondaryAlt}
+          acessivel={false}
+          style={styles.recompensa}
+        />
+      ) : null}
     </Pressable>
   );
 }
@@ -69,9 +84,8 @@ const styles = StyleSheet.create({
     fontSize: fontSize.sm,
     color: colors.textSecondaryAlt,
   },
-  points: {
-    fontFamily: fontFamily.regular,
-    fontSize: fontSize.sm,
-    color: colors.textSecondaryAlt,
+  recompensa: {
+    alignSelf: 'flex-end',
+    marginBottom: 13,
   },
 });

@@ -1,21 +1,126 @@
-import { NavigationContainer } from '@react-navigation/native';
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { Alert } from 'react-native';
+import { MOCK_CAMPAIGNS } from '../state/campaignMockData';
+import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react-native';
 
 import { CampaignsProvider } from '../state/CampaignsContext';
+import { DiariosProvider } from '../state/DiariosContext';
 import { EpicsProvider } from '../state/EpicsContext';
 import { MissionsProvider } from '../state/MissionsContext';
 import { OnboardingProvider } from '../state/OnboardingContext';
 import { RootNavigator } from './RootNavigator';
+import { LojaProvider } from '../state/LojaContext';
 
-function renderApp(initialRouteName = 'Login') {
+import { useSessao } from '../state/SessaoContext';
+
+const referenciaNavegacao = createNavigationContainerRef();
+
+jest.mock('../hooks/useRelatorioSemanal', () => ({
+  useRelatorioSemanal: () => ({ dados: null, carregando: false }),
+}));
+jest.mock('../hooks/useJornada', () => ({
+  useJornada: () => ({ dados: null, carregando: false, erro: '', atualizar: jest.fn() }),
+}));
+
+jest.mock('../state/SessaoContext', () => ({ useSessao: jest.fn() }));
+
+const mockCriarEpico = jest.fn();
+const mockAtualizarEpico = jest.fn();
+const mockConcluirEpico = jest.fn();
+jest.mock('../services/epicos', () => ({
+  criarEpico: (...args) => mockCriarEpico(...args),
+  atualizarEpico: (...args) => mockAtualizarEpico(...args),
+  concluirEpico: (...args) => mockConcluirEpico(...args),
+}));
+
+const mockCriarCampanha = jest.fn();
+const mockAtualizarCampanha = jest.fn();
+const mockConcluirCampanha = jest.fn();
+jest.mock('../services/campanhas', () => ({
+  criarCampanha: (...args) => mockCriarCampanha(...args),
+  atualizarCampanha: (...args) => mockAtualizarCampanha(...args),
+  concluirCampanha: (...args) => mockConcluirCampanha(...args),
+}));
+
+const mockCriarMissao = jest.fn();
+const mockAtualizarMissao = jest.fn();
+const mockConcluirMissao = jest.fn();
+jest.mock('../services/missoes', () => ({
+  consultarMissao: async ({ missaoId }) => {
+    const concluida = mockConcluirMissao.mock.calls.length > 0;
+    return {
+      id: missaoId,
+      status: 'ativa',
+      recorrente: true,
+      titulo: 'Fazer exercício de dados',
+      dificuldade: 'media',
+      pontuacao: 45,
+      versao: 'versao-teste',
+      configuracaoRecorrencia: { tipo: 'diaria', diasSemana: [], dataFim: null },
+      execucao: {
+        podeConcluir: !concluida,
+        concluida,
+        concluidaEm: concluida ? '2026-10-30T12:00:00Z' : null,
+        pontuacao: 45,
+        hoje: '2026-10-30',
+        dataPrevista: '2026-10-30',
+      },
+    };
+  },
+  criarMissao: (...args) => mockCriarMissao(...args),
+  atualizarMissao: (...args) => mockAtualizarMissao(...args),
+  concluirMissao: (...args) => mockConcluirMissao(...args),
+}));
+
+function renderApp(initialRouteName = 'Login', { initialMissions } = {}) {
+  const entradas = [];
+  useSessao.mockReturnValue({
+    sessao: initialRouteName === 'Login' ? null : { usuarioId: 'usuario' },
+    novaConta: false,
+    requisitarAutenticado: jest.fn(async (_caminho, opcoes) => {
+      if (_caminho.endsWith('/loja'))
+        return {
+          saldoPontos: 300,
+          recompensas: [],
+          resgates: [],
+          protecao: { titulo: 'Proteção de sequência', custo: 100, quantidade: 1, limite: 3 },
+        };
+      if (_caminho === '/api/usuarios/usuario')
+        return {
+          id: 'usuario',
+          nome: 'Pessoa de teste',
+          email: 'pessoa@exemplo.com',
+          dataNascimento: '2000-01-01',
+        };
+      if (!opcoes?.metodo || opcoes.metodo === 'GET') return [...entradas];
+      const entrada = {
+        ...opcoes.corpo,
+        id: entradas.length + 1,
+        criadaEm: '2026-10-24T12:00:00Z',
+        atualizadaEm: '2026-10-24T12:00:00Z',
+      };
+      entradas.push(entrada);
+      return entrada;
+    }),
+  });
   return render(
     <OnboardingProvider>
-      <MissionsProvider>
+      <MissionsProvider {...(initialMissions ? { initialMissions } : {})}>
         <EpicsProvider>
-          <CampaignsProvider>
-            <NavigationContainer>
-              <RootNavigator initialRouteName={initialRouteName} />
-            </NavigationContainer>
+          <CampaignsProvider
+            initialCampaigns={MOCK_CAMPAIGNS.map((c) => ({
+              ...c,
+              estado: 'planejada',
+              prazoInicio: '2026-11-01',
+            }))}
+          >
+            <DiariosProvider>
+              <LojaProvider>
+                <NavigationContainer ref={referenciaNavegacao}>
+                  <RootNavigator initialRouteName={initialRouteName} />
+                </NavigationContainer>
+              </LojaProvider>
+            </DiariosProvider>
           </CampaignsProvider>
         </EpicsProvider>
       </MissionsProvider>
@@ -23,21 +128,53 @@ function renderApp(initialRouteName = 'Login') {
   );
 }
 
-function enterApp() {
-  fireEvent.changeText(screen.getByLabelText('E-mail'), 'paloma@email.com');
-  fireEvent.changeText(screen.getByLabelText('Senha'), 'Senha123!');
-  fireEvent.press(screen.getByLabelText('Entrar na minha jornada'));
-}
+beforeEach(() => {
+  jest.useFakeTimers();
+  mockCriarEpico.mockReset();
+  mockAtualizarEpico.mockReset();
+  mockCriarCampanha.mockReset();
+  mockAtualizarCampanha.mockReset();
+  mockCriarMissao.mockReset();
+  mockAtualizarMissao.mockReset();
+  mockConcluirEpico.mockReset();
+  mockConcluirCampanha.mockReset();
+  mockConcluirMissao.mockReset();
+});
+
+afterEach(() => {
+  jest.clearAllTimers();
+  jest.useRealTimers();
+});
 
 describe('fluxo de autenticação e missões', () => {
-  it('abre o app no login e entra na lista de missões', () => {
+  it('ignora toques na aba atual e preserva o segmento ao voltar do Diário', async () => {
+    const registrarErro = jest.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      renderApp('MissionList');
+      fireEvent.press(screen.getByLabelText('Campanha'));
+      fireEvent.press(screen.getByLabelText('Missões'));
+      fireEvent.press(screen.getByLabelText('Missões'));
+      expect(screen.getByText('Campanhas')).toBeTruthy();
+      expect(registrarErro).not.toHaveBeenCalled();
+
+      fireEvent.press(screen.getByLabelText('Diário'));
+      expect(screen.getByText('Diário de crescimento')).toBeTruthy();
+      await screen.findByText('Seu diário começa aqui');
+      fireEvent.press(screen.getByLabelText('Missões'));
+      expect(screen.getByText('Campanhas')).toBeTruthy();
+      fireEvent.press(screen.getByLabelText('Missões'));
+      expect(registrarErro).not.toHaveBeenCalled();
+    } finally {
+      registrarErro.mockRestore();
+    }
+  });
+
+  it('exibe somente o login quando não existe sessão', () => {
     renderApp();
 
     expect(screen.getByLabelText('Icarus')).toBeTruthy();
 
-    enterApp();
-
-    expect(screen.getByText('Seus próximos passos.')).toBeTruthy();
+    expect(screen.queryByLabelText('Adicionar missão')).toBeNull();
   });
 
   it('abre o formulário a partir da lista e volta para a lista ao tocar em uma missão', () => {
@@ -47,20 +184,35 @@ describe('fluxo de autenticação e missões', () => {
     expect(screen.getByText('Nova missão')).toBeTruthy();
 
     fireEvent.press(screen.getByLabelText('Voltar'));
-    expect(screen.getByText('Seus próximos passos.')).toBeTruthy();
+    expect(screen.getByLabelText('Adicionar missão')).toBeTruthy();
   });
 
-  it('cria uma missão válida e volta para a lista com o novo item', () => {
+  it('cria uma missão válida e volta para a lista com o novo item', async () => {
+    mockCriarMissao.mockResolvedValue({
+      id: 101,
+      campanhaId: null,
+      titulo: 'Ler dez páginas',
+      descricao: null,
+      beneficio: null,
+      dificuldade: 'media',
+      pontuacao: 45,
+      dataLimite: '2026-12-25',
+      horario: '2026-12-25T09:00:00+00:00',
+      status: 'ativa',
+    });
     renderApp('MissionList');
 
     fireEvent.press(screen.getByLabelText('Adicionar missão'));
 
     fireEvent.changeText(screen.getByLabelText('Título'), 'Ler dez páginas');
+    fireEvent.changeText(screen.getByLabelText('Recompensa'), '45');
     fireEvent.changeText(screen.getByLabelText('Data limite'), '25122026');
     fireEvent.press(screen.getByLabelText('Média'));
-    fireEvent.press(screen.getByLabelText('Salvar missão'));
+    await act(async () => {
+      fireEvent.press(screen.getByLabelText('Salvar missão'));
+    });
 
-    expect(screen.getByText('Seus próximos passos.')).toBeTruthy();
+    expect(screen.getByLabelText('Adicionar missão')).toBeTruthy();
     expect(screen.getByText('Ler dez páginas')).toBeTruthy();
   });
 
@@ -73,11 +225,43 @@ describe('fluxo de autenticação e missões', () => {
     expect(screen.getByText('3 de 5 registros concluídos')).toBeTruthy();
 
     fireEvent.press(screen.getByLabelText('Voltar'));
-    expect(screen.getByText('Seus próximos passos.')).toBeTruthy();
+    expect(screen.getByLabelText('Adicionar missão')).toBeTruthy();
   });
 
-  it('edita uma missão existente a partir do detalhe e reflete a mudança ao voltar', () => {
-    renderApp('MissionList');
+  it('edita uma missão existente a partir do detalhe e reflete a mudança ao voltar', async () => {
+    mockAtualizarMissao.mockResolvedValue({
+      id: 'missao-editavel',
+      campanhaId: null,
+      titulo: 'Fazer exercício de dados avançado',
+      descricao: null,
+      beneficio: null,
+      dificuldade: 'media',
+      pontuacao: 45,
+      dataLimite: null,
+      horario: '2026-01-01T18:00:00+00:00',
+      status: 'ativa',
+    });
+    // Missão recorrente nunca é editável (RF-04.3) — usa uma não recorrente pra este fluxo.
+    renderApp('MissionList', {
+      initialMissions: [
+        {
+          id: 'missao-editavel',
+          titulo: 'Fazer exercício de dados',
+          descricao: null,
+          status: 'PENDENTE',
+          dataLimite: '31/12/2026',
+          prazoLabel: '31/12/2026',
+          prazoCompleto: '31/12/2026, 18:00',
+          dificuldade: 'MEDIA',
+          pontos: 20,
+          recorrente: false,
+          campanha: null,
+          corDestaque: '#7048d6',
+          progresso: null,
+          recompensaLabel: '20 pontos',
+        },
+      ],
+    });
 
     fireEvent.press(screen.getAllByLabelText(/Fazer exercício de dados/)[0]);
     fireEvent.press(screen.getByLabelText('Editar missão'));
@@ -86,13 +270,38 @@ describe('fluxo de autenticação e missões', () => {
     expect(screen.getByDisplayValue('Fazer exercício de dados')).toBeTruthy();
 
     fireEvent.changeText(screen.getByLabelText('Título'), 'Fazer exercício de dados avançado');
-    fireEvent.press(screen.getByLabelText('Salvar alterações'));
+    await act(async () => {
+      fireEvent.press(screen.getByLabelText('Salvar alterações'));
+    });
 
     expect(screen.getByText('Fazer exercício de dados avançado')).toBeTruthy();
 
     fireEvent.press(screen.getByLabelText('Voltar'));
-    expect(screen.getByText('Seus próximos passos.')).toBeTruthy();
+    expect(screen.getByLabelText('Adicionar missão')).toBeTruthy();
     expect(screen.getByText('Fazer exercício de dados avançado')).toBeTruthy();
+  });
+
+  it('conclui uma missão a partir do detalhe e credita pontos (RF-04.6)', async () => {
+    mockConcluirMissao.mockResolvedValue({
+      id: 'missao-1',
+      concluidaEm: '2026-01-01T18:00:00+00:00',
+      concluidaComAtraso: false,
+      pontuacaoCreditada: 20,
+      saldoPontosAtual: 20,
+    });
+    renderApp('MissionList');
+
+    fireEvent.press(screen.getAllByLabelText(/Fazer exercício de dados/)[0]);
+    await waitFor(() => expect(screen.getByLabelText('Concluir agora')).toBeTruthy());
+
+    await waitFor(() => screen.getByLabelText('Concluir agora'));
+    await act(async () => {
+      fireEvent.press(screen.getByLabelText('Concluir agora'));
+    });
+
+    expect(mockConcluirMissao).toHaveBeenCalledTimes(1);
+    expect(screen.getByText('Missão concluída')).toBeTruthy();
+    expect(screen.getByLabelText('Editar missão')).toBeTruthy();
   });
 
   it('não salva e mostra erros quando campos obrigatórios estão vazios', () => {
@@ -106,22 +315,52 @@ describe('fluxo de autenticação e missões', () => {
   });
 });
 
+describe('fluxo do diário', () => {
+  it('abre o diário pela navegação inferior e registra uma reflexão', async () => {
+    renderApp('MissionList');
+
+    fireEvent.press(screen.getByLabelText('Diário'));
+    expect(screen.getByText('Diário de crescimento')).toBeTruthy();
+
+    await screen.findByText('Seu diário começa aqui');
+    fireEvent.changeText(screen.getByLabelText('Reflexão de hoje'), 'Hoje consegui avançar.');
+    fireEvent.press(screen.getByLabelText('Registrar reflexão'));
+
+    expect(await screen.findByText('Hoje consegui avançar.')).toBeTruthy();
+  });
+});
+
 describe('fluxo de épicos', () => {
-  it('abre o detalhe do épico em destaque, edita e reflete a mudança ao voltar', () => {
+  it('abre o detalhe do épico em destaque, edita e reflete a mudança ao voltar', async () => {
+    mockAtualizarEpico.mockResolvedValue({
+      id: 'epico-1',
+      titulo: 'Ser promovido a sênior',
+      descricao: 'Avance nas campanhas que sustentam seu grande objetivo.',
+      areaDaVida: 'trabalhoECarreira',
+      dificuldade: 'dificil',
+      pontuacao: 60,
+      prazoInicio: '2026-01-01',
+      prazoFim: '2027-12-31',
+      estado: 'emAndamento',
+    });
     renderApp('MissionList');
 
     fireEvent.press(screen.getByLabelText('Épico'));
     fireEvent.press(screen.getByLabelText(/Ser promovido/));
 
     expect(screen.getByText('Detalhe do épico')).toBeTruthy();
-    expect(screen.getByText('2 de 3 campanhas concluídas')).toBeTruthy();
+    expect(screen.getByText('Campanhas concluídas')).toBeTruthy();
+    expect(screen.getByText('2 de 3')).toBeTruthy();
+    expect(screen.queryByText('67%')).toBeNull();
 
     fireEvent.press(screen.getByLabelText('Editar épico'));
     expect(screen.getByText('Editar épico')).toBeTruthy();
     expect(screen.getByDisplayValue('Ser promovido')).toBeTruthy();
 
     fireEvent.changeText(screen.getByLabelText('Título'), 'Ser promovido a sênior');
-    fireEvent.press(screen.getByLabelText('Salvar alterações'));
+    await act(async () => {
+      fireEvent.press(screen.getByLabelText('Salvar alterações'));
+    });
 
     expect(screen.getByText('Ser promovido a sênior')).toBeTruthy();
 
@@ -129,24 +368,71 @@ describe('fluxo de épicos', () => {
     expect(screen.getByText('Épicos')).toBeTruthy();
   });
 
-  it('cria um épico válido e ele aparece na lista', () => {
+  it('cria um épico válido e ele aparece na lista', async () => {
+    mockCriarEpico.mockResolvedValue({
+      id: 'epico-99',
+      titulo: 'Aprender inglês fluente',
+      descricao: null,
+      areaDaVida: 'estudosEAprendizado',
+      dificuldade: 'facil',
+      pontuacao: 30,
+      prazoInicio: '2026-01-01',
+      prazoFim: '2027-12-31',
+      estado: 'emAndamento',
+    });
     renderApp('MissionList');
 
     fireEvent.press(screen.getByLabelText('Épico'));
     fireEvent.press(screen.getByLabelText('Adicionar épico'));
 
     fireEvent.changeText(screen.getByLabelText('Título'), 'Aprender inglês fluente');
+    fireEvent.press(screen.getByLabelText('Área da vida'));
+    fireEvent.press(screen.getByLabelText('Estudos e aprendizado'));
     fireEvent.changeText(screen.getByLabelText('Data limite'), '31122027');
     fireEvent.press(screen.getByLabelText('Fácil'));
-    fireEvent.press(screen.getByLabelText('Salvar épico'));
+    await act(async () => {
+      fireEvent.press(screen.getByLabelText('Salvar épico'));
+    });
 
     expect(screen.getByText('Épicos')).toBeTruthy();
     expect(screen.getByText('Aprender inglês fluente')).toBeTruthy();
   });
+
+  it('conclui o épico a partir do detalhe sem alterar as campanhas (RF-03.8)', async () => {
+    mockConcluirEpico.mockResolvedValue({ id: 'epico-1', estado: 'concluido' });
+    renderApp('MissionList');
+
+    fireEvent.press(screen.getByLabelText('Épico'));
+    fireEvent.press(screen.getByLabelText(/Ser promovido/));
+
+    expect(screen.getByLabelText('Concluir épico')).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.press(screen.getByLabelText('Concluir épico'));
+    });
+
+    expect(mockConcluirEpico).toHaveBeenCalledTimes(1);
+    expect(screen.getByText('Épico concluído')).toBeTruthy();
+  });
 });
 
 describe('fluxo de campanhas', () => {
-  it('abre o detalhe da campanha em destaque, edita e reflete a mudança ao voltar', () => {
+  it('abre o detalhe da campanha em destaque, edita e reflete a mudança ao voltar', async () => {
+    mockAtualizarCampanha.mockResolvedValue({
+      id: 'campanha-1',
+      epicoId: 'epico-1',
+      titulo: 'Capacitação em Python avançado',
+      descricao: 'Conclua as missões para dominar fundamentos de Python.',
+      areaDaVida: 'trabalhoECarreira',
+      dificuldade: 'media',
+      pontuacao: 45,
+      prazoInicio: '2026-11-01',
+      prazoFim: '2026-12-30',
+      valorMensurado: null,
+      unidade: null,
+      valorAtual: null,
+      estado: 'planejada',
+    });
     renderApp('MissionList');
 
     fireEvent.press(screen.getByLabelText('Campanha'));
@@ -160,8 +446,13 @@ describe('fluxo de campanhas', () => {
     expect(screen.getByText('Editar campanha')).toBeTruthy();
     expect(screen.getByDisplayValue('Capacitação em Python')).toBeTruthy();
 
+    fireEvent.changeText(screen.getByLabelText('Data limite'), '30122026');
     fireEvent.changeText(screen.getByLabelText('Título'), 'Capacitação em Python avançado');
-    fireEvent.press(screen.getByLabelText('Salvar alterações'));
+    fireEvent.changeText(screen.getByLabelText('Quanto você quer alcançar?'), '12');
+    fireEvent.changeText(screen.getByLabelText('Unidade da meta'), 'módulos');
+    await act(async () => {
+      fireEvent.press(screen.getByLabelText('Salvar alterações'));
+    });
 
     expect(screen.getByText('Capacitação em Python avançado')).toBeTruthy();
 
@@ -169,23 +460,151 @@ describe('fluxo de campanhas', () => {
     expect(screen.getByText('Campanhas')).toBeTruthy();
   });
 
-  it('cria uma campanha válida, vinculada a um épico, e ela aparece na lista', () => {
+  it('cria uma campanha válida, vinculada a um épico, e ela aparece na lista', async () => {
+    mockCriarCampanha.mockResolvedValue({
+      id: 'campanha-99',
+      epicoId: 'epico-1',
+      titulo: 'Correr uma meia maratona',
+      descricao: null,
+      areaDaVida: 'trabalhoECarreira',
+      dificuldade: 'dificil',
+      pontuacao: 60,
+      prazoInicio: '2026-11-01',
+      prazoFim: '2027-03-15',
+      valorMensurado: null,
+      unidade: null,
+      valorAtual: null,
+      estado: 'planejada',
+    });
     renderApp('MissionList');
 
     fireEvent.press(screen.getByLabelText('Campanha'));
     fireEvent.press(screen.getByLabelText('Adicionar campanha'));
 
     fireEvent.changeText(screen.getByLabelText('Título'), 'Correr uma meia maratona');
+    fireEvent.changeText(screen.getByLabelText('Quanto você quer alcançar?'), '21');
+    fireEvent.changeText(screen.getByLabelText('Unidade da meta'), 'quilômetros');
     fireEvent.changeText(screen.getByLabelText('Data limite'), '15032027');
     fireEvent.press(screen.getByLabelText('Difícil'));
 
-    fireEvent.press(screen.getByLabelText('Sim'));
     fireEvent.press(screen.getByLabelText('Épico'));
     fireEvent.press(screen.getByLabelText('Ser promovido'));
 
-    fireEvent.press(screen.getByLabelText('Salvar campanha'));
+    await act(async () => {
+      fireEvent.press(screen.getByLabelText('Salvar campanha'));
+    });
 
     expect(screen.getByText('Campanhas')).toBeTruthy();
     expect(screen.getByText('Correr uma meia maratona')).toBeTruthy();
+    expect(mockCriarCampanha).toHaveBeenCalledWith(
+      expect.objectContaining({
+        dados: expect.objectContaining({
+          prazoInicio: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
+        }),
+      }),
+    );
+  });
+
+  it('conclui a campanha a partir do detalhe mesmo sem atingir o valor mensurado (RF-03.7)', async () => {
+    const alerta = jest.spyOn(Alert, 'alert');
+    mockConcluirCampanha.mockResolvedValue({ id: 'campanha-1', estado: 'concluida' });
+    renderApp('MissionList');
+
+    fireEvent.press(screen.getByLabelText('Campanha'));
+    fireEvent.press(screen.getByLabelText(/Capacitação em Python/));
+
+    expect(screen.getByLabelText('Concluir campanha')).toBeTruthy();
+
+    await act(async () => {
+      fireEvent.press(screen.getByLabelText('Concluir campanha'));
+      await alerta.mock.calls[0][2].find((acao) => acao.text === 'Concluir').onPress();
+    });
+    alerta.mockRestore();
+
+    expect(mockConcluirCampanha).toHaveBeenCalledTimes(1);
+    expect(screen.getByText('Campanha concluída')).toBeTruthy();
+  });
+});
+
+describe('abas e pilhas independentes (MVP-23)', () => {
+  it('trocar repetidamente entre as quatro abas não empilha telas nem duplica a barra', async () => {
+    renderApp('MissionList');
+    for (let rodada = 0; rodada < 3; rodada += 1) {
+      for (const nome of ['Diário', 'Loja', 'Perfil', 'Missões']) {
+        await act(async () => fireEvent.press(screen.getByRole('tab', { name: nome })));
+        expect(screen.getByRole('tab', { name: nome }).props.accessibilityState.selected).toBe(
+          true,
+        );
+        expect(
+          within(screen.getByLabelText('Navegação principal')).getAllByRole('tab').length,
+        ).toBe(4);
+      }
+    }
+    const raiz = referenciaNavegacao.getRootState();
+    expect(raiz.routes).toHaveLength(1);
+    const abas = raiz.routes[0].state;
+    expect(abas.type).toBe('tab');
+    expect(abas.routes).toHaveLength(4);
+    expect(referenciaNavegacao.canGoBack()).toBe(false);
+  });
+
+  it('trocar de aba preserva o detalhe e o rascunho do Diário; Voltar fecha o detalhe', async () => {
+    renderApp('MissionList');
+    fireEvent.press(screen.getAllByLabelText(/Fazer exercício de dados/)[0]);
+    await screen.findByText('Detalhe da missão');
+    await act(async () => fireEvent.press(screen.getByRole('tab', { name: 'Diário' })));
+    await screen.findByText('Seu diário começa aqui');
+    fireEvent.changeText(
+      screen.getByLabelText('Reflexão de hoje'),
+      'Rascunho ainda não registrado',
+    );
+    fireEvent.press(screen.getByRole('tab', { name: 'Missões' }));
+    expect(await screen.findByText('Detalhe da missão')).toBeTruthy();
+    fireEvent.press(screen.getByLabelText('Voltar'));
+    expect(await screen.findByLabelText('Adicionar missão')).toBeTruthy();
+    await act(async () => fireEvent.press(screen.getByRole('tab', { name: 'Diário' })));
+    expect(screen.getByLabelText('Reflexão de hoje').props.value).toBe(
+      'Rascunho ainda não registrado',
+    );
+  });
+
+  it('pressionar a aba ativa volta ao início da sua pilha sem duplicar a lista', async () => {
+    renderApp('MissionList');
+    fireEvent.press(screen.getAllByLabelText(/Fazer exercício de dados/)[0]);
+    await screen.findByText('Detalhe da missão');
+    fireEvent.press(screen.getByRole('tab', { name: 'Missões' }));
+    await screen.findByLabelText('Adicionar missão');
+    expect(screen.queryByText('Detalhe da missão')).toBeNull();
+    expect(referenciaNavegacao.canGoBack()).toBe(false);
+  });
+
+  it('Voltar na raiz da Loja retorna a Missões preservando o segmento escolhido', async () => {
+    renderApp('MissionList');
+    fireEvent.press(screen.getByLabelText('Campanha'));
+    fireEvent.press(screen.getByRole('tab', { name: 'Loja' }));
+    await screen.findByLabelText('Adicionar recompensa');
+    expect(referenciaNavegacao.canGoBack()).toBe(true);
+    await act(async () => referenciaNavegacao.goBack());
+    expect(screen.getByText('Campanhas')).toBeTruthy();
+    expect(screen.getByRole('tab', { name: 'Missões' }).props.accessibilityState.selected).toBe(
+      true,
+    );
+    expect(referenciaNavegacao.canGoBack()).toBe(false);
+  });
+
+  it('formulário e histórico ocupam a tela; retorno restaura uma única barra', async () => {
+    renderApp('MissionList');
+    fireEvent.press(screen.getByLabelText('Adicionar missão'));
+    expect(await screen.findByText('Nova missão')).toBeTruthy();
+    expect(screen.queryByLabelText('Navegação principal')).toBeNull();
+    fireEvent.press(screen.getByLabelText('Voltar'));
+    expect(await screen.findByLabelText('Adicionar missão')).toBeTruthy();
+    expect(within(screen.getByLabelText('Navegação principal')).getAllByRole('tab').length).toBe(4);
+    fireEvent.press(screen.getByLabelText('Histórico'));
+    expect(await screen.findByText('Histórico de missões')).toBeTruthy();
+    expect(screen.queryByLabelText('Navegação principal')).toBeNull();
+    fireEvent.press(screen.getByLabelText('Voltar'));
+    expect(await screen.findByLabelText('Adicionar missão')).toBeTruthy();
+    expect(within(screen.getByLabelText('Navegação principal')).getAllByRole('tab').length).toBe(4);
   });
 });

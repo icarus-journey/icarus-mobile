@@ -2,16 +2,17 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { colors } from '../theme/colors';
 import { fontFamily, fontSize } from '../theme/typography';
+import { ValorComMoeda } from './Pontos/ValorComMoeda';
 
-export function DetailRewardCard({ label = 'Recompensa', value }) {
-  if (!value) {
+export function DetailRewardCard({ label = 'Recompensa', valor }) {
+  if (!Number.isSafeInteger(valor)) {
     return null;
   }
 
   return (
     <View style={styles.card}>
       <Text style={styles.title}>{label}</Text>
-      <Text style={styles.subtitle}>{value}</Text>
+      <ValorComMoeda valor={valor} rotulo={label} cor={colors.textSecondaryAlt} />
     </View>
   );
 }
@@ -30,10 +31,5 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.bold,
     fontSize: fontSize.detailTitle,
     color: colors.textPrimaryStrong,
-  },
-  subtitle: {
-    fontFamily: fontFamily.regular,
-    fontSize: fontSize.input,
-    color: colors.textSecondaryAlt,
   },
 });

@@ -4,7 +4,14 @@ import IconArrowRight from '../assets/icons/icon-arrow-right.svg';
 import { colors } from '../theme/colors';
 import { fontFamily, fontSize } from '../theme/typography';
 
-export function PrimaryButton({ label, onPress, disabled, showIcon = true, accessibilityHint }) {
+export function PrimaryButton({
+  label,
+  onPress,
+  disabled,
+  showIcon = true,
+  accessibilityHint,
+  cor = colors.brand,
+}) {
   return (
     <Pressable
       onPress={onPress}
@@ -15,6 +22,7 @@ export function PrimaryButton({ label, onPress, disabled, showIcon = true, acces
       accessibilityState={{ disabled: Boolean(disabled) }}
       style={({ pressed }) => [
         styles.primary,
+        { backgroundColor: cor },
         disabled && styles.primaryDisabled,
         pressed && !disabled && styles.pressed,
       ]}
@@ -25,7 +33,16 @@ export function PrimaryButton({ label, onPress, disabled, showIcon = true, acces
   );
 }
 
-export function SecondaryButton({ label, onPress, disabled, icon, accessibilityHint }) {
+export function SecondaryButton({
+  label,
+  onPress,
+  disabled,
+  icon,
+  accessibilityHint,
+  style,
+  accessibilityState,
+  estiloRotulo,
+}) {
   return (
     <Pressable
       onPress={onPress}
@@ -33,10 +50,10 @@ export function SecondaryButton({ label, onPress, disabled, icon, accessibilityH
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityHint={accessibilityHint}
-      accessibilityState={{ disabled: Boolean(disabled) }}
-      style={({ pressed }) => [styles.secondary, pressed && !disabled && styles.pressed]}
+      accessibilityState={{ ...accessibilityState, disabled: Boolean(disabled) }}
+      style={({ pressed }) => [styles.secondary, pressed && !disabled && styles.pressed, style]}
     >
-      <Text style={styles.secondaryLabel}>{label}</Text>
+      <Text style={[styles.secondaryLabel, estiloRotulo]}>{label}</Text>
       {icon ? <View style={styles.icon}>{icon}</View> : null}
     </Pressable>
   );
@@ -48,7 +65,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    height: 52,
+    minHeight: 52,
+    paddingVertical: 12,
     minWidth: 44,
     borderRadius: 14,
     paddingHorizontal: 20,
@@ -61,6 +79,8 @@ const styles = StyleSheet.create({
     opacity: 0.85,
   },
   primaryLabel: {
+    flexShrink: 1,
+    textAlign: 'center',
     fontFamily: fontFamily.semiBold,
     fontSize: fontSize.body,
     color: colors.white,
@@ -70,7 +90,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    height: 52,
+    minHeight: 52,
+    paddingVertical: 12,
     minWidth: 44,
     borderRadius: 14,
     paddingHorizontal: 20,
@@ -79,6 +100,8 @@ const styles = StyleSheet.create({
     borderColor: colors.borderStrong,
   },
   secondaryLabel: {
+    flexShrink: 1,
+    textAlign: 'center',
     fontFamily: fontFamily.semiBold,
     fontSize: fontSize.body,
     color: colors.brandLink,

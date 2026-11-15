@@ -1,74 +1,116 @@
-import { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PrimaryButton } from '../../components/Button';
+import { ValorComMoeda } from '../../components/Pontos/ValorComMoeda';
 import { DifficultySelector } from '../../components/DifficultySelector';
 import { InputField } from '../../components/InputField';
 import { KeyboardAwareScrollView } from '../../components/KeyboardAwareScrollView';
 import { PickerModal } from '../../components/PickerModal';
-import { RadioBinary } from '../../components/RadioBinary';
 import { ReadonlyField } from '../../components/ReadonlyField';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { SelectField } from '../../components/SelectField';
 import IconEdit from '../../assets/icons/icon-edit.svg';
 import { useCampaigns } from '../../state/CampaignsContext';
-import { MOCK_MISSOES_ATRIBUIDAS } from '../../state/campaignMockData';
 import { useEpics } from '../../state/EpicsContext';
+import { useMissions } from '../../state/MissionsContext';
 import { colors } from '../../theme/colors';
 import { fontFamily, fontSize } from '../../theme/typography';
-import { maskDateInput } from '../../utils/dateInput';
+import { deDataIso, maskDateInput } from '../../utils/dateInput';
 import { isFormValid, validateCampaignForm } from './validateCampaignForm';
 
 const INITIAL_VALUES = {
   titulo: '',
   descricao: '',
+  dataInicio: '',
   dataLimite: '',
   dificuldade: null,
-  atribuirEpico: 'Não',
   epico: null,
+  valorMensurado: '',
+  unidade: '',
 };
 
 function valuesFromCampaign(campaign) {
   return {
     titulo: campaign.titulo,
     descricao: campaign.descricao ?? '',
+    dataInicio: deDataIso(campaign.prazoInicio) ?? '',
     dataLimite: campaign.dataLimite ?? '',
     dificuldade: campaign.dificuldade,
-    atribuirEpico: campaign.epico ? 'Sim' : 'Não',
     epico: campaign.epico ?? null,
+    valorMensurado:
+      campaign.valorMensurado == null ? '' : String(campaign.valorMensurado).replace('.', ','),
+    unidade: campaign.unidade ?? '',
   };
 }
 
 export function CampaignFormScreen({ navigation, route }) {
   const { addCampaign, updateCampaign, getCampaignById } = useCampaigns();
   const { epics } = useEpics();
+  // Épico concluído não pode receber campanha nova (RF-03.8) — não oferece no seletor.
+  const epicosDisponiveis = useMemo(() => epics.filter((e) => e.estado !== 'concluido'), [epics]);
+  const { missions } = useMissions();
   const insets = useSafeAreaInsets();
   const editingCampaignId = route.params?.campaignId ?? null;
   const editingCampaign = editingCampaignId ? getCampaignById(editingCampaignId) : null;
 
+  const missoesAtribuidas = useMemo(
+    () => missions.filter((mission) => mission.campanha?.id === editingCampaign?.id),
+    [missions, editingCampaign?.id],
+  );
+
   const [values, setValues] = useState(() =>
-    editingCampaign ? valuesFromCampaign(editingCampaign) : INITIAL_VALUES,
+    editingCampaign
+      ? valuesFromCampaign(editingCampaign)
+      : { ...INITIAL_VALUES, dataInicio: new Date().toLocaleDateString('pt-BR') },
   );
   const [errors, setErrors] = useState({});
   const [epicModalVisible, setEpicModalVisible] = useState(false);
+  const [enviando, setEnviando] = useState(false);
+  const [erroEnvio, setErroEnvio] = useState('');
 
   function setField(field, value) {
     setValues((current) => ({ ...current, [field]: value }));
   }
 
-  function handleSave() {
+  async function handleSave() {
     const validationErrors = validateCampaignForm(values);
     setErrors(validationErrors);
 
-    if (isFormValid(validationErrors)) {
+    if (!isFormValid(validationErrors)) return;
+
+    setEnviando(true);
+    setErroEnvio('');
+    try {
       if (editingCampaign) {
-        updateCampaign(editingCampaign.id, values);
+        await updateCampaign(editingCampaign.id, values);
       } else {
-        addCampaign(values);
+        await addCampaign(values);
       }
       navigation.goBack();
+    } catch (erro) {
+      if (erro.codigo === 'configuracao_campanha_bloqueada') {
+        setErroEnvio('Esta campanha já começou. Volte aos detalhes para registrar seu progresso.');
+        return;
+      }
+      setErroEnvio('Não foi possível salvar a campanha. Tente novamente.');
+    } finally {
+      setEnviando(false);
     }
+  }
+
+  if (editingCampaignId && editingCampaign?.estado !== 'planejada') {
+    return (
+      <View style={[styles.screen, { paddingTop: insets.top + 12 }]}>
+        <ScreenHeader title="Editar campanha" onBack={() => navigation.goBack()} />
+        <Text style={[styles.groupLabel, { margin: 24 }]}>
+          {editingCampaign?.estado === 'emAndamento'
+            ? 'Esta campanha já começou. Registre seu progresso nos detalhes.'
+            : 'Esta campanha não está disponível para edição.'}
+        </Text>
+      </View>
+    );
   }
 
   return (
@@ -104,6 +146,37 @@ export function CampaignFormScreen({ navigation, route }) {
         <ReadonlyField label="Tipo" value="Campanha" />
 
         <InputField
+          label="Quanto você quer alcançar?"
+          required
+          value={values.valorMensurado}
+          onChangeText={(valor) => setField('valorMensurado', valor)}
+          placeholder="Ex.: 12"
+          keyboardType="decimal-pad"
+          maxLength={13}
+          error={errors.valorMensurado}
+        />
+        <InputField
+          label="Unidade da meta"
+          required
+          value={values.unidade}
+          onChangeText={(valor) => setField('unidade', valor)}
+          placeholder="Ex.: módulos, quilômetros ou reais"
+          maxLength={30}
+          error={errors.unidade}
+        />
+
+        <InputField
+          label="Data de início"
+          required
+          value={values.dataInicio}
+          onChangeText={(text) => setField('dataInicio', maskDateInput(text))}
+          placeholder="dd/mm/aaaa"
+          keyboardType="number-pad"
+          maxLength={10}
+          error={errors.dataInicio}
+        />
+
+        <InputField
           label="Data limite"
           required
           value={values.dataLimite}
@@ -123,45 +196,52 @@ export function CampaignFormScreen({ navigation, route }) {
           {errors.dificuldade ? <Text style={styles.errorText}>{errors.dificuldade}</Text> : null}
         </View>
 
-        <View
-          style={styles.inertButton}
-          accessible
-          accessibilityLabel="Adicionar missão, ainda não disponível nesta versão"
-        >
-          <Text style={styles.inertButtonLabel}>Adicionar missão</Text>
-          <IconEdit width={24} height={24} />
-        </View>
+        {editingCampaign ? (
+          <Pressable
+            onPress={() =>
+              navigation.navigate('MissionForm', {
+                campanha: {
+                  id: editingCampaign.id,
+                  titulo: editingCampaign.titulo,
+                  epicoId: editingCampaign.epico?.id,
+                },
+              })
+            }
+            accessibilityRole="button"
+            accessibilityLabel="Adicionar missão"
+            style={({ pressed }) => [
+              styles.addMissionButton,
+              pressed && styles.addMissionButtonPressed,
+            ]}
+          >
+            <Text style={styles.addMissionButtonLabel}>Adicionar missão</Text>
+            <IconEdit width={24} height={24} />
+          </Pressable>
+        ) : null}
 
-        <Text style={styles.groupLabel}>Missões atribuídas</Text>
-        {/* Lista somente-leitura de exemplo — atribuição real de missões a
-            uma campanha, a partir deste formulário, ainda não existe nesta
-            sprint. */}
-        {MOCK_MISSOES_ATRIBUIDAS.map((missao) => (
-          <View key={missao.id} style={styles.assignedItem}>
-            <Text style={styles.assignedItemLabel} numberOfLines={1}>
-              {missao.titulo}
-            </Text>
-            <Text style={styles.assignedItemFraction}>+{missao.pontos} XP</Text>
-          </View>
-        ))}
+        {missoesAtribuidas.length > 0 ? (
+          <>
+            <Text style={styles.groupLabel}>Missões atribuídas</Text>
+            {missoesAtribuidas.map((missao) => (
+              <View key={missao.id} style={styles.assignedItem}>
+                <Text style={styles.assignedItemLabel} numberOfLines={1}>
+                  {missao.titulo}
+                </Text>
+                <ValorComMoeda
+                  valor={missao.pontos}
+                  comSinal
+                  tamanho="compacto"
+                  cor={colors.brandDark}
+                  rotulo="Recompensa"
+                />
+              </View>
+            ))}
+          </>
+        ) : null}
 
-        <View
-          style={styles.seeAllLink}
-          accessible
-          accessibilityLabel="Ver todas, ainda não disponível nesta versão"
-        >
-          <Text style={styles.seeAllLinkLabel}>Ver todas ↓</Text>
-        </View>
-
-        <View style={styles.fieldGroup}>
-          <Text style={styles.groupLabel}>Atribuir a um épico</Text>
-          <RadioBinary
-            value={values.atribuirEpico}
-            onChange={(value) => setField('atribuirEpico', value)}
-          />
-        </View>
-
-        {values.atribuirEpico === 'Sim' ? (
+        {editingCampaign ? (
+          <ReadonlyField label="Épico" value={values.epico?.titulo} />
+        ) : (
           <SelectField
             label="Épico"
             required
@@ -170,18 +250,25 @@ export function CampaignFormScreen({ navigation, route }) {
             onPress={() => setEpicModalVisible(true)}
             error={errors.epico}
           />
+        )}
+
+        {erroEnvio ? (
+          <Text style={styles.errorText} accessibilityRole="alert">
+            {erroEnvio}
+          </Text>
         ) : null}
 
         <PrimaryButton
           label={editingCampaign ? 'Salvar alterações' : 'Salvar campanha'}
           onPress={handleSave}
+          disabled={enviando}
         />
       </KeyboardAwareScrollView>
 
       <PickerModal
         visible={epicModalVisible}
         title="Escolher épico"
-        items={epics}
+        items={epicosDisponiveis}
         onSelect={(epic) => {
           setField('epico', epic);
           setEpicModalVisible(false);
@@ -216,7 +303,7 @@ const styles = StyleSheet.create({
     fontSize: fontSize.base,
     color: colors.dangerText,
   },
-  inertButton: {
+  addMissionButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -227,7 +314,10 @@ const styles = StyleSheet.create({
     borderColor: colors.borderStrong,
     backgroundColor: colors.surface,
   },
-  inertButtonLabel: {
+  addMissionButtonPressed: {
+    opacity: 0.85,
+  },
+  addMissionButtonLabel: {
     fontFamily: fontFamily.semiBold,
     fontSize: fontSize.body,
     color: colors.brandLink,
@@ -246,19 +336,5 @@ const styles = StyleSheet.create({
     fontFamily: fontFamily.semiBold,
     fontSize: fontSize.base,
     color: colors.textPrimaryStrong,
-  },
-  assignedItemFraction: {
-    fontFamily: fontFamily.semiBold,
-    fontSize: fontSize.base,
-    color: colors.brandDark,
-  },
-  seeAllLink: {
-    height: 44,
-    justifyContent: 'center',
-  },
-  seeAllLinkLabel: {
-    fontFamily: fontFamily.semiBold,
-    fontSize: fontSize.base,
-    color: colors.brandDark,
   },
 });
