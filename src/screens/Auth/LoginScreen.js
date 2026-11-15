@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { PrimaryButton, SecondaryButton } from '../../components/Button';
+import { PrimaryButton } from '../../components/Button';
 import { InputField } from '../../components/InputField';
 import { KeyboardAwareScrollView } from '../../components/KeyboardAwareScrollView';
 import { colors } from '../../theme/colors';
@@ -88,16 +88,6 @@ export function LoginScreen({ navigation, route }) {
             error={errors.password}
           />
 
-          <Pressable
-            disabled
-            accessibilityRole="button"
-            accessibilityLabel="Esqueci minha senha"
-            accessibilityHint="Ainda não disponível nesta versão"
-            style={styles.forgotLink}
-          >
-            <Text style={styles.linkLabel}>Esqueci minha senha</Text>
-          </Pressable>
-
           {erroAcesso ? (
             <Text style={styles.errorText} accessibilityRole="alert">
               {erroAcesso}
@@ -107,13 +97,6 @@ export function LoginScreen({ navigation, route }) {
             label={enviando ? 'Entrando…' : 'Entrar na minha jornada'}
             onPress={handleLogin}
             disabled={enviando}
-          />
-
-          <SecondaryButton
-            label="Continuar com Google"
-            onPress={() => {}}
-            disabled
-            accessibilityHint="Ainda não disponível nesta versão"
           />
         </View>
 
@@ -167,16 +150,6 @@ const styles = StyleSheet.create({
   },
   form: {
     gap: 14,
-  },
-  forgotLink: {
-    alignSelf: 'flex-end',
-    minHeight: 32,
-    justifyContent: 'center',
-  },
-  linkLabel: {
-    fontFamily: fontFamily.semiBold,
-    fontSize: fontSize.base,
-    color: colors.brandLink,
   },
   footerRow: {
     flexDirection: 'row',

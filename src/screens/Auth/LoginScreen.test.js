@@ -23,7 +23,9 @@ describe('LoginScreen', () => {
     expect(screen.getByLabelText('E-mail')).toBeTruthy();
     expect(screen.getByPlaceholderText('Digite um email')).toBeTruthy();
     expect(screen.getByLabelText('Senha')).toBeTruthy();
-    expect(screen.getByLabelText('Continuar com Google')).toBeTruthy();
+    expect(screen.getByLabelText('Entrar na minha jornada')).toBeTruthy();
+    expect(screen.queryByLabelText('Continuar com Google')).toBeNull();
+    expect(screen.queryByLabelText('Esqueci minha senha')).toBeNull();
   });
 
   it('envia as credenciais e aguarda a sessão, sem navegar por conta própria', async () => {
