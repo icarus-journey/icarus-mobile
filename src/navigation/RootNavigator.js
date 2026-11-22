@@ -3,6 +3,11 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { LoginScreen } from '../screens/Auth/LoginScreen';
 import { RegisterScreen } from '../screens/Auth/RegisterScreen';
 import { OnboardingScreen } from '../screens/Onboarding/OnboardingScreen';
+import {
+  RelatarProblemaScreen,
+  RelatoEnviadoScreen,
+} from '../screens/Suporte/RelatarProblemaScreen';
+import { DetalheRelatoScreen, MeusRelatosScreen } from '../screens/Suporte/MeusRelatosScreen';
 import { useSessao } from '../state/SessaoContext';
 import { AbasPrincipais } from './AbasPrincipais';
 import { useOpcoesDaJanela } from './OpcoesDaJanela';
@@ -38,6 +43,10 @@ export function RootNavigator({ initialRouteName }) {
           telaInicial: initialRouteName === 'Onboarding' ? undefined : initialRouteName,
         }}
       />
+      <Stack.Screen name="RelatarProblema" component={RelatarProblemaScreen} />
+      <Stack.Screen name="RelatoEnviado" component={RelatoEnviadoScreen} />
+      <Stack.Screen name="MeusRelatos" component={MeusRelatosScreen} />
+      <Stack.Screen name="DetalheRelato" component={DetalheRelatoScreen} />
     </Stack.Navigator>
   );
 }
