@@ -1,9 +1,10 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import { ActivityIndicator, Alert, Modal, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 
+import IconSeta from '../../assets/icons/icon-chevron-left.svg';
 import { Avatar } from '../../components/Avatar';
 import { PrimaryButton, SecondaryButton } from '../../components/Button';
 import { InputField } from '../../components/InputField';
@@ -15,7 +16,7 @@ import { atualizarFotoPerfil, criarServicoPerfil, obterFotoPerfil } from '../../
 import { useSessao } from '../../state/SessaoContext';
 import { colors } from '../../theme/colors';
 import { fontFamily, fontSize } from '../../theme/typography';
-import { formularioDoPerfil, validarPerfil } from './validarPerfil';
+import { formularioDoPerfil, perfilFoiAlterado, validarPerfil } from './validarPerfil';
 
 const SITUACOES = [
   { id: 'nao-informado', titulo: 'Não informado', valor: null },
@@ -55,6 +56,7 @@ function DadosDaConta({ navigation }) {
   const leitura = useRef(null);
   const emFoco = useRef(false);
   const insets = useSafeAreaInsets();
+  const alterado = perfil && formulario && perfilFoiAlterado(perfil, formulario);
 
   const carregar = useCallback(async () => {
     leitura.current?.abort();
@@ -128,7 +130,7 @@ function DadosDaConta({ navigation }) {
   }
 
   async function salvar() {
-    if (ocupado.current || !formulario) return;
+    if (ocupado.current || !alterado) return;
     const validacao = validarPerfil(formulario);
     setErros(validacao.erros);
     setSucesso('');
@@ -313,13 +315,29 @@ function DadosDaConta({ navigation }) {
         {!carregando && !perfil ? (
           <SecondaryButton label="Tentar novamente" onPress={carregar} />
         ) : null}
-        {perfil ? (
+        {alterado ? (
           <PrimaryButton
             label={salvando ? 'Salvando…' : 'Salvar alterações'}
             onPress={salvar}
             disabled={salvando || saindo}
           />
         ) : null}
+        <View style={styles.suporte}>
+          <Text style={styles.suporteTitulo} accessibilityRole="header">
+            Suporte
+          </Text>
+          <View style={styles.atalhos}>
+            <AtalhoSuporte
+              label="Relatar problema"
+              onPress={() => navigation.navigate('RelatarProblema')}
+            />
+            <View style={styles.divisoria} />
+            <AtalhoSuporte
+              label="Meus relatos"
+              onPress={() => navigation.navigate('MeusRelatos')}
+            />
+          </View>
+        </View>
         <SecondaryButton
           label="Sair da conta"
           onPress={() => {
@@ -383,7 +401,42 @@ function DadosDaConta({ navigation }) {
   );
 }
 
+function AtalhoSuporte({ label, onPress }) {
+  return (
+    <Pressable accessibilityRole="button" onPress={onPress} style={styles.atalho}>
+      <Text style={styles.atalhoTexto}>{label}</Text>
+      <View style={styles.seta}>
+        <IconSeta />
+      </View>
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
+  suporte: { borderTopWidth: 1, borderColor: colors.borderDefault, paddingTop: 16, gap: 8 },
+  suporteTitulo: {
+    fontFamily: fontFamily.semiBold,
+    fontSize: fontSize.title,
+    color: colors.textPrimary,
+  },
+  atalhos: { borderWidth: 1, borderColor: colors.borderDefault, borderRadius: 16 },
+  divisoria: { height: 1, backgroundColor: colors.borderDefault },
+  atalho: {
+    minHeight: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    gap: 8,
+  },
+  seta: { transform: [{ scaleX: -1 }] },
+  atalhoTexto: {
+    flex: 1,
+    fontFamily: fontFamily.semiBold,
+    fontSize: fontSize.body,
+    color: colors.textPrimary,
+  },
   screen: { flex: 1, backgroundColor: colors.surface },
   content: { paddingHorizontal: 24, paddingBottom: 24, gap: 16 },
   title: {

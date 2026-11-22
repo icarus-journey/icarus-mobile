@@ -77,7 +77,7 @@ it('não desmonta os campos nem a foto durante a atualização ao voltar', async
   expect(screen.getByLabelText('Nome: Ana Silva')).toBe(nome);
   expect(screen.getByLabelText('Foto de perfil de Ana Silva')).toBe(imagem);
   expect(screen.queryByLabelText('Carregando perfil')).toBeNull();
-  expect(screen.getByLabelText('Salvar alterações')).toBeEnabled();
+  expect(screen.queryByLabelText('Salvar alterações')).toBeNull();
   await act(async () => consulta.resolver(perfil));
   expect(screen.getByLabelText('Nome: Ana Silva')).toBe(nome);
 });

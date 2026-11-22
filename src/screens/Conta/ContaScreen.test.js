@@ -67,6 +67,7 @@ it('consulta dados reais e mantém o cadastro somente para leitura', async () =>
   expect(screen.queryByLabelText('Nome')).toBeNull();
   expect(screen.queryByLabelText('Telefone')).toBeNull();
   expect(screen.getAllByText('Não informado')).toHaveLength(2);
+  expect(screen.queryByLabelText('Salvar alterações')).toBeNull();
 });
 
 it('salva somente os campos analíticos e aceita horas com vírgula', async () => {
@@ -87,6 +88,7 @@ it('salva somente os campos analíticos e aceita horas com vírgula', async () =
     },
   });
   expect(await screen.findByText('Alterações salvas.')).toBeTruthy();
+  expect(screen.queryByLabelText('Salvar alterações')).toBeNull();
 });
 
 it('permite retirar informações existentes sem converter ausência em não', async () => {
@@ -132,6 +134,7 @@ it('valida horas antes de enviar e preserva o formulário quando a API falha', a
 
 it('aguarda a confirmação da API e bloqueia envio duplicado', async () => {
   await abrir();
+  await selecionar('Você estuda?', 'Sim');
   let concluir;
   mockRequisitar.mockImplementationOnce(
     () =>
@@ -147,6 +150,14 @@ it('aguarda a confirmação da API e bloqueia envio duplicado', async () => {
     concluir(perfil);
   });
   expect(await screen.findByText('Alterações salvas.')).toBeTruthy();
+});
+
+it('oculta Salvar alterações se o campo voltar ao valor salvo', async () => {
+  await abrir();
+  await selecionar('Você estuda?', 'Sim');
+  expect(screen.getByLabelText('Salvar alterações')).toBeEnabled();
+  await selecionar('Você estuda?', 'Não informado');
+  expect(screen.queryByLabelText('Salvar alterações')).toBeNull();
 });
 
 it('trata erro na consulta e permite tentar novamente', async () => {

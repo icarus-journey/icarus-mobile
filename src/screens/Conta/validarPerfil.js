@@ -30,3 +30,12 @@ export function validarPerfil(formulario) {
   }
   return { erros, dados };
 }
+
+export function perfilFoiAlterado(perfil, formulario) {
+  const { dados, erros } = validarPerfil(formulario);
+  const salvos = validarPerfil(formularioDoPerfil(perfil)).dados;
+  return (
+    Object.keys(erros).length > 0 ||
+    Object.keys(salvos).some((campo) => salvos[campo] !== dados[campo])
+  );
+}
